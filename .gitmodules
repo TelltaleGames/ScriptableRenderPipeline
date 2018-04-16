@@ -1,10 +1,10 @@
 [submodule "PostProcessing"]
 	path = PostProcessing
-	url = https://github.com/Unity-Technologies/PostProcessing
+	url = https://github.com/TelltaleGames/PostProcessing.git
 	branch = v2
 [submodule "ShaderGraph"]
 	path = ShaderGraph
-	url = https://github.com/Unity-Technologies/ShaderGraph
+	url = https://github.com/TelltaleGames/ShaderGraph.git
 [submodule "Tests/UTF_Core"]
 	path = Tests/UTF_Core
 	url = https://github.com/Unity-Technologies/UTF_Core.git
