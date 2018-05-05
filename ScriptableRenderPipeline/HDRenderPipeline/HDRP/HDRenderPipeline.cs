@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine.Rendering;
 using System;
 using System.Diagnostics;
@@ -1130,7 +1130,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             var drawSettings = new DrawRendererSettings(camera, HDShaderPassNames.s_EmptyName)
             {
                 rendererConfiguration = rendererConfiguration,
-                sorting = { flags = SortFlags.CommonOpaque }
+                sorting = { flags = SortFlags.OptimizeStateChanges }
             };
 
             for (int i = 0; i < passNames.Length; ++i)
