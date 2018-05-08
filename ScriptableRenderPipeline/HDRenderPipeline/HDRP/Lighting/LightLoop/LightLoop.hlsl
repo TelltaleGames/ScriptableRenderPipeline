@@ -97,6 +97,18 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
             LightData lightData = FetchLight(lightStart, i);
 
             DirectLighting lighting = EvaluateBSDF_Punctual(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
+            
+            const float _LightMaskWeights[4] =
+            {
+                1.0,
+                0.05,
+                0.5,
+                0.2
+            };
+            float lightMulti = _LightMaskWeights[i % 4];
+            lighting.diffuse *= lightMulti;
+            lighting.specular *= lightMulti;
+
             AccumulateDirectLighting(lighting, aggregateLighting);
         }
     }
