@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine.Experimental.Rendering.HDPipeline.Internal;
 using UnityEngine.Rendering;
@@ -6,6 +6,18 @@ using UnityEngine.Rendering.PostProcessing;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
+    // Light groups.
+    public class LightGroupMap
+    {
+        public int lightGroupCount;
+        public Dictionary<Component, float[]> lightToWeights;
+        public float[] defaultWeights;
+
+        // TODO: Add weights for environment direct and indirect.
+    }
+
+    public delegate LightGroupMap RetrieveLightGroupMapDelegate();
+
     class ShadowSetup : IDisposable
     {
         // shadow related stuff
@@ -304,7 +316,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public List<EnvLightData> envLights;
             public List<ShadowData> shadows;
 
-            public List<float> lightGroupWeights; // Light groups.
+            public float[] lightGroupWeights; // Light groups.
 
             public List<SFiniteLightBound> bounds;
             public List<LightVolumeData> lightVolumes;
@@ -318,12 +330,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 envLights.Clear();
                 shadows.Clear();
 
-                lightGroupWeights.Clear();
-
                 bounds.Clear();
                 lightVolumes.Clear();
                 rightEyeBounds.Clear();
                 rightEyeLightVolumes.Clear();
+
+                // Light groups. Don't actually do any clearing of the array here.
             }
 
             public void Allocate()
@@ -333,7 +345,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 envLights = new List<EnvLightData>();
                 shadows = new List<ShadowData>();
 
-                lightGroupWeights = new List<float>();
+                lightGroupWeights = new float[0];
 
                 bounds = new List<SFiniteLightBound>();
                 lightVolumes = new List<LightVolumeData>();
@@ -442,6 +454,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         int m_CurrentSunLightShadowIndex = -1;
 
         public Light GetCurrentSunLight() { return m_CurrentSunLight; }
+
+        // Light groups.
+        public RetrieveLightGroupMapDelegate RetrieveLightGroupMap { get; set; }
 
         // shadow related stuff
         FrameId                 m_FrameId = new FrameId();
@@ -1425,7 +1440,61 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     light.bakingOutput.occlusionMaskChannel != -1; // We need to have an occlusion mask channel assign, else we have no shadow mask
         }
 
-        static int count = 0;
+        private T[] GetInitializedArray<T>(int size, T value)
+        {
+            T[] result = new T[size];
+            for (int i = 0; i < size; i++)
+            {
+                result[i] = value;
+            }
+            return result;
+        }
+
+        // Light groups.
+        private LightGroupMap GetLightGroupMapAndInitWeights()
+        {
+            LightGroupMap lightGroupMap;
+            if (RetrieveLightGroupMap != null)
+            {
+                lightGroupMap = RetrieveLightGroupMap();
+            }
+            else
+            {
+                // Default map will result in all objects being affected by all lights.
+                lightGroupMap = new LightGroupMap
+                {
+                    lightGroupCount = k_MaxLightGroups,
+                    lightToWeights = new Dictionary<Component, float[]>(),
+                    defaultWeights = GetInitializedArray(k_MaxLightGroups, 1.0f)
+                };
+            }
+
+            // Resize the light group map if it doesn't match the current light group count.
+            int mapSize = lightGroupMap.lightGroupCount * k_LightGroupStride;
+            if (m_lightList.lightGroupWeights.Length != mapSize)
+            {
+                m_lightList.lightGroupWeights = new float[mapSize];
+            }
+
+            return lightGroupMap;
+        }
+
+        // Light groups.
+        void SetLightGroupWeightsForLight(Light light, int destIndex, LightGroupMap lightGroupMap)
+        {
+            float[] weightsForLight;
+            lightGroupMap.lightToWeights.TryGetValue(light, out weightsForLight);
+            if (weightsForLight == null)
+            {
+                weightsForLight = lightGroupMap.defaultWeights;
+            }
+
+            float[] destWeights = m_lightList.lightGroupWeights;
+            for (int i = 0, count = lightGroupMap.lightGroupCount ; i < count; i++, destIndex += k_LightGroupStride)
+            {
+                destWeights[destIndex] = weightsForLight[i];
+            }
+        }
 
         // Return true if BakedShadowMask are enabled
         public bool PrepareLightsForGPU(CommandBuffer cmd, ShadowSettings shadowSettings, CullResults cullResults, ReflectionProbeCullResults reflectionProbeCullResults, Camera camera)
@@ -1437,6 +1506,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 m_maxShadowDistance = shadowSettings.maxShadowDistance;
 
                 m_lightList.Clear();
+
+                // Light groups.
+                LightGroupMap lightGroupMap = GetLightGroupMapAndInitWeights();
 
                 // We need to properly reset this here otherwise if we go from 1 light to no visible light we would keep the old reference active.
                 m_CurrentSunLight = null;
@@ -1660,9 +1732,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         // Punctual, area, projector lights - the rendering side.
                         if (GetLightData(cmd, shadowSettings, camera, gpuLightType, light, additionalLightData, additionalShadowData, lightIndex, ref lightDimensions))
                         {
+                            int lightDataIndex = m_lightList.lights.Count - 1;
                             switch (lightCategory)
                             {
                                 case LightCategory.Punctual:
+                                    // Light groups.
+                                    SetLightGroupWeightsForLight(light.light, k_PunctualLightsLightGroupOffset + lightDataIndex, lightGroupMap);
                                     punctualLightcount++;
                                     break;
                                 case LightCategory.Area:
@@ -1826,12 +1901,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     m_lightList.bounds.AddRange(m_lightList.rightEyeBounds);
                     m_lightList.lightVolumes.AddRange(m_lightList.rightEyeLightVolumes);
                 }
-
-                m_lightList.lightGroupWeights.Add(0.1f);
-                m_lightList.lightGroupWeights.Add(0.05f);
-                m_lightList.lightGroupWeights.Add(0.5f);
-                m_lightList.lightGroupWeights.Add(0.2f);
-                m_lightList.lightGroupWeights.Add(0.0f);
 
                 UpdateDataBuffers();
 
