@@ -275,12 +275,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public const int k_MaxStereoEyes = 2;
         public static readonly Vector3 k_BoxCullingExtentThreshold = Vector3.one * 0.01f;
 
+        // Light groups.
+        public const int k_MaxLightGroups = 16;
+        public const int k_LightGroupStride = k_MaxPunctualLightsOnScreen;
+        public const int k_PunctualLightsLightGroupOffset = 0;
+
         // Static keyword is required here else we get a "DestroyBuffer can only be called from the main thread"
         ComputeBuffer m_DirectionalLightDatas = null;
         ComputeBuffer m_LightDatas = null;
         ComputeBuffer m_EnvLightDatas = null;
         ComputeBuffer m_shadowDatas = null;
         ComputeBuffer m_DecalDatas = null;
+        ComputeBuffer m_LightGroupData = null; // Light groups.
 
         Texture2DArray  m_DefaultTexture2DArray;
         Cubemap         m_DefaultTextureCube;
@@ -298,6 +304,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public List<EnvLightData> envLights;
             public List<ShadowData> shadows;
 
+            public List<float> lightGroupWeights; // Light groups.
+
             public List<SFiniteLightBound> bounds;
             public List<LightVolumeData> lightVolumes;
             public List<SFiniteLightBound> rightEyeBounds;
@@ -309,6 +317,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 lights.Clear();
                 envLights.Clear();
                 shadows.Clear();
+
+                lightGroupWeights.Clear();
 
                 bounds.Clear();
                 lightVolumes.Clear();
@@ -322,6 +332,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 lights = new List<LightData>();
                 envLights = new List<EnvLightData>();
                 shadows = new List<ShadowData>();
+
+                lightGroupWeights = new List<float>();
 
                 bounds = new List<SFiniteLightBound>();
                 lightVolumes = new List<LightVolumeData>();
@@ -506,6 +518,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_EnvLightDatas = new ComputeBuffer(k_MaxEnvLightsOnScreen, System.Runtime.InteropServices.Marshal.SizeOf(typeof(EnvLightData)));
             m_shadowDatas = new ComputeBuffer(k_MaxCascadeCount + k_MaxShadowOnScreen, System.Runtime.InteropServices.Marshal.SizeOf(typeof(ShadowData)));
             m_DecalDatas = new ComputeBuffer(k_MaxDecalsOnScreen, System.Runtime.InteropServices.Marshal.SizeOf(typeof(DecalData)));
+            m_LightGroupData = new ComputeBuffer(k_MaxLightGroups * k_LightGroupStride, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float))); // Light groups.
 
             GlobalLightLoopSettings gLightLoopSettings = hdAsset.GetRenderPipelineSettings().lightLoopSettings;
             m_CookieTexArray = new TextureCache2D("Cookie");
@@ -620,6 +633,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             CoreUtils.SafeRelease(m_EnvLightDatas);
             CoreUtils.SafeRelease(m_shadowDatas);
             CoreUtils.SafeRelease(m_DecalDatas);
+            CoreUtils.SafeRelease(m_LightGroupData); // Light groups.
 
             if (m_ReflectionProbeCache != null)
             {
@@ -1411,6 +1425,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     light.bakingOutput.occlusionMaskChannel != -1; // We need to have an occlusion mask channel assign, else we have no shadow mask
         }
 
+        static int count = 0;
+
         // Return true if BakedShadowMask are enabled
         public bool PrepareLightsForGPU(CommandBuffer cmd, ShadowSettings shadowSettings, CullResults cullResults, ReflectionProbeCullResults reflectionProbeCullResults, Camera camera)
         {
@@ -1810,7 +1826,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     m_lightList.bounds.AddRange(m_lightList.rightEyeBounds);
                     m_lightList.lightVolumes.AddRange(m_lightList.rightEyeLightVolumes);
                 }
-                
+
+                m_lightList.lightGroupWeights.Add(0.1f);
+                m_lightList.lightGroupWeights.Add(0.05f);
+                m_lightList.lightGroupWeights.Add(0.5f);
+                m_lightList.lightGroupWeights.Add(0.2f);
+                m_lightList.lightGroupWeights.Add(0.0f);
+
                 UpdateDataBuffers();
 
                 return m_enableBakeShadowMask;
@@ -2119,6 +2141,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_EnvLightDatas.SetData(m_lightList.envLights);
             m_shadowDatas.SetData(m_lightList.shadows);
             m_DecalDatas.SetData(DecalSystem.m_DecalDatas, 0, 0, Math.Min(DecalSystem.m_DecalDatasCount, k_MaxDecalsOnScreen)); // don't add more than the size of the buffer
+            m_LightGroupData.SetData(m_lightList.lightGroupWeights); // Light groups.
 
             // These two buffers have been set in Rebuild()
             s_ConvexBoundsBuffer.SetData(m_lightList.bounds);
@@ -2173,6 +2196,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 cmd.SetGlobalBuffer(HDShaderIDs._DecalDatas, m_DecalDatas);
                 cmd.SetGlobalInt(HDShaderIDs._DecalCount, DecalSystem.m_DecalDatasCount);
                 cmd.SetGlobalBuffer(HDShaderIDs._ShadowDatas, m_shadowDatas);
+                cmd.SetGlobalBuffer(HDShaderIDs._LightGroupData, m_LightGroupData); // Light groups.
 
                 cmd.SetGlobalInt(HDShaderIDs._NumTileFtplX, GetNumTileFtplX(hdCamera));
                 cmd.SetGlobalInt(HDShaderIDs._NumTileFtplY, GetNumTileFtplY(hdCamera));

@@ -112,6 +112,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static readonly int _NumTileClusteredX = Shader.PropertyToID("_NumTileClusteredX");
         public static readonly int _NumTileClusteredY = Shader.PropertyToID("_NumTileClusteredY");
 
+        public static readonly int _LightGroupData = Shader.PropertyToID("_LightGroupData"); // Light groups.
+
         public static readonly int g_isLogBaseBufferEnabled = Shader.PropertyToID("g_isLogBaseBufferEnabled");
         public static readonly int g_vLayeredOffsetsBuffer = Shader.PropertyToID("g_vLayeredOffsetsBuffer");
 
