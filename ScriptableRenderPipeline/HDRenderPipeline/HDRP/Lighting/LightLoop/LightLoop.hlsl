@@ -97,6 +97,14 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
             LightData lightData = FetchLight(lightStart, i);
 
             DirectLighting lighting = EvaluateBSDF_Punctual(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
+
+            // Light groups.
+            // TODO JLS: Don't fetch index twice.
+            // TODO JLS: Skip all the light fetch and lighting calculations if weight is zero.
+            float lightWeight = FetchLightWeight(lightStart, i, 0 /* TODO: Make light group index a material parameter. */);
+            lighting.diffuse *= lightWeight; // TODO JLS: Make weight a parameter to Accumulate lighting functions.
+            lighting.specular *= lightWeight;
+
             AccumulateDirectLighting(lighting, aggregateLighting);
         }
     }

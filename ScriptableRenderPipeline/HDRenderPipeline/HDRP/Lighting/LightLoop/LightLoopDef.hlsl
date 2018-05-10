@@ -42,6 +42,12 @@ StructuredBuffer<LightData>            _LightDatas;
 StructuredBuffer<EnvLightData>         _EnvLightDatas;
 StructuredBuffer<ShadowData>           _ShadowDatas;
 
+// Light groups.
+// TODO JLS: Add offsets and update stride for all the different light types.
+#define LIGHT_GROUP_STRIDE 512
+#define LIGHT_GROUP_PUNCTUAL_OFFSET 0
+StructuredBuffer<float>                _LightGroupData;
+
 // Used by directional and spot lights
 TEXTURE2D_ARRAY(_CookieTextures);
 
@@ -288,4 +294,13 @@ EnvLightData FetchEnvLight(uint start, uint i)
     int j = FetchIndex(start, i);
 
     return _EnvLightDatas[j];
+}
+
+// Light groups.
+// TODO JLS: This is doing a redundant fetch of the index.
+float FetchLightWeight(uint start, uint i, uint lightGroupIndex)
+{
+    int j = FetchIndex(start, i);
+
+    return _LightGroupData[lightGroupIndex * LIGHT_GROUP_STRIDE + LIGHT_GROUP_PUNCTUAL_OFFSET + j];
 }
