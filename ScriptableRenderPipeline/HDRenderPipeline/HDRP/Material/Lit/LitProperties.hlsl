@@ -197,6 +197,8 @@ float4 _UVMappingMask;
 float4 _UVDetailsMappingMask;
 float _LinkDetailsWithBase;
 
+int _LightGroupIndex;
+
 #else // LAYERED_LIT_SHADER
 
 // Set of users variables
@@ -262,6 +264,8 @@ float4 _UVMappingMaskBlendMask;
 PROP_DECL(float4, _UVMappingMask);
 PROP_DECL(float4, _UVDetailsMappingMask);
 PROP_DECL(float, _LinkDetailsWithBase);
+
+PROP_DECL(int, _LightGroupIndex);
 
 #endif // LAYERED_LIT_SHADER
 
