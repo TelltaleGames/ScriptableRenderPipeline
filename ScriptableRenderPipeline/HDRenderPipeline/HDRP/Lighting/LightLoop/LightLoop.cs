@@ -462,7 +462,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public Light GetCurrentSunLight() { return m_CurrentSunLight; }
 
         // Light groups.
-        public RetrieveLightGroupMapDelegate RetrieveLightGroupMap { get; set; }
+        public static RetrieveLightGroupMapDelegate RetrieveLightGroupMap { get; set; }
 
         // shadow related stuff
         FrameId                 m_FrameId = new FrameId();
