@@ -56,8 +56,9 @@ void ApplyDebug(LightLoopContext lightLoopContext, float3 positionWS, inout floa
 #endif
 }
 
+
 // bakeDiffuseLighting is part of the prototype so a user is able to implement a "base pass" with GI and multipass direct light (aka old unity rendering path)
-void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BSDFData bsdfData, BakeLightingData bakeLightingData, uint featureFlags,
+void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BSDFData bsdfData, BakeLightingData bakeLightingData, uint featureFlags, int lightGroupIndex,
                 out float3 diffuseLighting,
                 out float3 specularLighting)
 {
@@ -101,7 +102,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
             // Light groups.
             // TODO JLS: Don't fetch index twice.
             // TODO JLS: Skip all the light fetch and lighting calculations if weight is zero.
-            float lightWeight = FetchLightWeight(lightStart, i, 0 /* TODO: Make light group index a material parameter. */);
+            float lightWeight = FetchLightWeight(lightStart, i, lightGroupIndex);
             lighting.diffuse *= lightWeight; // TODO JLS: Make weight a parameter to Accumulate lighting functions.
             lighting.specular *= lightWeight;
 

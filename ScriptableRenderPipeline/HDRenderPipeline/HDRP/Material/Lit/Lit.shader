@@ -1,4 +1,4 @@
-﻿Shader "HDRenderPipeline/Lit"
+Shader "HDRenderPipeline/Lit"
 {
     Properties
     {
@@ -197,6 +197,8 @@
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
         [ToggleUI] _SupportDBuffer("Support DBuffer", Float) = 1.0
+
+        [HideInInspector] _LightGroupIndex("LightGroupIndex", Int) = 0
     }
 
     HLSLINCLUDE
