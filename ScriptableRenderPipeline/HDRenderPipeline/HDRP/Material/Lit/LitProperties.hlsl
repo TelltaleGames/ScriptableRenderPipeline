@@ -145,6 +145,8 @@ float _Drag;
 float _ShiverDrag;
 float _ShiverDirectionality;
 
+int _LightGroupIndex;
+
 #ifndef LAYERED_LIT_SHADER
 
 // Set of users variables
@@ -194,8 +196,6 @@ float _InvTilingScale;
 float4 _UVMappingMask;
 float4 _UVDetailsMappingMask;
 float _LinkDetailsWithBase;
-
-int _LightGroupIndex;
 
 #else // LAYERED_LIT_SHADER
 

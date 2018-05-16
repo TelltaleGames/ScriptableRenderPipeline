@@ -43,9 +43,11 @@ StructuredBuffer<EnvLightData>         _EnvLightDatas;
 StructuredBuffer<ShadowData>           _ShadowDatas;
 
 // Light groups.
-// TODO JLS: Add offsets and update stride for all the different light types.
-#define LIGHT_GROUP_STRIDE 512
-#define LIGHT_GROUP_PUNCTUAL_OFFSET 0
+#define LIGHT_GROUP_STRIDE 48
+#define LIGHT_GROUP_ENVIRONMENT_LIGHT_OFFSET 0
+#define LIGHT_GROUP_ENVIRONMENT_REFLECTIONS_OFFSET 1
+#define LIGHT_GROUP_DIRECTIONAL_OFFSET 2
+#define LIGHT_GROUP_PUNCTUAL_OFFSET 18
 StructuredBuffer<float>                _LightGroupData;
 
 // Used by directional and spot lights
@@ -297,7 +299,22 @@ EnvLightData FetchEnvLight(uint start, uint i)
 }
 
 // Light groups.
-// TODO JLS: This is doing a redundant fetch of the index.
+float FetchEnvironmentLightWeight(uint lightGroupIndex)
+{
+    return _LightGroupData[lightGroupIndex * LIGHT_GROUP_STRIDE + LIGHT_GROUP_ENVIRONMENT_LIGHT_OFFSET];
+}
+
+float FetchEnvironmentReflectionsWeight(uint lightGroupIndex)
+{
+    return _LightGroupData[lightGroupIndex * LIGHT_GROUP_STRIDE + LIGHT_GROUP_ENVIRONMENT_REFLECTIONS_OFFSET];
+}
+
+float FetchDirectionalLightWeight(uint i, uint lightGroupIndex)
+{
+    return _LightGroupData[lightGroupIndex * LIGHT_GROUP_STRIDE + LIGHT_GROUP_DIRECTIONAL_OFFSET + i];
+}
+
+// TODO JLS: This is doing a redundant fetch of the index. It happens a second time in FetchLight.
 float FetchLightWeight(uint start, uint i, uint lightGroupIndex)
 {
     int j = FetchIndex(start, i);

@@ -244,17 +244,19 @@ struct AggregateLighting
     IndirectLighting indirect;
 };
 
-void AccumulateDirectLighting(DirectLighting src, inout AggregateLighting dst)
+void AccumulateDirectLighting(DirectLighting src, float weight, inout AggregateLighting dst)
 {
-    dst.direct.diffuse += src.diffuse;
-    dst.direct.specular += src.specular;
+    dst.direct.diffuse += src.diffuse * weight;
+    dst.direct.specular += src.specular * weight;
 }
 
-void AccumulateIndirectLighting(IndirectLighting src, inout AggregateLighting dst)
+void AccumulateIndirectLighting(IndirectLighting src, float weight, inout AggregateLighting dst)
 {
-    dst.indirect.specularReflected += src.specularReflected;
-    dst.indirect.specularTransmitted += src.specularTransmitted;
+    dst.indirect.specularReflected += src.specularReflected * weight;
+    dst.indirect.specularTransmitted += src.specularTransmitted * weight;
 }
+
+
 
 //-----------------------------------------------------------------------------
 // BSDF share between directional light, punctual light and area light (reference)
@@ -509,11 +511,12 @@ IndirectLighting EvaluateBSDF_Env(  LightLoopContext lightLoopContext,
 void PostEvaluateBSDF(  LightLoopContext lightLoopContext,
                         float3 V, PositionInputs posInput,
                         PreLightData preLightData, BSDFData bsdfData, BakeLightingData bakeLightingData, AggregateLighting lighting,
+                        float environmentLightWeight, // Light groups.
                         out float3 diffuseLighting, out float3 specularLighting)
 {
     // Apply the albedo to the direct diffuse lighting and that's about it.
     // diffuse lighting has already had the albedo applied in GetBakedDiffuseLighting().
-    diffuseLighting = bsdfData.diffuseColor * lighting.direct.diffuse + bakeLightingData.bakeDiffuseLighting;
+    diffuseLighting = bsdfData.diffuseColor * lighting.direct.diffuse + environmentLightWeight * bakeLightingData.bakeDiffuseLighting; // Light groups.
     specularLighting = lighting.direct.specular; // should be 0 for now.
 
 #ifdef DEBUG_DISPLAY
