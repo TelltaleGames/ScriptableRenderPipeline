@@ -70,8 +70,13 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
     {
         for (i = 0; i < _DirectionalLightCount; ++i)
         {
-            DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _DirectionalLightDatas[i], bsdfData, bakeLightingData);
-            AccumulateDirectLighting(lighting, aggregateLighting);
+            // Light groups.
+            float lightWeight = FetchDirectionalLightWeight(i, lightGroupIndex);
+            if (lightWeight != 0)
+            {
+                DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _DirectionalLightDatas[i], bsdfData, bakeLightingData);
+                AccumulateDirectLighting(lighting, lightWeight, aggregateLighting);
+            }
         }
     }
 
@@ -88,18 +93,15 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
 
         for (i = 0; i < lightCount; i++)
         {
-            LightData lightData = FetchLight(lightStart, i);
-
-            DirectLighting lighting = EvaluateBSDF_Punctual(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
-
             // Light groups.
-            // TODO JLS: Don't fetch index twice.
-            // TODO JLS: Skip all the light fetch and lighting calculations if weight is zero.
+            // TODO JLS: Don't fetch index twice. Currently happens once in FetchLightWeight and once in FetchLight.
             float lightWeight = FetchLightWeight(lightStart, i, lightGroupIndex);
-            lighting.diffuse *= lightWeight; // TODO JLS: Make weight a parameter to Accumulate lighting functions.
-            lighting.specular *= lightWeight;
-
-            AccumulateDirectLighting(lighting, aggregateLighting);
+            if (lightWeight != 0.0)
+            {
+                LightData lightData = FetchLight(lightStart, i);
+                DirectLighting lighting = EvaluateBSDF_Punctual(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
+                AccumulateDirectLighting(lighting, lightWeight, aggregateLighting);
+            }
         }
     }
 
@@ -131,7 +133,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
                 lightData.lightType = GPULIGHTTYPE_LINE; // Enforce constant propagation
 
                 DirectLighting lighting = EvaluateBSDF_Area(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
-                AccumulateDirectLighting(lighting, aggregateLighting);
+                AccumulateDirectLighting(lighting, 1, aggregateLighting);
 
                 lightData = FetchLight(lightStart, min(++i, last));
             }
@@ -141,12 +143,15 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
                 lightData.lightType = GPULIGHTTYPE_RECTANGLE; // Enforce constant propagation
 
                 DirectLighting lighting = EvaluateBSDF_Area(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
-                AccumulateDirectLighting(lighting, aggregateLighting);
+                AccumulateDirectLighting(lighting, 1, aggregateLighting);
 
                 lightData = FetchLight(lightStart, min(++i, last));
             }
         }
     }
+
+        // Light groups.
+        float environmentReflectionsWeight = FetchEnvironmentReflectionsWeight(lightGroupIndex);
 
     float reflectionHierarchyWeight = 0.0; // Max: 1.0
     float refractionHierarchyWeight = 0.0; // Max: 1.0
@@ -263,11 +268,19 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
                 }
             }
         }
+
     }
+
+        // Light groups.
+        aggregateLighting.indirect.specularReflected *= environmentReflectionsWeight;
+        aggregateLighting.indirect.specularTransmitted *= environmentReflectionsWeight;
+
+    // Light groups.
+    float environmentLightWeight = FetchEnvironmentLightWeight(lightGroupIndex);
 
     // Also Apply indiret diffuse (GI)
     // PostEvaluateBSDF will perform any operation wanted by the material and sum everything into diffuseLighting and specularLighting
-    PostEvaluateBSDF(   context, V, posInput, preLightData, bsdfData, bakeLightingData, aggregateLighting,
+    PostEvaluateBSDF(   context, V, posInput, preLightData, bsdfData, bakeLightingData, aggregateLighting, environmentLightWeight,
                         diffuseLighting, specularLighting);
 
     ApplyDebug(context, posInput.positionWS, diffuseLighting, specularLighting);

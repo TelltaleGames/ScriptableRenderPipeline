@@ -1154,10 +1154,10 @@ struct AggregateLighting
     IndirectLighting indirect;
 };
 
-void AccumulateDirectLighting(DirectLighting src, inout AggregateLighting dst)
+void AccumulateDirectLighting(DirectLighting src, float weight, inout AggregateLighting dst)
 {
-    dst.direct.diffuse += src.diffuse;
-    dst.direct.specular += src.specular;
+    dst.direct.diffuse += src.diffuse * weight;
+    dst.direct.specular += src.specular * weight;
 }
 
 void AccumulateIndirectLighting(IndirectLighting src, inout AggregateLighting dst)
@@ -1974,9 +1974,12 @@ IndirectLighting EvaluateBSDF_Env(  LightLoopContext lightLoopContext,
 void PostEvaluateBSDF(  LightLoopContext lightLoopContext,
                         float3 V, PositionInputs posInput,
                         PreLightData preLightData, BSDFData bsdfData, BakeLightingData bakeLightingData, AggregateLighting lighting,
+                        float environmentLightWeight, // Light groups.
                         out float3 diffuseLighting, out float3 specularLighting)
 {
-    float3 bakeDiffuseLighting = bakeLightingData.bakeDiffuseLighting;
+    // Light groups.
+    // Environment lighting:
+    float3 bakeDiffuseLighting = environmentLightWeight * bakeLightingData.bakeDiffuseLighting;
 
     // Use GTAOMultiBounce approximation for ambient occlusion (allow to get a tint from the baseColor)
 #define GTAO_MULTIBOUNCE_APPROX 1

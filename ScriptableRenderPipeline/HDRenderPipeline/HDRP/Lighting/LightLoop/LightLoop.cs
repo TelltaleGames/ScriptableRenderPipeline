@@ -12,8 +12,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public int lightGroupCount;
         public Dictionary<Component, float[]> lightToWeights;
         public float[] defaultWeights;
-
-        // TODO: Add weights for environment direct and indirect.
+        public float[] environmentLightWeights;
+        public float[] environmentReflectionsWeights;
     }
 
     public delegate LightGroupMap RetrieveLightGroupMapDelegate();
@@ -276,8 +276,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 			Decal = 8
         };
 
-        public const int k_MaxDirectionalLightsOnScreen = 4;
-        public const int k_MaxPunctualLightsOnScreen    = 512;
+        public const int k_MaxDirectionalLightsOnScreen = 16;
+        public const int k_MaxPunctualLightsOnScreen    = 30;
         public const int k_MaxAreaLightsOnScreen        = 64;
         public const int k_MaxDecalsOnScreen = 512;
         public const int k_MaxLightsOnScreen = k_MaxDirectionalLightsOnScreen + k_MaxPunctualLightsOnScreen + k_MaxAreaLightsOnScreen + k_MaxDecalsOnScreen;
@@ -289,8 +289,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         // Light groups.
         public const int k_MaxLightGroups = 16;
-        public const int k_LightGroupStride = k_MaxPunctualLightsOnScreen;
-        public const int k_PunctualLightsLightGroupOffset = 0;
+        public const int k_MaxEnvironmentLightLightGroups = 1;
+        public const int k_MaxEnvironmentReflectionsLightGroups = 1;
+        public const int k_LightGroupStride = k_MaxEnvironmentLightLightGroups + k_MaxEnvironmentReflectionsLightGroups + k_MaxPunctualLightsOnScreen + k_MaxDirectionalLightsOnScreen;
+        public const int k_EnvironmentLightLightGroupOffset = 0;
+        public const int k_EnvironmentReflectionsLightGroupOffset = k_EnvironmentLightLightGroupOffset + k_MaxEnvironmentLightLightGroups;
+        public const int k_DirectionalLightsLightGroupOffset = k_EnvironmentReflectionsLightGroupOffset + k_MaxEnvironmentReflectionsLightGroups;
+        public const int k_PunctualLightsLightGroupOffset = k_DirectionalLightsLightGroupOffset + k_MaxDirectionalLightsOnScreen;
 
         // Static keyword is required here else we get a "DestroyBuffer can only be called from the main thread"
         ComputeBuffer m_DirectionalLightDatas = null;
@@ -1465,7 +1470,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 {
                     lightGroupCount = k_MaxLightGroups,
                     lightToWeights = new Dictionary<Component, float[]>(),
-                    defaultWeights = GetInitializedArray(k_MaxLightGroups, 1.0f)
+                    defaultWeights = GetInitializedArray(k_MaxLightGroups, 1.0f),
+                    environmentLightWeights = defaultWeights,
+                    environmentReflectionsWeights = defaultWeights
                 };
             }
 
@@ -1479,7 +1486,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             return lightGroupMap;
         }
 
-        // Light groups.
         void SetLightGroupWeightsForLight(Light light, int destIndex, LightGroupMap lightGroupMap)
         {
             float[] weightsForLight;
@@ -1489,8 +1495,27 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 weightsForLight = lightGroupMap.defaultWeights;
             }
 
+            CopyLightGroupWeights(weightsForLight, destIndex, lightGroupMap);
+        }
+
+        void SetLightGroupWeightsForEnvironmentLight(LightGroupMap lightGroupMap)
+        {
+            int destIndex = k_EnvironmentLightLightGroupOffset;
+            float[] weightsForLight = lightGroupMap.environmentLightWeights ?? lightGroupMap.defaultWeights;
+            CopyLightGroupWeights(weightsForLight, destIndex, lightGroupMap);
+        }
+
+        void SetLightGroupWeightsForEnvironmentReflections(LightGroupMap lightGroupMap)
+        {
+            int destIndex = k_EnvironmentReflectionsLightGroupOffset;
+            float[] weightsForLight = lightGroupMap.environmentReflectionsWeights ?? lightGroupMap.defaultWeights;
+            CopyLightGroupWeights(weightsForLight, destIndex, lightGroupMap);
+        }
+
+        void CopyLightGroupWeights(float[] weightsForLight, int destIndex, LightGroupMap lightGroupMap)
+        {
             float[] destWeights = m_lightList.lightGroupWeights;
-            for (int i = 0, count = lightGroupMap.lightGroupCount ; i < count; i++, destIndex += k_LightGroupStride)
+            for (int i = 0, count = lightGroupMap.lightGroupCount; i < count; i++, destIndex += k_LightGroupStride)
             {
                 destWeights[destIndex] = weightsForLight[i];
             }
@@ -1509,6 +1534,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 // Light groups.
                 LightGroupMap lightGroupMap = GetLightGroupMapAndInitWeights();
+                SetLightGroupWeightsForEnvironmentLight(lightGroupMap);
+                SetLightGroupWeightsForEnvironmentReflections(lightGroupMap);
 
                 // We need to properly reset this here otherwise if we go from 1 light to no visible light we would keep the old reference active.
                 m_CurrentSunLight = null;
@@ -1711,6 +1738,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         {
                             if (GetDirectionalLightData(cmd, shadowSettings, gpuLightType, light, additionalLightData, additionalShadowData, lightIndex))
                             {
+                                // Light groups.
+                                SetLightGroupWeightsForLight(light.light, k_DirectionalLightsLightGroupOffset + directionalLightcount, lightGroupMap);
+
                                 directionalLightcount++;
 
                                 // We make the light position camera-relative as late as possible in order
