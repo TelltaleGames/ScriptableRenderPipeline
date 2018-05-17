@@ -1,11 +1,13 @@
 Shader "HDRenderPipeline/Decal"
 {
-    Properties
-    {
-        _BaseColorMap("BaseColorMap", 2D) = "white" {}
-		_NormalMap("NormalMap", 2D) = "bump" {}     // Tangent space normal map
-		_MaskMap("MaskMap", 2D) = "white" {}
-		_DecalBlend("_DecalBlend", Range(0.0, 1.0)) = 0.5
+    Properties      
+    { 
+        _AlphaMap("Alpha Map", 2D) = "white" {}
+        _BaseColorMap("Color Map", 2D) = "white" {}
+		_NormalMap("Normal Map", 2D) = "bump" {}     // Tangent space normal map
+        _NormalMapIntensity("Normal Map Intensity", float) = 1.0    
+		_MaskMap("Mask Map", 2D) = "white" {}
+		_DecalBlend("Decal Blend", Range(0.0, 1.0)) = 0.5
     }
 
     HLSLINCLUDE
@@ -17,6 +19,7 @@ Shader "HDRenderPipeline/Decal"
     //-------------------------------------------------------------------------------------
     // Variant
     //-------------------------------------------------------------------------------------
+    #pragma shader_feature _ALPHAMAP
 	#pragma shader_feature _COLORMAP
 	#pragma shader_feature _NORMALMAP
 	#pragma shader_feature _MASKMAP

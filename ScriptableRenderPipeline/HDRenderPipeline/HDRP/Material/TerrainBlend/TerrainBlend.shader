@@ -1,20 +1,24 @@
-Shader "HDRenderPipeline/LayeredLit"
-{
-    Properties
-    {
+Shader "HDRenderPipeline/TerrainBlend"
+{     
+    Properties             
+    {   
         // Following set of parameters represent the parameters node inside the MaterialGraph.
         // They are use to fill a SurfaceData. With a MaterialGraph this should not exist.
+        
+        // Will override the uv parameterization if this is applied to an exported mesh
+        // instead of a Terrain GameObject
+        [ToggleUI] _OnMesh("On Mesh", Float) = 0.0
 
         // All the following properties are filled by the referenced lit shader.
 
         // Reminder. Color here are in linear but the UI (color picker) do the conversion sRGB to linear
         _BaseColor0("BaseColor0", Color) = (1, 1, 1, 1)
         _BaseColor1("BaseColor1", Color) = (1, 1, 1, 1)
-        _BaseColor2("BaseColor2", Color) = (1, 1, 1, 1)
-        _BaseColor3("BaseColor3", Color) = (1, 1, 1, 1)
-
-        _BaseColorMap0("BaseColorMap0", 2D) = "white" {}
-        _BaseColorMap1("BaseColorMap1", 2D) = "white" {}
+        _BaseColor2("BaseColor2", Color) = (1, 1, 1, 1) 
+        _BaseColor3("BaseColor3", Color) = (1, 1, 1, 1)  
+        
+        _BaseColorMap0("BaseColorMap0", 2D) = "white" {}  
+        _BaseColorMap1("BaseColorMap1", 2D) = "white" {}  
         _BaseColorMap2("BaseColorMap2", 2D) = "white" {}
         _BaseColorMap3("BaseColorMap3", 2D) = "white" {}
 
@@ -71,7 +75,7 @@ Shader "HDRenderPipeline/LayeredLit"
         _BentNormalMap0("BentNormalMap0", 2D) = "bump" {}
         _BentNormalMap1("BentNormalMap1", 2D) = "bump" {}
         _BentNormalMap2("BentNormalMap2", 2D) = "bump" {}
-        _BentNormalMap3("BentNormalMap3", 2D) = "bump" {}
+        _BentNormalMap3("BentNormalMap3", 2D) = "bump" {} 
 
         _BentNormalMapOS0("BentNormalMapOS0", 2D) = "white" {}
         _BentNormalMapOS1("BentNormalMapOS1", 2D) = "white" {}
@@ -163,17 +167,17 @@ Shader "HDRenderPipeline/LayeredLit"
         _SubsurfaceMask1("Subsurface Mask1", Range(0.0, 1.0)) = 1.0
         _SubsurfaceMask2("Subsurface Mask2", Range(0.0, 1.0)) = 1.0
         _SubsurfaceMask3("Subsurface Mask3", Range(0.0, 1.0)) = 1.0
-
+ 
         _SubsurfaceMaskMap0("Subsurface Mask Map0", 2D) = "white" {}
         _SubsurfaceMaskMap1("Subsurface Mask Map1", 2D) = "white" {}
         _SubsurfaceMaskMap2("Subsurface Mask Map2", 2D) = "white" {}
         _SubsurfaceMaskMap3("Subsurface Mask Map3", 2D) = "white" {}
 
         _Thickness0("Thickness", Range(0.0, 1.0)) = 1.0
-        _Thickness1("Thickness", Range(0.0, 1.0)) = 1.0
+        _Thickness1("Thickness", Range(0.0, 1.0)) = 1.0 
         _Thickness2("Thickness", Range(0.0, 1.0)) = 1.0
         _Thickness3("Thickness", Range(0.0, 1.0)) = 1.0
-
+  
         _ThicknessMap0("Thickness Map", 2D) = "white" {}
         _ThicknessMap1("Thickness Map", 2D) = "white" {}
         _ThicknessMap2("Thickness Map", 2D) = "white" {}
@@ -247,16 +251,16 @@ Shader "HDRenderPipeline/LayeredLit"
         [HideInInspector] _BlendMode ("__blendmode", Float) = 0.0
         [HideInInspector] _SrcBlend ("__src", Float) = 1.0
         [HideInInspector] _DstBlend ("__dst", Float) = 0.0
-        [HideInInspector] _ZWrite ("__zw", Float) = 1.0
+        [HideInInspector] _ZWrite ("__zw", Float) = 1.0  
         [HideInInspector] _CullMode("__cullmode", Float) = 2.0
         [HideInInspector] _ZTestDepthEqualForOpaque("_ZTestDepthEqualForOpaque", Int) = 4 // Less equal
-        [HideInInspector] _ZTestGBuffer("_ZTestGBuffer", Int) = 4
-
+        [HideInInspector] _ZTestGBuffer("_ZTestGBuffer", Int) = 4 
+     
         [ToggleUI] _EnableFogOnTransparent("Enable Fog", Float) = 1.0
         [ToggleUI] _EnableBlendModePreserveSpecularLighting("Enable Blend Mode Preserve Specular Lighting", Float) = 1.0
 
-        [ToggleUI] _DoubleSidedEnable("Double sided enable", Float) = 0.0
-        [Enum(Flip, 0, Mirror, 1, None, 2)] _DoubleSidedNormalMode("Double sided normal mode", Float) = 1
+        [ToggleUI] _DoubleSidedEnable("Double sided enable", Float) = 0.0  
+        [Enum(Flip, 0, Mirror, 1, None, 2)] _DoubleSidedNormalMode("Double sided normal mode", Float) = 1 
         [HideInInspector] _DoubleSidedConstants("_DoubleSidedConstants", Vector) = (1, 1, -1, 0)
 
         // For layering, due to combinatorial explosion, we only support SSS/Transmission and Standard. We let other case for the shader graph
@@ -264,8 +268,8 @@ Shader "HDRenderPipeline/LayeredLit"
         [ToggleUI] _TransmissionEnable("_TransmissionEnable", Float) = 1.0
 
         [Enum(None, 0, Vertex displacement, 1, Pixel displacement, 2)] _DisplacementMode("DisplacementMode", Int) = 0
-        [ToggleUI] _DisplacementLockObjectScale("displacement lock object scale", Float) = 1.0
-        [ToggleUI] _DisplacementLockTilingScale("displacement lock tiling scale", Float) = 1.0
+        [ToggleUI] _DisplacementLockObjectScale("displacement lock object scale", Float) = 1.0 
+        [ToggleUI] _DisplacementLockTilingScale("displacement lock tiling scale", Float) = 1.0 
         [ToggleUI] _DepthOffsetEnable("Depth Offset View space", Float) = 0.0
 
         [ToggleUI] _EnableMotionVectorForVertexAnimation("EnableMotionVectorForVertexAnimation", Float) = 0.0
@@ -296,10 +300,15 @@ Shader "HDRenderPipeline/LayeredLit"
         // TODO: Fix the code in legacy unity so we can customize the beahvior for GI
         _EmissionColor("Color", Color) = (1, 1, 1)
 
-        _TexWorldScale0("Tiling", Float) = 1.0
-        _TexWorldScale1("Tiling", Float) = 1.0
-        _TexWorldScale2("Tiling", Float) = 1.0
-        _TexWorldScale3("Tiling", Float) = 1.0
+        _TerrainSize("Terrain Size", Float) = 256.0
+        _TextureSize0("Texture Size", Float) = 5.0
+        _TextureSize1("Texture Size", Float) = 5.0
+        _TextureSize2("Texture Size", Float) = 5.0
+        _TextureSize3("Texture Size", Float) = 5.0
+        [HideInInspector] _TexWorldScale0("Tiling", Float) = 1.0
+        [HideInInspector] _TexWorldScale1("Tiling", Float) = 1.0  
+        [HideInInspector] _TexWorldScale2("Tiling", Float) = 1.0 
+        [HideInInspector] _TexWorldScale3("Tiling", Float) = 1.0  
 
         [HideInInspector] _InvTilingScale0("Inverse tiling scale = 2 / (abs(_BaseColorMap_ST.x) + abs(_BaseColorMap_ST.y))", Float) = 1
         [HideInInspector] _InvTilingScale1("Inverse tiling scale = 2 / (abs(_BaseColorMap_ST.x) + abs(_BaseColorMap_ST.y))", Float) = 1
@@ -378,8 +387,8 @@ Shader "HDRenderPipeline/LayeredLit"
     #pragma shader_feature _NORMALMAP0
     #pragma shader_feature _NORMALMAP1
     #pragma shader_feature _NORMALMAP2
-    #pragma shader_feature _NORMALMAP3
-    #pragma shader_feature _MASKMAP0
+    #pragma shader_feature _NORMALMAP3 
+    #pragma shader_feature _MASKMAP0 
     #pragma shader_feature _MASKMAP1
     #pragma shader_feature _MASKMAP2
     #pragma shader_feature _MASKMAP3
@@ -410,7 +419,7 @@ Shader "HDRenderPipeline/LayeredLit"
     #pragma shader_feature _MAIN_LAYER_INFLUENCE_MODE
     #pragma shader_feature _INFLUENCEMASK_MAP
     #pragma shader_feature _DENSITY_MODE
-    #pragma shader_feature _HEIGHT_BASED_BLEND
+    //#pragma shader_feature _HEIGHT_BASED_BLEND
     #pragma shader_feature _ _LAYEREDLIT_3_LAYERS _LAYEREDLIT_4_LAYERS
 
     #pragma shader_feature _DISABLE_DBUFFER
@@ -427,10 +436,10 @@ Shader "HDRenderPipeline/LayeredLit"
 
     // enable dithering LOD crossfade
     #pragma multi_compile _ LOD_FADE_CROSSFADE
-
-    //enable GPU instancing support
-    #pragma multi_compile_instancing
-
+ 
+    //enable GPU instancing support  
+    #pragma multi_compile_instancing      
+ 
     //-------------------------------------------------------------------------------------
     // Define
     //-------------------------------------------------------------------------------------
@@ -439,20 +448,20 @@ Shader "HDRenderPipeline/LayeredLit"
     // Use surface gradient normal mapping as it handle correctly triplanar normal mapping and multiple UVSet
     #define SURFACE_GRADIENT
     // This shader support vertex modification
-    #define HAVE_VERTEX_MODIFICATION
+    #define HAVE_VERTEX_MODIFICATION 
 
-    // If we use subsurface scattering, enable output split lighting (for forward pass)
+    // If we use subsurface scattering, enable output split lighting (for forward pass) 
     #if defined(_MATERIAL_FEATURE_SUBSURFACE_SCATTERING) && !defined(_SURFACE_TYPE_TRANSPARENT)
     #define OUTPUT_SPLIT_LIGHTING
-    #endif
-
+    #endif 
+ 
     //-------------------------------------------------------------------------------------
     // Include
     //-------------------------------------------------------------------------------------
 
     #include "CoreRP/ShaderLibrary/Common.hlsl"
-    #include "CoreRP/ShaderLibrary/Wind.hlsl"
-    #include "../../ShaderPass/FragInputs.hlsl"
+    #include "CoreRP/ShaderLibrary/Wind.hlsl" 
+    #include "../../ShaderPass/FragInputs.hlsl" 
     #include "../../ShaderPass/ShaderPass.cs.hlsl"
 
     //-------------------------------------------------------------------------------------
@@ -462,7 +471,7 @@ Shader "HDRenderPipeline/LayeredLit"
     #define _MAX_LAYER 4
 
     #if defined(_LAYEREDLIT_4_LAYERS)
-    #   define _LAYER_COUNT 4
+    #   define _LAYER_COUNT 4 
     #elif defined(_LAYEREDLIT_3_LAYERS)
     #   define _LAYER_COUNT 3
     #else
@@ -477,14 +486,14 @@ Shader "HDRenderPipeline/LayeredLit"
     //-------------------------------------------------------------------------------------
 
     #include "../../Material/Lit/LitProperties.hlsl"
-
+ 
     // All our shaders use same name for entry point
     #pragma vertex Vert
     #pragma fragment Frag
 
-    ENDHLSL
-
-    SubShader
+    ENDHLSL 
+ 
+    SubShader  
     {
         // This tags allow to use the shader replacement features
         Tags{ "RenderPipeline" = "HDRenderPipeline" "RenderType" = "HDLitShader" }
@@ -496,11 +505,11 @@ Shader "HDRenderPipeline/LayeredLit"
             Tags { "LightMode" = "GBuffer" } // This will be only for opaque object based on the RenderQueue index
 
             Cull [_CullMode]
-            ZTest[_ZTestGBuffer]
+            ZTest[_ZTestGBuffer] 
 
-            Stencil
-            {
-                WriteMask [_StencilWriteMask]
+            Stencil  
+            { 
+                WriteMask [_StencilWriteMask] 
                 Ref [_StencilRef]
                 Comp Always
                 Pass Replace
@@ -526,7 +535,7 @@ Shader "HDRenderPipeline/LayeredLit"
             #endif
             #include "../../Material/Material.hlsl"
             #include "../Lit/ShaderPass/LitSharePass.hlsl"
-            #include "LayeredLitData.hlsl"
+            #include "TerrainBlendData.hlsl"
             #include "../../ShaderPass/ShaderPassGBuffer.hlsl"
 
             ENDHLSL
@@ -551,7 +560,7 @@ Shader "HDRenderPipeline/LayeredLit"
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
             #include "../Lit/ShaderPass/LitSharePass.hlsl"
-            #include "LayeredLitData.hlsl"
+            #include "TerrainBlendData.hlsl"
             #include "../../ShaderPass/ShaderPassLightTransport.hlsl"
 
             ENDHLSL
@@ -573,7 +582,7 @@ Shader "HDRenderPipeline/LayeredLit"
 
             Cull[_CullMode]
 
-            ZWrite On
+            ZWrite On 
 
             HLSLPROGRAM
 
@@ -581,11 +590,11 @@ Shader "HDRenderPipeline/LayeredLit"
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
             #include "../Lit/ShaderPass/LitVelocityPass.hlsl"
-            #include "LayeredLitData.hlsl"
+            #include "TerrainBlendData.hlsl"
             #include "../../ShaderPass/ShaderPassVelocity.hlsl"
 
             ENDHLSL
-        }
+        } 
 
         Pass
         {
@@ -607,7 +616,7 @@ Shader "HDRenderPipeline/LayeredLit"
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
             #include "../Lit/ShaderPass/LitDepthPass.hlsl"
-            #include "LayeredLitData.hlsl"
+            #include "TerrainBlendData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
@@ -630,21 +639,21 @@ Shader "HDRenderPipeline/LayeredLit"
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
             #include "../Lit/ShaderPass/LitDepthPass.hlsl"
-            #include "LayeredLitData.hlsl"
+            #include "TerrainBlendData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
-        }
-
-        Pass
-        {
+        }  
+ 
+        Pass    
+        { 
             Name "Forward" // Name is not used
             Tags{ "LightMode" = "Forward" } // This will be only for transparent object based on the RenderQueue index
 
             Stencil
             {
                 WriteMask [_StencilWriteMask]
-                Ref [_StencilRef]
+                Ref [_StencilRef] 
                 Comp Always
                 Pass Replace
             }
@@ -652,11 +661,11 @@ Shader "HDRenderPipeline/LayeredLit"
             Blend [_SrcBlend][_DstBlend]
             // In case of forward we want to have depth equal for opaque mesh
             ZTest [_ZTestDepthEqualForOpaque]
-            ZWrite [_ZWrite]
-            Cull [_CullMode]
-
+            ZWrite [_ZWrite] 
+            Cull [_CullMode] 
+    
             HLSLPROGRAM
-
+ 
             #pragma multi_compile _ DEBUG_DISPLAY
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
@@ -675,15 +684,16 @@ Shader "HDRenderPipeline/LayeredLit"
             #include "../../ShaderVariables.hlsl"
             #ifdef DEBUG_DISPLAY
             #include "../../Debug/DebugDisplay.hlsl"
-            #endif
+            #endif 
             #include "../../Lighting/Lighting.hlsl"
             #include "../Lit/ShaderPass/LitSharePass.hlsl"
-            #include "LayeredLitData.hlsl"
+            #include "TerrainBlendData.hlsl"
             #include "../../ShaderPass/ShaderPassForward.hlsl"
 
             ENDHLSL
         }
     }
 
-    CustomEditor "UnityEditor.Experimental.Rendering.HDPipeline.LayeredLitGUI"
+
+    CustomEditor "UnityEditor.Experimental.Rendering.HDPipeline.TerrainBlendGUI"
 }

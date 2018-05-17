@@ -121,7 +121,7 @@ void GenerateLayerTexCoordBasisTB(FragInputs input, inout LayerTexCoord layerTex
 #define _DETAIL_MAP_IDX
 #endif
 #ifdef _SUBSURFACE_MASK_MAP
-#define _SUBSURFACE_MASK_MAP_IDX
+#define _SUBSURFACE_MASK_MAP_IDX 
 #endif
 #ifdef _THICKNESSMAP
 #define _THICKNESSMAP_IDX
@@ -230,6 +230,9 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
         surfaceData.metallic = 0;
     }
 #endif
+    
+    float asperityMix = _AsperityAmount * pow( 1.0 - ClampNdotV(dot(surfaceData.normalWS, V)), _AsperityExponent );
+    surfaceData.baseColor.rgb = lerp(surfaceData.baseColor.rgb, float3(1.0,1.0,1.0), asperityMix);
 
     // Caution: surfaceData must be fully initialize before calling GetBuiltinData
     GetBuiltinData(input, surfaceData, alpha, bentNormalWS, depthOffset, builtinData);

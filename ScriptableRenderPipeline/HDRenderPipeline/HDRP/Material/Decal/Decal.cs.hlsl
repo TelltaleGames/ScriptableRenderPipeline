@@ -28,6 +28,7 @@
 // PackingRules = Exact
 struct DecalSurfaceData
 {
+    float alpha;
     float4 baseColor;
     float4 normalWS;
     float4 mask;

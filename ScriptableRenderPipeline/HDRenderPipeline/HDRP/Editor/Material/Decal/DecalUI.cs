@@ -11,17 +11,25 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             public static string InputsText = "Inputs";
 
-            public static GUIContent baseColorText = new GUIContent("Base Color + Blend", "Albedo (RGB) and Blend Factor (A)");
+            public static GUIContent alphaText = new GUIContent("Alpha Map", "Single Channel (R) Alpha used for all layering");
+            public static GUIContent baseColorText = new GUIContent("Base Color", "Albedo (RGB)");
             public static GUIContent normalMapText = new GUIContent("Normal Map", "Normal Map (BC7/BC5/DXT5(nm))");
+            public static GUIContent normalMapIntensityText = new GUIContent("Normal Map Intensity", "Normal Map Intensity");
 			public static GUIContent maskMapText = new GUIContent("Mask Map - M(R), AO(G), D(B), S(A)", "Mask map");
             public static GUIContent decalBlendText = new GUIContent("Decal Blend", "Whole decal blend");
         }
+
+        protected MaterialProperty alphaMap = new MaterialProperty();
+        protected const string kAlphaMap = "_AlphaMap";
 
         protected MaterialProperty baseColorMap = new MaterialProperty();
         protected const string kBaseColorMap = "_BaseColorMap";
 
         protected MaterialProperty normalMap = new MaterialProperty();
         protected const string kNormalMap = "_NormalMap";
+
+        protected MaterialProperty normalMapIntensity = new MaterialProperty();
+        protected const string kNormalMapIntensity = "_NormalMapIntensity";
 
 		protected MaterialProperty maskMap = new MaterialProperty();
 		protected const string kMaskMap = "_MaskMap";
@@ -37,8 +45,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         void FindMaterialProperties(MaterialProperty[] props)
         {
+            alphaMap = FindProperty(kAlphaMap, props);
             baseColorMap = FindProperty(kBaseColorMap, props);
             normalMap = FindProperty(kNormalMap, props);
+            normalMapIntensity = FindProperty(kNormalMapIntensity, props);
 			maskMap = FindProperty(kMaskMap, props);
             decalBlend = FindProperty(kDecalBlend, props);
             // always instanced
@@ -50,6 +60,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         // All Setup Keyword functions must be static. It allow to create script to automatically update the shaders with a script if code change
         static public void SetupMaterialKeywordsAndPass(Material material)
         {
+            CoreUtils.SetKeyword(material, "_ALPHAMAP", material.GetTexture(kAlphaMap));
             CoreUtils.SetKeyword(material, "_COLORMAP", material.GetTexture(kBaseColorMap));
             CoreUtils.SetKeyword(material, "_NORMALMAP", material.GetTexture(kNormalMap));
 			CoreUtils.SetKeyword(material, "_MASKMAP", material.GetTexture(kMaskMap));
@@ -73,8 +84,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
                 EditorGUI.indentLevel++;
 
+                m_MaterialEditor.TexturePropertySingleLine(Styles.alphaText, alphaMap);
                 m_MaterialEditor.TexturePropertySingleLine(Styles.baseColorText, baseColorMap);
-                m_MaterialEditor.TexturePropertySingleLine(Styles.normalMapText, normalMap);
+                m_MaterialEditor.TexturePropertySingleLine(Styles.normalMapText, normalMap, normalMapIntensity);
 				m_MaterialEditor.TexturePropertySingleLine(Styles.maskMapText, maskMap);
                 m_MaterialEditor.ShaderProperty(decalBlend, Styles.decalBlendText);
                 EditorGUI.indentLevel--;
