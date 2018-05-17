@@ -1513,14 +1513,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
             else
             {
+                float[] allEnabledWeights = GetInitializedArray(k_MaxLightGroups, 1.0f);
                 // Default map will result in all objects being affected by all lights.
                 lightGroupMap = new LightGroupMap
                 {
                     lightGroupCount = k_MaxLightGroups,
                     lightToWeights = new Dictionary<Component, float[]>(),
-                    defaultWeights = GetInitializedArray(k_MaxLightGroups, 1.0f),
-                    environmentLightWeights = defaultWeights,
-                    environmentReflectionsWeights = defaultWeights
+                    defaultWeights = allEnabledWeights,
+                    environmentLightWeights = allEnabledWeights,
+                    environmentReflectionsWeights = allEnabledWeights
                 };
             }
 
