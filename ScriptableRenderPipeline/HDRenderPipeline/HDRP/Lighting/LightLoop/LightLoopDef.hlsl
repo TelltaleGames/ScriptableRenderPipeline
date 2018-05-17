@@ -287,6 +287,11 @@ LightData FetchLight(uint start, uint i)
 #endif
     return _LightDatas[j];
 }
+LightData FetchLightWithLightIndex(uint j)
+{
+    return _LightDatas[j];
+}
+
 EnvLightData FetchEnvLight(uint start, uint i)
 {
     int j = FetchIndex(start, i);
@@ -310,10 +315,7 @@ float FetchDirectionalLightWeight(uint i, uint lightGroupIndex)
     return _LightGroupData[lightGroupIndex * LIGHT_GROUP_STRIDE + LIGHT_GROUP_DIRECTIONAL_OFFSET + i];
 }
 
-// TODO JLS: This is doing a redundant fetch of the index. It happens a second time in FetchLight.
-float FetchLightWeight(uint start, uint i, uint lightGroupIndex)
+float FetchLightWeightWithLightIndex(uint j, uint lightGroupIndex)
 {
-    int j = FetchIndex(start, i);
-
     return _LightGroupData[lightGroupIndex * LIGHT_GROUP_STRIDE + LIGHT_GROUP_PUNCTUAL_OFFSET + j];
 }

@@ -94,11 +94,11 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         for (i = 0; i < lightCount; i++)
         {
             // Light groups.
-            // TODO JLS: Don't fetch index twice. Currently happens once in FetchLightWeight and once in FetchLight.
-            float lightWeight = FetchLightWeight(lightStart, i, lightGroupIndex);
+            int j = FetchIndex(lightStart, i);
+            float lightWeight = FetchLightWeightWithLightIndex(j, lightGroupIndex);
             if (lightWeight != 0.0)
             {
-                LightData lightData = FetchLight(lightStart, i);
+                LightData lightData = FetchLightWithLightIndex(j);
                 DirectLighting lighting = EvaluateBSDF_Punctual(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
                 AccumulateDirectLighting(lighting, lightWeight, aggregateLighting);
             }
