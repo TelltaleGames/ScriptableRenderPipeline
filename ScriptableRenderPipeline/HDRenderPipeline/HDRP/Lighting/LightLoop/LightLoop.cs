@@ -1506,12 +1506,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // Light groups.
         private LightGroupMap GetLightGroupMapAndInitWeights()
         {
-            LightGroupMap lightGroupMap;
+            LightGroupMap lightGroupMap = null;
             if (RetrieveLightGroupMap != null)
             {
                 lightGroupMap = RetrieveLightGroupMap();
             }
-            else
+
+            if (lightGroupMap == null)
             {
                 float[] allEnabledWeights = GetInitializedArray(k_MaxLightGroups, 1.0f);
                 // Default map will result in all objects being affected by all lights.
