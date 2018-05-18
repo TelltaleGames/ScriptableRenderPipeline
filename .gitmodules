@@ -1,7 +1,4 @@
 [submodule "PostProcessing"]
 	path = PostProcessing
-	url = https://github.com/Unity-Technologies/PostProcessing
-	branch = v2
-[submodule "ShaderGraph"]
-	path = ShaderGraph
-	url = https://github.com/Unity-Technologies/ShaderGraph
+	url = https://github.com/TelltaleGames/PostProcessing.git
+	branch = v2_telltale
