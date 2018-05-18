@@ -2,7 +2,3 @@
 	path = PostProcessing
 	url = https://github.com/TelltaleGames/PostProcessing
 	branch = v2_telltale
-[submodule "ShaderGraph"]
-	path = ShaderGraph
-	url = https://github.com/Unity-Technologies/ShaderGraph.git
-	branch = master
