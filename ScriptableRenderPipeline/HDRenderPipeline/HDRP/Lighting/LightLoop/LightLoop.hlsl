@@ -94,7 +94,11 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         for (i = 0; i < lightCount; i++)
         {
             // Light groups.
+#ifdef LIGHTLOOP_TILE_PASS
             int j = FetchIndex(lightStart, i);
+#else
+            int j = lightStart + i;
+#endif
             float lightWeight = FetchLightWeightWithLightIndex(j, lightGroupIndex);
             if (lightWeight != 0.0)
             {

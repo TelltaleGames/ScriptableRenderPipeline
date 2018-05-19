@@ -294,7 +294,11 @@ LightData FetchLightWithLightIndex(uint j)
 
 EnvLightData FetchEnvLight(uint start, uint i)
 {
+#ifdef LIGHTLOOP_TILE_PASS
     int j = FetchIndex(start, i);
+#else
+    int j = start + i;
+#endif
 
     return _EnvLightDatas[j];
 }
