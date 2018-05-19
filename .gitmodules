@@ -1,4 +1,4 @@
 [submodule "PostProcessing"]
 	path = PostProcessing
 	url = https://github.com/TelltaleGames/PostProcessing.git
-	branch = v2_telltale
+	branch = v2_new_telltale
