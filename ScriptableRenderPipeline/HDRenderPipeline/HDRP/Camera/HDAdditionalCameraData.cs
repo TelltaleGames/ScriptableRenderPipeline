@@ -29,7 +29,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             Default,
             Custom,  // Fine grained
-            Unlit  // Hard coded path
+            Unlit, // Hard coded path
+            UI, // Hard coded path
         };
 
         public enum ClearColorMode

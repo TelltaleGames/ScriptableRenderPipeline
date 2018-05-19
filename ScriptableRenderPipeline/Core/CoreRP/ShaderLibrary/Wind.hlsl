@@ -4,6 +4,11 @@ SAMPLER(sampler_WIND_SETTINGS_TexNoise);
 TEXTURE2D(WIND_SETTINGS_TexGust);
 SAMPLER(sampler_WIND_SETTINGS_TexGust);
 
+#ifdef _VERTEX_WIND 
+#define ATTRIBUTES_NEED_TEXCOORD2
+#define VARYINGS_NEED_TEXCOORD2
+#endif
+
 float4  WIND_SETTINGS_WorldDirectionAndSpeed;
 float   WIND_SETTINGS_FlexNoiseScale;
 float   WIND_SETTINGS_ShiverNoiseScale;

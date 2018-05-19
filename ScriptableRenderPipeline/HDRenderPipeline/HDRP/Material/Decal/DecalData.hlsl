@@ -10,14 +10,18 @@ void GetSurfaceData(float2 texCoordDS, float4x4 decalToWorld, out DecalSurfaceDa
 	surfaceData.normalWS = float4(0,0,0,0);
 	surfaceData.mask = float4(0,0,0,0);
 	surfaceData.HTileMask = 0;
-	float totalBlend = clamp(decalToWorld[0][3], 0.0f, 1.0f);
+	surfaceData.alpha = SAMPLE_TEXTURE2D(_AlphaMap, sampler_AlphaMap, texCoordDS.xy).r;
+	float totalBlend = clamp(decalToWorld[0][3]*surfaceData.alpha, 0.0f, 1.0f);
 #if _COLORMAP
 	surfaceData.baseColor = SAMPLE_TEXTURE2D(_BaseColorMap, sampler_BaseColorMap, texCoordDS.xy);
-	surfaceData.baseColor.w *= totalBlend;
+	surfaceData.baseColor.w = totalBlend;
 	surfaceData.HTileMask |= DBUFFERHTILEBIT_DIFFUSE;
 #endif
 #if _NORMALMAP
-	surfaceData.normalWS.xyz = mul((float3x3)decalToWorld, UnpackNormalmapRGorAG(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, texCoordDS))) * 0.5f + 0.5f;
+	surfaceData.normalWS.xyz = UnpackNormalmapRGorAG(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, texCoordDS));
+	surfaceData.normalWS.xyz = float3(surfaceData.normalWS.x/max(0.01,surfaceData.normalWS.z), surfaceData.normalWS.y/max(0.01,surfaceData.normalWS.z), 1.0);
+	surfaceData.normalWS.xyz = normalize( float3(_NormalMapIntensity*surfaceData.normalWS.x, _NormalMapIntensity*surfaceData.normalWS.y, 1.0) );
+	surfaceData.normalWS.xyz = mul((float3x3)decalToWorld, surfaceData.normalWS.xyz) * 0.5f + 0.5f;
 	surfaceData.normalWS.w = totalBlend;
 	surfaceData.HTileMask |= DBUFFERHTILEBIT_NORMAL;
 #endif

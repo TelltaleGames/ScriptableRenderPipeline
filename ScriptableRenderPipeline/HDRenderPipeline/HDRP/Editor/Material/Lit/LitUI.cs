@@ -13,6 +13,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             public static GUIContent baseColorText = new GUIContent("Base Color + Opacity", "Albedo (RGB) and Opacity (A)");
 
+            // Asperity
+            public static string asperityLabelText = "Asperity Inputs";
+            public static GUIContent asperityAmountText = new GUIContent("Asperity Amount", "Amount to blend to white at glancing angles for fuzzy materials");
+            public static GUIContent asperityExponentText = new GUIContent("Asperity Exponent", "Larger values will give a sharper rim effect when asperity is used");
+
             public static GUIContent smoothnessMapChannelText = new GUIContent("Smoothness Source", "Smoothness texture and channel");
             public static GUIContent metallicText = new GUIContent("Metallic", "Metallic scale factor");
             public static GUIContent smoothnessText = new GUIContent("Smoothness", "Smoothness scale factor");
@@ -256,6 +261,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected MaterialProperty coatMaskMap = null;
         protected const string kCoatMaskMap = "_CoatMaskMap";
 
+        protected MaterialProperty asperityAmount = null;
+        protected const string kAsperityAmount = "_AsperityAmount";
+        protected MaterialProperty asperityExponent = null;
+        protected const string kAsperityExponent = "_AsperityExponent";
+
         protected MaterialProperty emissiveColorMode = null;
         protected const string kEmissiveColorMode = "_EmissiveColorMode";
         protected MaterialProperty emissiveColor = null;
@@ -377,6 +387,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             energyConservingSpecularColor = FindProperty(kEnergyConservingSpecularColor, props);
             specularColor = FindProperty(kSpecularColor, props);
             specularColorMap = FindProperty(kSpecularColorMap, props);
+
+            asperityAmount = FindProperty(kAsperityAmount, props);
+            asperityExponent = FindProperty(kAsperityExponent, props);
 
             // Anisotropy
             tangentMap = FindProperty(kTangentMap, props);
@@ -832,6 +845,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
+        protected void DoAsperityGUI(Material material)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField(Styles.asperityLabelText, EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+            m_MaterialEditor.ShaderProperty(asperityAmount, Styles.asperityAmountText);
+            m_MaterialEditor.ShaderProperty(asperityExponent, Styles.asperityExponentText);
+            EditorGUI.indentLevel--;
+        }
+
         protected void DoEmissiveGUI(Material material)
         {
             EditorGUILayout.Space();
@@ -876,6 +899,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             DoLayerGUI(material, 0, false, false);
             DoEmissiveGUI(material);
+            DoAsperityGUI(material);
             // The parent Base.ShaderPropertiesGUI will call DoEmissionArea
         }
 

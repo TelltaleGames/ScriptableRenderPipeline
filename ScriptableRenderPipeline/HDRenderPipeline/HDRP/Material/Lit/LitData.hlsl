@@ -230,6 +230,9 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
         surfaceData.metallic = 0;
     }
 #endif
+    
+    float asperityMix = _AsperityAmount * pow( 1.0 - ClampNdotV(dot(surfaceData.normalWS, V)), _AsperityExponent );
+    surfaceData.baseColor.rgb = lerp(surfaceData.baseColor.rgb, float3(1.0,1.0,1.0), asperityMix);
 
     // Caution: surfaceData must be fully initialize before calling GetBuiltinData
     GetBuiltinData(input, surfaceData, alpha, bentNormalWS, depthOffset, builtinData);

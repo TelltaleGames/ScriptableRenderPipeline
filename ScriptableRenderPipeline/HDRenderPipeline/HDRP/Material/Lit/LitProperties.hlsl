@@ -100,6 +100,8 @@ SAMPLER(sampler_LayerInfluenceMaskMap);
 CBUFFER_START(UnityPerMaterial)
 
 // shared constant between lit and layered lit
+float _AsperityAmount;
+float _AsperityExponent;
 float _AlphaCutoff;
 float _AlphaCutoffPrepass;
 float _AlphaCutoffPostpass;
