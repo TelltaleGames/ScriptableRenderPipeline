@@ -25,7 +25,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             // Note that the HDRI is correctly integrated in the GlobalIllumination system, we don't need to do anything regarding it.
 
+#if UNITY_EDITOR
             ld.mode = LightmapperUtils.Extract(l.lightmapBakeType);
+#else
+            ld.mode = LightMode.Mixed;
+#endif
 
             ld.shadow = (byte)(l.shadows != LightShadows.None ? 1 : 0);
 
