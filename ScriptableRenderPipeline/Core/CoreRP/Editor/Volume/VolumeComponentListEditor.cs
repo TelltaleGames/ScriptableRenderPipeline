@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -133,6 +133,8 @@ namespace UnityEditor.Experimental.Rendering
             if (m_Asset == null)
                 return;
 
+            EditorGUI.BeginChangeCheck();
+
             if (m_Asset.isDirty)
             {
                 RefreshEditors();
@@ -182,6 +184,12 @@ namespace UnityEditor.Experimental.Rendering
                         FilterWindow.Show(pos, new VolumeComponentProvider(m_Asset, this));
                     }
                 }
+            }
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                // Debug.Log("VolumeComponentListEditor ChangeCheck true");
+                m_Asset.VolumeProfileValidateAction?.Invoke();
             }
         }
 

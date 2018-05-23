@@ -52,6 +52,8 @@ namespace UnityEngine.Experimental.Rendering
             }
         }
 
+        public System.Action VolumeValidateAction { get; set; }
+
         internal VolumeProfile profileRef
         {
             get
@@ -100,6 +102,11 @@ namespace UnityEngine.Experimental.Rendering
                 VolumeManager.instance.SetLayerDirty(layer);
                 m_PreviousPriority = priority;
             }
+        }
+
+        private void OnValidate()
+        {
+            VolumeValidateAction?.Invoke();
         }
 
 #if UNITY_EDITOR
