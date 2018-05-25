@@ -188,7 +188,6 @@ namespace UnityEditor.Experimental.Rendering
 
             if (EditorGUI.EndChangeCheck())
             {
-                // Debug.Log("VolumeComponentListEditor ChangeCheck true");
                 m_Asset.VolumeProfileValidateAction?.Invoke();
             }
         }
