@@ -72,7 +72,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         {
             // Light groups.
             float lightWeight = FetchDirectionalLightWeight(i, lightGroupIndex);
-            if (lightWeight != 0)
+            if (lightWeight > 0.0)
             {
                 DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _DirectionalLightDatas[i], bsdfData, bakeLightingData);
                 AccumulateDirectLighting(lighting, lightWeight, aggregateLighting);
@@ -100,7 +100,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
             int j = lightStart + i;
 #endif
             float lightWeight = FetchLightWeightWithLightIndex(j, lightGroupIndex);
-            if (lightWeight != 0.0)
+            if (lightWeight > 0.0)
             {
                 LightData lightData = FetchLightWithLightIndex(j);
                 DirectLighting lighting = EvaluateBSDF_Punctual(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
