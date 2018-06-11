@@ -1,36 +1,36 @@
 Shader "HDRenderPipeline/TerrainBlendPaint"
-{    
-    Properties                    
-    {    
+{
+    Properties
+    {
         // Following set of parameters represent the parameters node inside the MaterialGraph.
         // They are use to fill a SurfaceData. With a MaterialGraph this should not exist.
-        
+
         // Will override the uv parameterization if this is applied to an exported mesh
         // instead of a Terrain GameObject
-        [ToggleUI] _OnMesh("On Mesh", Float) = 0.0    
- 
+        [ToggleUI] _SwapUV("Swap UV", Float) = 0.0
+
         // All the following properties are filled by the referenced lit shader.
 
         // set by terrain engine (and must be exposed this way)
-        [HideInInspector] _Control ("Splatmap (RGBA)", 2D) = "red" {}  
-        [HideInInspector] _Splat0 ("Layer 0 (RGB) Spec (A)", 2D) = "black" {}   
+        [HideInInspector] _Control ("Splatmap (RGBA)", 2D) = "red" {}
+        [HideInInspector] _Splat0 ("Layer 0 (RGB) Spec (A)", 2D) = "black" {}
         [HideInInspector] _Splat1 ("Layer 1 (RGB) Spec (A)", 2D) = "black" {}
-        [HideInInspector] _Splat2 ("Layer 2 (RGB) Spec (A)", 2D) = "black" {}  
-        [HideInInspector] _Splat3 ("Layer 3 (RGB) Spec (A)", 2D) = "black" {} 
+        [HideInInspector] _Splat2 ("Layer 2 (RGB) Spec (A)", 2D) = "black" {}
+        [HideInInspector] _Splat3 ("Layer 3 (RGB) Spec (A)", 2D) = "black" {}
         [HideInInspector] _Normal0 ("Normal 0", 2D) = "bump" {}
         [HideInInspector] _Normal1 ("Normal 1", 2D) = "bump" {}
-        [HideInInspector] _Normal2 ("Normal 2", 2D) = "bump" {} 
-        [HideInInspector] _Normal3 ("Normal 3", 2D) = "bump" {}   
+        [HideInInspector] _Normal2 ("Normal 2", 2D) = "bump" {}
+        [HideInInspector] _Normal3 ("Normal 3", 2D) = "bump" {}
 
 
         // Reminder. Color here are in linear but the UI (color picker) do the conversion sRGB to linear
         _BaseColor0("BaseColor0", Color) = (1, 1, 1, 1)
         _BaseColor1("BaseColor1", Color) = (1, 1, 1, 1)
-        _BaseColor2("BaseColor2", Color) = (1, 1, 1, 1) 
-        _BaseColor3("BaseColor3", Color) = (1, 1, 1, 1)  
-        
-        _BaseColorMap0("BaseColorMap0", 2D) = "white" {}  
-        _BaseColorMap1("BaseColorMap1", 2D) = "white" {}  
+        _BaseColor2("BaseColor2", Color) = (1, 1, 1, 1)
+        _BaseColor3("BaseColor3", Color) = (1, 1, 1, 1)
+
+        _BaseColorMap0("BaseColorMap0", 2D) = "white" {}
+        _BaseColorMap1("BaseColorMap1", 2D) = "white" {}
         _BaseColorMap2("BaseColorMap2", 2D) = "white" {}
         _BaseColorMap3("BaseColorMap3", 2D) = "white" {}
 
@@ -67,12 +67,12 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
         _MaskMap0("MaskMap0", 2D) = "white" {}
         _MaskMap1("MaskMap1", 2D) = "white" {}
         _MaskMap2("MaskMap2", 2D) = "white" {}
-        _MaskMap3("MaskMap3", 2D) = "white" {} 
-  
+        _MaskMap3("MaskMap3", 2D) = "white" {}
+
         _NormalMap0("NormalMap0", 2D) = "bump" {}
         _NormalMap1("NormalMap1", 2D) = "bump" {}
         _NormalMap2("NormalMap2", 2D) = "bump" {}
-        _NormalMap3("NormalMap3", 2D) = "bump" {} 
+        _NormalMap3("NormalMap3", 2D) = "bump" {}
 
         _NormalMapOS0("NormalMapOS0", 2D) = "white" {}
         _NormalMapOS1("NormalMapOS1", 2D) = "white" {}
@@ -87,7 +87,7 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
         _BentNormalMap0("BentNormalMap0", 2D) = "bump" {}
         _BentNormalMap1("BentNormalMap1", 2D) = "bump" {}
         _BentNormalMap2("BentNormalMap2", 2D) = "bump" {}
-        _BentNormalMap3("BentNormalMap3", 2D) = "bump" {} 
+        _BentNormalMap3("BentNormalMap3", 2D) = "bump" {}
 
         _BentNormalMapOS0("BentNormalMapOS0", 2D) = "white" {}
         _BentNormalMapOS1("BentNormalMapOS1", 2D) = "white" {}
@@ -179,17 +179,17 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
         _SubsurfaceMask1("Subsurface Mask1", Range(0.0, 1.0)) = 1.0
         _SubsurfaceMask2("Subsurface Mask2", Range(0.0, 1.0)) = 1.0
         _SubsurfaceMask3("Subsurface Mask3", Range(0.0, 1.0)) = 1.0
- 
+
         _SubsurfaceMaskMap0("Subsurface Mask Map0", 2D) = "white" {}
         _SubsurfaceMaskMap1("Subsurface Mask Map1", 2D) = "white" {}
         _SubsurfaceMaskMap2("Subsurface Mask Map2", 2D) = "white" {}
         _SubsurfaceMaskMap3("Subsurface Mask Map3", 2D) = "white" {}
 
         _Thickness0("Thickness", Range(0.0, 1.0)) = 1.0
-        _Thickness1("Thickness", Range(0.0, 1.0)) = 1.0 
+        _Thickness1("Thickness", Range(0.0, 1.0)) = 1.0
         _Thickness2("Thickness", Range(0.0, 1.0)) = 1.0
         _Thickness3("Thickness", Range(0.0, 1.0)) = 1.0
-  
+
         _ThicknessMap0("Thickness Map", 2D) = "white" {}
         _ThicknessMap1("Thickness Map", 2D) = "white" {}
         _ThicknessMap2("Thickness Map", 2D) = "white" {}
@@ -229,7 +229,7 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
         [ToggleUI] _OpacityAsDensity2("_OpacityAsDensity2", Float) = 0.0
         [ToggleUI] _OpacityAsDensity3("_OpacityAsDensity3", Float) = 0.0
 
-        [HideInInspector] _LayerCount("_LayerCount", Float) = 2.0
+        [HideInInspector] _LayerCount("_LayerCount", Float) = 4.0
 
         [Enum(None, 0, Multiply, 1, Add, 2)] _VertexColorMode("Vertex color mode", Float) = 0
 
@@ -263,16 +263,16 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
         [HideInInspector] _BlendMode ("__blendmode", Float) = 0.0
         [HideInInspector] _SrcBlend ("__src", Float) = 1.0
         [HideInInspector] _DstBlend ("__dst", Float) = 0.0
-        [HideInInspector] _ZWrite ("__zw", Float) = 1.0  
+        [HideInInspector] _ZWrite ("__zw", Float) = 1.0
         [HideInInspector] _CullMode("__cullmode", Float) = 2.0
         [HideInInspector] _ZTestDepthEqualForOpaque("_ZTestDepthEqualForOpaque", Int) = 4 // Less equal
-        [HideInInspector] _ZTestGBuffer("_ZTestGBuffer", Int) = 4 
-     
+        [HideInInspector] _ZTestGBuffer("_ZTestGBuffer", Int) = 4
+
         [ToggleUI] _EnableFogOnTransparent("Enable Fog", Float) = 1.0
         [ToggleUI] _EnableBlendModePreserveSpecularLighting("Enable Blend Mode Preserve Specular Lighting", Float) = 1.0
 
-        [ToggleUI] _DoubleSidedEnable("Double sided enable", Float) = 0.0  
-        [Enum(Flip, 0, Mirror, 1, None, 2)] _DoubleSidedNormalMode("Double sided normal mode", Float) = 1 
+        [ToggleUI] _DoubleSidedEnable("Double sided enable", Float) = 0.0
+        [Enum(Flip, 0, Mirror, 1, None, 2)] _DoubleSidedNormalMode("Double sided normal mode", Float) = 1
         [HideInInspector] _DoubleSidedConstants("_DoubleSidedConstants", Vector) = (1, 1, -1, 0)
 
         // For layering, due to combinatorial explosion, we only support SSS/Transmission and Standard. We let other case for the shader graph
@@ -280,15 +280,15 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
         [ToggleUI] _TransmissionEnable("_TransmissionEnable", Float) = 1.0
 
         [Enum(None, 0, Vertex displacement, 1, Pixel displacement, 2)] _DisplacementMode("DisplacementMode", Int) = 0
-        [ToggleUI] _DisplacementLockObjectScale("displacement lock object scale", Float) = 1.0 
-        [ToggleUI] _DisplacementLockTilingScale("displacement lock tiling scale", Float) = 1.0 
-        [ToggleUI] _DepthOffsetEnable("Depth Offset View space", Float) = 0.0 
- 
+        [ToggleUI] _DisplacementLockObjectScale("displacement lock object scale", Float) = 1.0
+        [ToggleUI] _DisplacementLockTilingScale("displacement lock tiling scale", Float) = 1.0
+        [ToggleUI] _DepthOffsetEnable("Depth Offset View space", Float) = 0.0
+
         [ToggleUI] _EnableMotionVectorForVertexAnimation("EnableMotionVectorForVertexAnimation", Float) = 0.0
 
         _PPDMinSamples("Min sample for POM", Range(1.0, 64.0)) = 5
-        _PPDMaxSamples("Max sample for POM", Range(1.0, 64.0)) = 15  
-        _PPDLodThreshold("Start lod to fade out the POM effect", Range(0.0, 16.0)) = 5 
+        _PPDMaxSamples("Max sample for POM", Range(1.0, 64.0)) = 15
+        _PPDLodThreshold("Start lod to fade out the POM effect", Range(0.0, 16.0)) = 5
         _PPDPrimitiveLength("Primitive length for POM", Float) = 1
         _PPDPrimitiveWidth("Primitive width for POM", Float) = 1
         [HideInInspector] _InvPrimScale("Inverse primitive scale for non-planar POM", Vector) = (1, 1, 0, 0)
@@ -313,15 +313,15 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
         _EmissionColor("Color", Color) = (1, 1, 1)
 
         _TerrainSize("Terrain Size", Float) = 256.0
-        _TextureSize0("Texture Size", Float) = 5.0 
+        _TextureSize0("Texture Size", Float) = 5.0
         _TextureSize1("Texture Size", Float) = 5.0
-        _TextureSize2("Texture Size", Float) = 5.0 
+        _TextureSize2("Texture Size", Float) = 5.0
         _TextureSize3("Texture Size", Float) = 5.0
 
         [HideInInspector] _TexWorldScale0("Tiling", Float) = 1.0
-        [HideInInspector] _TexWorldScale1("Tiling", Float) = 1.0  
-        [HideInInspector] _TexWorldScale2("Tiling", Float) = 1.0 
-        [HideInInspector] _TexWorldScale3("Tiling", Float) = 1.0  
+        [HideInInspector] _TexWorldScale1("Tiling", Float) = 1.0
+        [HideInInspector] _TexWorldScale2("Tiling", Float) = 1.0
+        [HideInInspector] _TexWorldScale3("Tiling", Float) = 1.0
 
         [HideInInspector] _InvTilingScale0("Inverse tiling scale = 2 / (abs(_BaseColorMap_ST.x) + abs(_BaseColorMap_ST.y))", Float) = 1
         [HideInInspector] _InvTilingScale1("Inverse tiling scale = 2 / (abs(_BaseColorMap_ST.x) + abs(_BaseColorMap_ST.y))", Float) = 1
@@ -400,8 +400,8 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
     #pragma shader_feature _NORMALMAP0
     #pragma shader_feature _NORMALMAP1
     #pragma shader_feature _NORMALMAP2
-    #pragma shader_feature _NORMALMAP3 
-    #pragma shader_feature _MASKMAP0 
+    #pragma shader_feature _NORMALMAP3
+    #pragma shader_feature _MASKMAP0
     #pragma shader_feature _MASKMAP1
     #pragma shader_feature _MASKMAP2
     #pragma shader_feature _MASKMAP3
@@ -450,9 +450,9 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
     // enable dithering LOD crossfade
     //#pragma multi_compile _ LOD_FADE_CROSSFADE // TTG_PERF - unused variation, removing to improve shader compile times
 
-    //enable GPU instancing support  
+    //enable GPU instancing support
     //#pragma multi_compile_instancing // TTG_PERF - unused variation, removing to improve shader compile times
- 
+
     //-------------------------------------------------------------------------------------
     // Define
     //-------------------------------------------------------------------------------------
@@ -461,20 +461,20 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
     // Use surface gradient normal mapping as it handle correctly triplanar normal mapping and multiple UVSet
     #define SURFACE_GRADIENT
     // This shader support vertex modification
-    #define HAVE_VERTEX_MODIFICATION 
+    #define HAVE_VERTEX_MODIFICATION
 
-    // If we use subsurface scattering, enable output split lighting (for forward pass) 
+    // If we use subsurface scattering, enable output split lighting (for forward pass)
     #if defined(_MATERIAL_FEATURE_SUBSURFACE_SCATTERING) && !defined(_SURFACE_TYPE_TRANSPARENT)
     #define OUTPUT_SPLIT_LIGHTING
-    #endif 
- 
+    #endif
+
     //-------------------------------------------------------------------------------------
     // Include
     //-------------------------------------------------------------------------------------
 
     #include "CoreRP/ShaderLibrary/Common.hlsl"
-    #include "CoreRP/ShaderLibrary/Wind.hlsl" 
-    #include "../../ShaderPass/FragInputs.hlsl" 
+    #include "CoreRP/ShaderLibrary/Wind.hlsl"
+    #include "../../ShaderPass/FragInputs.hlsl"
     #include "../../ShaderPass/ShaderPass.cs.hlsl"
 
     //-------------------------------------------------------------------------------------
@@ -484,7 +484,7 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
     #define _MAX_LAYER 4
 
     #if defined(_LAYEREDLIT_4_LAYERS)
-    #   define _LAYER_COUNT 4 
+    #   define _LAYER_COUNT 4
     #elif defined(_LAYEREDLIT_3_LAYERS)
     #   define _LAYER_COUNT 3
     #else
@@ -499,15 +499,15 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
     //-------------------------------------------------------------------------------------
 
     #include "../../Material/Lit/LitProperties.hlsl"
- 
+
     // All our shaders use same name for entry point
     #pragma vertex Vert
     #pragma fragment Frag
 
-    ENDHLSL    
-                     
-    SubShader        
-    {  
+    ENDHLSL
+
+    SubShader
+    {
         // This tags allow to use the shader replacement features
         Tags{ "RenderPipeline" = "HDRenderPipeline" "RenderType" = "HDLitShader" }
 
@@ -517,12 +517,12 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
             Name "GBuffer"  // Name is not used
             Tags { "LightMode" = "GBuffer" } // This will be only for opaque object based on the RenderQueue index
 
-            Cull [_CullMode] 
-            ZTest[_ZTestGBuffer] 
+            Cull [_CullMode]
+            ZTest[_ZTestGBuffer]
 
-            Stencil  
-            { 
-                WriteMask [_StencilWriteMask] 
+            Stencil
+            {
+                WriteMask [_StencilWriteMask]
                 Ref [_StencilRef]
                 Comp Always
                 Pass Replace
@@ -532,14 +532,13 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
 
             #pragma multi_compile _ DEBUG_DISPLAY
             #pragma multi_compile _ LIGHTMAP_ON
-            //#pragma multi_compile _ DIRLIGHTMAP_COMBINED // TTG_PERF - unused variation, removing to improve shader compile times
-            #define DIRLIGHTMAP_COMBINED
+            #pragma multi_compile _ DIRLIGHTMAP_COMBINED
             //#pragma multi_compile _ DYNAMICLIGHTMAP_ON // TTG_PERF - unused variation, removing to improve shader compile times
             //#pragma multi_compile _ SHADOWS_SHADOWMASK // TTG_PERF - unused variation, removing to improve shader compile times
 
         #ifdef _ALPHATEST_ON
             // When we have alpha test, we will force a depth prepass so we always bypass the clip instruction in the GBuffer
-            #define SHADERPASS_GBUFFER_BYPASS_ALPHA_TEST 
+            #define SHADERPASS_GBUFFER_BYPASS_ALPHA_TEST
         #endif
 
             #define SHADERPASS SHADERPASS_GBUFFER
@@ -595,10 +594,10 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
             }
 
             Cull[_CullMode]
-  
-            ZWrite On              
-  
-            HLSLPROGRAM                            
+
+            ZWrite On
+
+            HLSLPROGRAM
 
             #define SHADERPASS SHADERPASS_VELOCITY
             #include "../../ShaderVariables.hlsl"
@@ -608,8 +607,8 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
             #include "../../ShaderPass/ShaderPassVelocity.hlsl"
 
             ENDHLSL
-        } 
- 
+        }
+
         Pass
         {
             Name "ShadowCaster"
@@ -642,9 +641,9 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
             Tags{ "LightMode" = "DepthOnly" }
 
             Cull[_CullMode]
-  
-            ZWrite On 
- 
+
+            ZWrite On
+
             ColorMask 0
 
             HLSLPROGRAM
@@ -657,33 +656,32 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
-        }  
- 
-        Pass   
-        { 
+        }
+
+        Pass
+        {
             Name "Forward" // Name is not used
             Tags{ "LightMode" = "Forward" } // This will be only for transparent object based on the RenderQueue index
 
             Stencil
             {
                 WriteMask [_StencilWriteMask]
-                Ref [_StencilRef] 
+                Ref [_StencilRef]
                 Comp Always
-                Pass Replace  
+                Pass Replace
             }
 
             Blend [_SrcBlend][_DstBlend]
             // In case of forward we want to have depth equal for opaque mesh
             ZTest [_ZTestDepthEqualForOpaque]
-            ZWrite [_ZWrite] 
-            Cull [_CullMode] 
-    
+            ZWrite [_ZWrite]
+            Cull [_CullMode]
+
             HLSLPROGRAM
- 
+
             #pragma multi_compile _ DEBUG_DISPLAY
             #pragma multi_compile _ LIGHTMAP_ON
-            //#pragma multi_compile _ DIRLIGHTMAP_COMBINED // TTG_PERF - unused variation, removing to improve shader compile times
-            #define DIRLIGHTMAP_COMBINED
+            #pragma multi_compile _ DIRLIGHTMAP_COMBINED
             //#pragma multi_compile _ DYNAMICLIGHTMAP_ON // TTG_PERF - unused variation, removing to improve shader compile times
             //#pragma multi_compile _ SHADOWS_SHADOWMASK // TTG_PERF - unused variation, removing to improve shader compile times
             // #include "../../Lighting/Forward.hlsl"
@@ -699,10 +697,10 @@ Shader "HDRenderPipeline/TerrainBlendPaint"
             #include "../../ShaderVariables.hlsl"
             #ifdef DEBUG_DISPLAY
             #include "../../Debug/DebugDisplay.hlsl"
-            #endif 
+            #endif
             #include "../../Lighting/Lighting.hlsl"
             #include "../Lit/ShaderPass/LitSharePass.hlsl"
-            #include "TerrainBlendPaintData.hlsl" 
+            #include "TerrainBlendPaintData.hlsl"
             #include "../../ShaderPass/ShaderPassForward.hlsl"
 
             ENDHLSL

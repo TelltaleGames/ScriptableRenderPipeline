@@ -1573,8 +1573,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         void RenderGaussianPyramidColor(HDCamera hdCamera, CommandBuffer cmd, ScriptableRenderContext renderContext, bool isPreRefraction)
         {
-            // TTG_PERF - Removed for performance gain on device, this seems to not be used for our use cases.
-            /*
             if (isPreRefraction)
             {
                 if (!m_FrameSettings.enableRoughRefraction)
@@ -1592,7 +1590,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             Vector2 pyramidScale = m_BufferPyramid.GetPyramidToScreenScale(hdCamera);
             PushFullScreenDebugTextureMip(cmd, m_BufferPyramid.colorPyramid, m_BufferPyramid.GetPyramidLodCount(hdCamera), new Vector4(pyramidScale.x, pyramidScale.y, 0.0f, 0.0f), hdCamera, isPreRefraction ? FullScreenDebugMode.PreRefractionColorPyramid : FullScreenDebugMode.FinalColorPyramid);
-            */
         }
 
         void RenderPyramidDepth(HDCamera hdCamera, CommandBuffer cmd, ScriptableRenderContext renderContext, FullScreenDebugMode debugMode)

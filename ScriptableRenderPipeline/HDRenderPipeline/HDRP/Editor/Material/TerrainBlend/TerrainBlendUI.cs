@@ -109,8 +109,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         const string kLayerCount = "_LayerCount";
         MaterialProperty layerMaskMap = null;
         const string kLayerMaskMap = "_LayerMaskMap";
-        MaterialProperty layerInfluenceMaskMap = null;
-        const string kLayerInfluenceMaskMap = "_LayerInfluenceMaskMap";
+        //MaterialProperty layerInfluenceMaskMap = null;
+        //const string kLayerInfluenceMaskMap = "_LayerInfluenceMaskMap";
         //MaterialProperty vertexColorMode = null;
         //const string kVertexColorMode = "_VertexColorMode";
         MaterialProperty objectScaleAffectTile = null;
@@ -121,8 +121,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         const string kUVMappingMaskBlendMask = "_UVMappingMaskBlendMask";
         //MaterialProperty texWorldScaleBlendMask = null;
         //const string kTexWorldScaleBlendMask = "_TexWorldScaleBlendMask";
-        MaterialProperty useMainLayerInfluence = null;
-        const string kkUseMainLayerInfluence = "_UseMainLayerInfluence";
+        //MaterialProperty useMainLayerInfluence = null;
+        //const string kkUseMainLayerInfluence = "_UseMainLayerInfluence";
         //MaterialProperty useHeightBasedBlend = null;
         //const string kUseHeightBasedBlend = "_UseHeightBasedBlend";
 
@@ -158,14 +158,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             layerCount = FindProperty(kLayerCount, props);
             layerMaskMap = FindProperty(kLayerMaskMap, props);
-            layerInfluenceMaskMap = FindProperty(kLayerInfluenceMaskMap, props);
+            //layerInfluenceMaskMap = FindProperty(kLayerInfluenceMaskMap, props);
             //vertexColorMode = FindProperty(kVertexColorMode, props);
             objectScaleAffectTile = FindProperty(kObjectScaleAffectTile, props);
             //UVBlendMask = FindProperty(kUVBlendMask, props);
             UVMappingMaskBlendMask = FindProperty(kUVMappingMaskBlendMask, props);
             //texWorldScaleBlendMask = FindProperty(kTexWorldScaleBlendMask, props);
 
-            useMainLayerInfluence = FindProperty(kkUseMainLayerInfluence, props);
+            //useMainLayerInfluence = FindProperty(kkUseMainLayerInfluence, props);
             //useHeightBasedBlend = FindProperty(kUseHeightBasedBlend, props);
             heightTransition = FindProperty(kHeightTransition, props);
 
@@ -294,7 +294,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     }
                 }
             }
-        } 
+        }
 
         void SaveMaterialLayers(AssetImporter materialImporter)
         {
@@ -383,8 +383,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             if(displaceMode != DisplacementMode.None)
             {
                 EditorGUI.BeginChangeCheck();
-                m_MaterialEditor.TexturePropertySingleLine(Styles.heightMapText, heightMap[layerIndex]);                
-                
+                m_MaterialEditor.TexturePropertySingleLine(Styles.heightMapText, heightMap[layerIndex]);
+
                 if (!heightMap[layerIndex].hasMixedValue && heightMap[layerIndex].textureValue != null && !displacementMode.hasMixedValue)
                 {
                     EditorGUI.indentLevel++;
@@ -413,8 +413,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                         }
                     }
                     EditorGUI.indentLevel--;
-                } 
-                
+                }
+
                 EditorGUI.indentLevel++;
                     m_MaterialEditor.ShaderProperty(heightOffset[layerIndex], Styles.heightMapOffsetText);
                 EditorGUI.indentLevel--;
@@ -485,7 +485,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             // Texture Scale:
             m_MaterialEditor.FloatProperty(textureSize[layerIndex], "Texture Size");
 
-            // Want have replaced the standard Scale/Offset below with Terrain-specific global terrain size 
+            // Want have replaced the standard Scale/Offset below with Terrain-specific global terrain size
             // and per-layer texture size parameter above:
             //m_MaterialEditor.TextureScaleOffsetProperty(baseColorMap[layerIndex]);
 
@@ -617,7 +617,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             ;
 
             Material material = m_MaterialEditor.target as Material;
-            
+
             /*
             bool mainLayerInfluenceEnable = useMainLayerInfluence.floatValue > 0.0f;
 
@@ -689,14 +689,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     // Precompute.
                     InvTilingScale[layerIndex].floatValue = 2.0f / (Mathf.Abs(baseColorMap[layerIndex].textureScaleAndOffset.x) + Mathf.Abs(baseColorMap[layerIndex].textureScaleAndOffset.y));
                 }
-            } 
- 
+            }
+
             EditorGUI.showMixedValue = layerCount.hasMixedValue;
             EditorGUI.BeginChangeCheck();
             int newLayerCount = EditorGUILayout.IntSlider(styles.layerCountText, (int)layerCount.floatValue, 2, 4);
             if (EditorGUI.EndChangeCheck())
             {
-                Material material = m_MaterialEditor.target as Material; 
+                Material material = m_MaterialEditor.target as Material;
                 Undo.RecordObject(material, "Change layer count");
                 layerCount.floatValue = (float)newLayerCount;
             }
@@ -909,14 +909,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 CoreUtils.SetKeyword(material, "_THICKNESSMAP" + i, material.GetTexture(kThicknessMap + i));
             }
 
-            CoreUtils.SetKeyword(material, "_INFLUENCEMASK_MAP", material.GetTexture(kLayerInfluenceMaskMap) && material.GetFloat(kkUseMainLayerInfluence) != 0.0f);
+            //CoreUtils.SetKeyword(material, "_INFLUENCEMASK_MAP", material.GetTexture(kLayerInfluenceMaskMap) && material.GetFloat(kkUseMainLayerInfluence) != 0.0f);
 
             CoreUtils.SetKeyword(material, "_EMISSIVE_MAPPING_PLANAR", ((UVBaseMapping)material.GetFloat(kUVEmissive)) == UVBaseMapping.Planar && material.GetTexture(kEmissiveColorMap));
             CoreUtils.SetKeyword(material, "_EMISSIVE_MAPPING_TRIPLANAR", ((UVBaseMapping)material.GetFloat(kUVEmissive)) == UVBaseMapping.Triplanar && material.GetTexture(kEmissiveColorMap));
             CoreUtils.SetKeyword(material, "_EMISSIVE_COLOR_MAP", material.GetTexture(kEmissiveColorMap));
             CoreUtils.SetKeyword(material, "_ENABLESPECULAROCCLUSION", material.GetFloat(kEnableSpecularOcclusion) > 0.0f);
 
-            CoreUtils.SetKeyword(material, "_MAIN_LAYER_INFLUENCE_MODE", material.GetFloat(kkUseMainLayerInfluence) != 0.0f);
+            //CoreUtils.SetKeyword(material, "_MAIN_LAYER_INFLUENCE_MODE", material.GetFloat(kkUseMainLayerInfluence) != 0.0f);
 
             CoreUtils.SetKeyword(material, "_LAYER_MASK_VERTEX_COLOR_MUL", false);
             CoreUtils.SetKeyword(material, "_LAYER_MASK_VERTEX_COLOR_ADD", false);
@@ -925,7 +925,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             //CoreUtils.SetKeyword(material, "_HEIGHT_BASED_BLEND", useHeightBasedBlend);
 
             bool useDensityModeEnable = false;
-            for (int i = 0; i < material.GetInt(kLayerCount); ++i )  
+            for (int i = 0; i < material.GetInt(kLayerCount); ++i )
             {
                 useDensityModeEnable |= material.GetFloat(kOpacityAsDensity + i) != 0.0f;
             }
@@ -938,8 +938,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
         {
-            
-            FindBaseMaterialProperties(props); 
+
+            FindBaseMaterialProperties(props);
             FindMaterialProperties(props);
 
             m_MaterialEditor = materialEditor;
@@ -954,15 +954,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             bool optionsChanged = false;
             EditorGUI.BeginChangeCheck();
             {
-                MaterialProperty _onMesh = FindProperty("_OnMesh", props);
-                materialEditor.ShaderProperty( _onMesh, "On Mesh Object");
-
+                MaterialProperty _swapUV = FindProperty("_SwapUV", props);
+                materialEditor.ShaderProperty( _swapUV, "Swap UV Coordinates");
 
                 BaseMaterialPropertiesGUI();
                 EditorGUILayout.Space();
-
-                //VertexAnimationPropertiesGUI();
-                //EditorGUILayout.Space();
             }
             if (EditorGUI.EndChangeCheck())
             {
@@ -984,7 +980,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 {
                     if (compareValue == -1.0f)
                         compareValue = UVBase[1].floatValue;
-                    else if (compareValue != UVBase[1].floatValue) 
+                    else if (compareValue != UVBase[1].floatValue)
                         match = false;
                 }
                 if (material.GetTexture(kHeightMap + 2))

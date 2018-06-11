@@ -510,8 +510,7 @@ Shader "HDRenderPipeline/LayeredLit"
 
             #pragma multi_compile _ DEBUG_DISPLAY
             #pragma multi_compile _ LIGHTMAP_ON
-            //#pragma multi_compile _ DIRLIGHTMAP_COMBINED // TTG_PERF - unused variation, removing to improve shader compile times
-            #define DIRLIGHTMAP_COMBINED
+            #pragma multi_compile _ DIRLIGHTMAP_COMBINED
             //#pragma multi_compile _ DYNAMICLIGHTMAP_ON // TTG_PERF - unused variation, removing to improve shader compile times
             //#pragma multi_compile _ SHADOWS_SHADOWMASK // TTG_PERF - unused variation, removing to improve shader compile times
 
@@ -660,8 +659,7 @@ Shader "HDRenderPipeline/LayeredLit"
 
             #pragma multi_compile _ DEBUG_DISPLAY
             #pragma multi_compile _ LIGHTMAP_ON
-            //#pragma multi_compile _ DIRLIGHTMAP_COMBINED // TTG_PERF - unused variation, removing to improve shader compile times
-            #define DIRLIGHTMAP_COMBINED
+            #pragma multi_compile _ DIRLIGHTMAP_COMBINED
             //#pragma multi_compile _ DYNAMICLIGHTMAP_ON // TTG_PERF - unused variation, removing to improve shader compile times
             //#pragma multi_compile _ SHADOWS_SHADOWMASK // TTG_PERF - unused variation, removing to improve shader compile times
             // #include "../../Lighting/Forward.hlsl"

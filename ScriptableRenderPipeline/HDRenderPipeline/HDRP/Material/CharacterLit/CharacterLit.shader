@@ -1,4 +1,4 @@
-Shader "HDRenderPipeline/Lit"
+Shader "HDRenderPipeline/CharacterLit"
 {
     Properties
     {
@@ -11,7 +11,6 @@ Shader "HDRenderPipeline/Lit"
 
         _AsperityAmount("Asperity Amount", Range(0,1)) = 0.0
         _AsperityExponent("Asperity Exponent", Float) = 1.0
-
 
         _Metallic("_Metallic", Range(0.0, 1.0)) = 0
         _Smoothness("Smoothness", Range(0.0, 1.0)) = 1.0
@@ -27,6 +26,42 @@ Shader "HDRenderPipeline/Lit"
 
         _BentNormalMap("_BentNormalMap", 2D) = "bump" {}
         _BentNormalMapOS("_BentNormalMapOS", 2D) = "white" {}
+
+        // These option below will cause different compilation flag.
+        [Toggle(_ENABLEDECALS)]  _EnableDecals("Enable decals", Float) = 0.0
+        _DecalChannelMap("DecalChannelMap", 2D) = "white" {}
+        [Enum(UV0, 0, UV1, 1, UV2, 2, UV3, 3)] _UVDecals("UV Set for decal textures", Float) = 0
+        [HideInInspector] _UVMappingMaskDecals("_UVMappingMaskDecals", Color) = (1, 0, 0, 0)
+        _DecalColor("DecalColor", Color) = (1,1,1,1)
+        _DecalColorMap("DecalColorMap", 2D) = "white" {}
+        _DecalNormalMap("DecalNormalMap", 2D) = "bump" {}
+        _DecalNormalScale("_DecalNormalScale", Range(0.0, 2.0)) = 1
+        _DecalMaskMap("DecalMaskMap", 2D) = "white" {}
+        _DecalSmoothnessRemapMin("DecalSmoothnessRemapMin", Float) = 0.0
+        _DecalSmoothnessRemapMax("DecalSmoothnessRemapMax", Float) = 1.0
+        _DecalAORemapMin("DecalAORemapMin", Float) = 0.0
+        _DecalAORemapMax("DecalAORemapMax", Float) = 1.0
+        _DecalAIntensity("Decal A Intensity", Range(0.0,1.0)) = 0.0
+        _DecalBIntensity("Decal B Intensity", Range(0.0,1.0)) = 0.0
+        _DecalCIntensity("Decal C Intensity", Range(0.0,1.0)) = 0.0
+        _DecalDIntensity("Decal D Intensity", Range(0.0,1.0)) = 0.0
+        _DecalAsperity("Decal D Intensity", Range(0.0,1.0)) = 0.0
+
+        //Grime Textures and Color Parameters
+        [Toggle(_ENABLEGRIME)]  _EnableGrime("Enable grime", Float) = 0.0
+        _GrimeMaskMap("Grime Mask (RGBA)", 2D) = "black" {}
+        _GrimeAIntensity("Grime A Intensity", Range(0.0, 1.0)) = 0.0
+        _GrimeBIntensity("Grime B Intensity", Range(0.0, 1.0)) = 0.0
+        _GrimeCIntensity("Grime C Intensity", Range(0.0, 1.0)) = 0.0
+        _GrimeDIntensity("Grime D Intensity", Range(0.0, 1.0)) = 0.0
+        _GrimeAColor("Grime A Color", Color) = (1,1,1,1)
+        _GrimeBColor("Grime B Color", Color) = (1,1,1,1)
+        _GrimeCColor("Grime C Color", Color) = (1,1,1,1)
+        _GrimeDColor("Grime D Color", Color) = (1,1,1,1)
+        _GrimeASmoothness("Grime A Smoothness", Range(0.0, 1.0)) = 0.0
+        _GrimeBSmoothness("Grime B Smoothness", Range(0.0, 1.0)) = 0.0
+        _GrimeCSmoothness("Grime C Smoothness", Range(0.0, 1.0)) = 0.0
+        _GrimeDSmoothness("Grime D Smoothness", Range(0.0, 1.0)) = 0.0
 
         _HeightMap("HeightMap", 2D) = "black" {}
         // Caution: Default value of _HeightAmplitude must be (_HeightMax - _HeightMin) * 0.01
@@ -242,7 +277,8 @@ Shader "HDRenderPipeline/Lit"
     #pragma shader_feature _IRIDESCENCE_THICKNESSMAP
     #pragma shader_feature _SPECULARCOLORMAP
     #pragma shader_feature _TRANSMITTANCECOLORMAP
-
+    #pragma shader_feature _ENABLEDECALS
+    #pragma shader_feature _ENABLEGRIME
     #pragma shader_feature _DISABLE_DBUFFER
 
     // Keyword for transparent
@@ -324,17 +360,18 @@ Shader "HDRenderPipeline/Lit"
                 Pass Replace
             }
 
-            HLSLPROGRAM 
- 
+            HLSLPROGRAM
+
             #pragma multi_compile _ DEBUG_DISPLAY
-            #pragma multi_compile _ LIGHTMAP_ON 
-            #pragma multi_compile _ DIRLIGHTMAP_COMBINED
+            #pragma multi_compile _ LIGHTMAP_ON
+            //#pragma multi_compile _ DIRLIGHTMAP_COMBINED // TTG_PERF - unused variation, removing to improve shader compile times
+            #define DIRLIGHTMAP_COMBINED
             //#pragma multi_compile _ DYNAMICLIGHTMAP_ON // TTG_PERF - unused variation, removing to improve shader compile times
             //#pragma multi_compile _ SHADOWS_SHADOWMASK // TTG_PERF - unused variation, removing to improve shader compile times
 
         #ifdef _ALPHATEST_ON
             // When we have alpha test, we will force a depth prepass so we always bypass the clip instruction in the GBuffer
-            #define SHADERPASS_GBUFFER_BYPASS_ALPHA_TEST 
+            #define SHADERPASS_GBUFFER_BYPASS_ALPHA_TEST
         #endif
 
             #define SHADERPASS SHADERPASS_GBUFFER
@@ -343,8 +380,8 @@ Shader "HDRenderPipeline/Lit"
             #include "../../Debug/DebugDisplay.hlsl"
             #endif
             #include "../../Material/Material.hlsl"
-            #include "ShaderPass/LitSharePass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/ShaderPass/LitSharePass.hlsl"
+            #include "CharacterLitData.hlsl"
             #include "../../ShaderPass/ShaderPassGBuffer.hlsl"
 
             ENDHLSL
@@ -368,8 +405,8 @@ Shader "HDRenderPipeline/Lit"
             #define SHADERPASS SHADERPASS_LIGHT_TRANSPORT
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
-            #include "ShaderPass/LitSharePass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/ShaderPass/LitSharePass.hlsl"
+            #include "CharacterLitData.hlsl"
             #include "../../ShaderPass/ShaderPassLightTransport.hlsl"
 
             ENDHLSL
@@ -394,8 +431,8 @@ Shader "HDRenderPipeline/Lit"
             #define USE_LEGACY_UNITY_MATRIX_VARIABLES
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
-            #include "ShaderPass/LitDepthPass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/ShaderPass/LitDepthPass.hlsl"
+            #include "CharacterLitData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
@@ -417,8 +454,8 @@ Shader "HDRenderPipeline/Lit"
             #define SHADERPASS SHADERPASS_DEPTH_ONLY
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
-            #include "ShaderPass/LitDepthPass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/ShaderPass/LitDepthPass.hlsl"
+            #include "CharacterLitData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
@@ -447,8 +484,8 @@ Shader "HDRenderPipeline/Lit"
             #define SHADERPASS SHADERPASS_VELOCITY
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
-            #include "ShaderPass/LitVelocityPass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/ShaderPass/LitVelocityPass.hlsl"
+            #include "CharacterLitData.hlsl"
             #include "../../ShaderPass/ShaderPassVelocity.hlsl"
 
             ENDHLSL
@@ -470,8 +507,8 @@ Shader "HDRenderPipeline/Lit"
             #define SHADERPASS SHADERPASS_DISTORTION
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
-            #include "ShaderPass/LitDistortionPass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/ShaderPass/LitDistortionPass.hlsl"
+            #include "CharacterLitData.hlsl"
             #include "../../ShaderPass/ShaderPassDistortion.hlsl"
 
             ENDHLSL
@@ -492,8 +529,8 @@ Shader "HDRenderPipeline/Lit"
             #define CUTOFF_TRANSPARENT_DEPTH_PREPASS
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
-            #include "ShaderPass/LitDepthPass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/ShaderPass/LitDepthPass.hlsl"
+            #include "CharacterLitData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
@@ -513,7 +550,8 @@ Shader "HDRenderPipeline/Lit"
 
             #pragma multi_compile _ DEBUG_DISPLAY
             #pragma multi_compile _ LIGHTMAP_ON
-            #pragma multi_compile _ DIRLIGHTMAP_COMBINED
+            //#pragma multi_compile _ DIRLIGHTMAP_COMBINED // TTG_PERF - unused variation, removing to improve shader compile times
+            #define DIRLIGHTMAP_COMBINED
             //#pragma multi_compile _ DYNAMICLIGHTMAP_ON // TTG_PERF - unused variation, removing to improve shader compile times
             //#pragma multi_compile _ SHADOWS_SHADOWMASK // TTG_PERF - unused variation, removing to improve shader compile times
             // #include "../../Lighting/Forward.hlsl"
@@ -527,8 +565,8 @@ Shader "HDRenderPipeline/Lit"
             #include "../../Debug/DebugDisplay.hlsl"
             #endif
             #include "../../Lighting/Lighting.hlsl"
-            #include "ShaderPass/LitSharePass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/ShaderPass/LitSharePass.hlsl"
+            #include "CharacterLitData.hlsl"
             #include "../../ShaderPass/ShaderPassForward.hlsl"
 
             ENDHLSL
@@ -557,7 +595,8 @@ Shader "HDRenderPipeline/Lit"
 
             #pragma multi_compile _ DEBUG_DISPLAY
             #pragma multi_compile _ LIGHTMAP_ON
-            #pragma multi_compile _ DIRLIGHTMAP_COMBINED
+            //#pragma multi_compile _ DIRLIGHTMAP_COMBINED // TTG_PERF - unused variation, removing to improve shader compile times
+            #define DIRLIGHTMAP_COMBINED
             //#pragma multi_compile _ DYNAMICLIGHTMAP_ON // TTG_PERF - unused variation, removing to improve shader compile times
             //#pragma multi_compile _ SHADOWS_SHADOWMASK // TTG_PERF - unused variation, removing to improve shader compile times
             // #include "../../Lighting/Forward.hlsl"
@@ -575,8 +614,8 @@ Shader "HDRenderPipeline/Lit"
             #include "../../Debug/DebugDisplay.hlsl"
             #endif
             #include "../../Lighting/Lighting.hlsl"
-            #include "ShaderPass/LitSharePass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/ShaderPass/LitSharePass.hlsl"
+            #include "CharacterLitData.hlsl"
             #include "../../ShaderPass/ShaderPassForward.hlsl"
 
             ENDHLSL
@@ -597,13 +636,14 @@ Shader "HDRenderPipeline/Lit"
             #define CUTOFF_TRANSPARENT_DEPTH_POSTPASS
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
-            #include "ShaderPass/LitDepthPass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/ShaderPass/LitDepthPass.hlsl"
+            #include "CharacterLitData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
         }
     }
 
-    CustomEditor "Experimental.Rendering.HDPipeline.LitGUI"
+    CustomEditor "Experimental.Rendering.HDPipeline.CharacterLitGUI"
 }
+

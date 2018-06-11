@@ -46,7 +46,11 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
 
 #ifdef _VERTEX_WIND
     float3 rootWP = mul(GetObjectToWorldMatrix(), float4(0, 0, 0, 1)).xyz;
+    #if defined(_CHARACTER)
+    ApplyWindDisplacement(positionWS, normalWS, rootWP, _Stiffness, _Drag, _ShiverDrag, _ShiverDirectionality, _InitialBend, input.color.r, time);
+    #else
     ApplyWindDisplacement(positionWS, normalWS, rootWP, _Stiffness, _Drag, _ShiverDrag, _ShiverDirectionality, _InitialBend, input.uv2.x, time);
+    #endif
 #endif
 }
 

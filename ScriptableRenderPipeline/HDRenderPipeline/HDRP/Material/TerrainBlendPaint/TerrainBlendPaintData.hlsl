@@ -3,7 +3,7 @@
 //-------------------------------------------------------------------------------------
 
 #include "../Lit/LitData.hlsl"
-float _OnMesh; 
+float _SwapUV;
 
 uniform sampler2D _Control;
 uniform float4 _Control_ST;
@@ -303,7 +303,7 @@ float BlendLayeredScalar(float x0, float x1, float x2, float x3, float weight[4]
 float BlendLayeredDiffusionProfile(float x0, float x1, float x2, float x3, float weight[4])
 {
     int diffusionProfileId = x0;
-    float currentMax = weight[0]; 
+    float currentMax = weight[0];
 
     diffusionProfileId = currentMax < weight[1] ? x1 : diffusionProfileId;
     currentMax = max(currentMax, weight[1]);
@@ -332,7 +332,7 @@ void GetLayerTexCoord(float2 texCoord0, float2 texCoord1, float2 texCoord2, floa
 
     int mappingType = UV_MAPPING_UVSET;
 #if defined(_LAYER_MAPPING_PLANAR_BLENDMASK)
-    mappingType = UV_MAPPING_PLANAR; 
+    mappingType = UV_MAPPING_PLANAR;
 #elif defined(_LAYER_MAPPING_TRIPLANAR_BLENDMASK)
     mappingType = UV_MAPPING_TRIPLANAR;
 #endif
@@ -345,10 +345,11 @@ void GetLayerTexCoord(float2 texCoord0, float2 texCoord1, float2 texCoord2, floa
                             mappingType, layerTexCoord);
 
     layerTexCoord.blendMask = layerTexCoord.base0;
-    if(_OnMesh)
+    if(_SwapUV)
     {
         layerTexCoord.blendMask.uv = float2(layerTexCoord.base0.uv.y,layerTexCoord.base0.uv.x);
     }
+
     // On all layers (but not on blend mask) we can scale the tiling with object scale (only uniform supported)
     // Note: the object scale doesn't affect planar/triplanar mapping as they already handle the object scale.
     float tileObjectScale = 1.0;
@@ -375,7 +376,7 @@ void GetLayerTexCoord(float2 texCoord0, float2 texCoord1, float2 texCoord2, floa
                             , positionWS, _TexWorldScale0,
                             mappingType, layerTexCoord);
 
-    if(_OnMesh)
+    if(_SwapUV)
     {
         layerTexCoord.base0.uv = float2(layerTexCoord.base0.uv.y,layerTexCoord.base0.uv.x);
     }
@@ -391,7 +392,7 @@ void GetLayerTexCoord(float2 texCoord0, float2 texCoord1, float2 texCoord2, floa
                             positionWS, _TexWorldScale1,
                             mappingType, layerTexCoord);
 
-    if(_OnMesh)
+    if(_SwapUV)
     {
         layerTexCoord.base1.uv = float2(layerTexCoord.base1.uv.y,layerTexCoord.base1.uv.x);
     }
@@ -407,7 +408,7 @@ void GetLayerTexCoord(float2 texCoord0, float2 texCoord1, float2 texCoord2, floa
                             positionWS, _TexWorldScale2,
                             mappingType, layerTexCoord);
 
-    if(_OnMesh)
+    if(_SwapUV)
     {
         layerTexCoord.base2.uv = float2(layerTexCoord.base2.uv.y,layerTexCoord.base2.uv.x);
     }
@@ -423,7 +424,7 @@ void GetLayerTexCoord(float2 texCoord0, float2 texCoord1, float2 texCoord2, floa
                             positionWS, _TexWorldScale3,
                             mappingType, layerTexCoord);
 
-    if(_OnMesh)
+    if(_SwapUV)
     {
         layerTexCoord.base3.uv = float2(layerTexCoord.base3.uv.y,layerTexCoord.base3.uv.x);
     }
@@ -623,7 +624,7 @@ void ComputeLayerWeights(FragInputs input, LayerTexCoord layerTexCoord, float4 i
         // Nullify height that are not used, so compiler can remove unused case
         SetEnabledHeightByLayer(height0, height1, height2, height3);
 
-        float layermax = max(max(max(height0, height1), height2), height3) - blending; 
+        float layermax = max(max(max(height0, height1), height2), height3) - blending;
         float w0 = max(height0 - layermax, 1e-3f);
         float w1 = max(height1 - layermax, 1e-3f);
         float w2 = max(height2 - layermax, 1e-3f);
@@ -800,7 +801,7 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     // Transparency parameters
     // Use thickness from SSS
     surfaceData.ior = 1.0;
-    surfaceData.transmittanceColor = float3(1.0, 1.0, 1.0); 
+    surfaceData.transmittanceColor = float3(1.0, 1.0, 1.0);
     surfaceData.atDistance = 1000000.0;
     surfaceData.transmittanceMask = 0.0;
 
