@@ -3,6 +3,7 @@
 //-------------------------------------------------------------------------------------
 #include "CoreRP/ShaderLibrary/Sampling/SampleUVMapping.hlsl"
 #include "../MaterialUtilities.hlsl"
+#include "../../Lighting/LightDefinition.cs.hlsl"
 
 uniform sampler2D _DecalChannelMap;
 uniform sampler2D _DecalMaskMap;
@@ -34,6 +35,11 @@ float _GrimeASmoothness;
 float _GrimeBSmoothness;
 float _GrimeCSmoothness;
 float _GrimeDSmoothness;
+
+// Light groups:
+StructuredBuffer<DirectionalLightData> _CharacterLights;
+float _StandardLightContribution = 1.0;
+float _CharacterLightContribution = 0.0;
 
 // TODO: move this function to commonLighting.hlsl once validated it work correctly
 float GetSpecularOcclusionFromBentAO(float3 V, float3 bentNormalWS, SurfaceData surfaceData)
