@@ -237,6 +237,8 @@ Shader "HDRenderPipeline/CharacterLit"
         [ToggleUI] _SupportDBuffer("Support DBuffer", Float) = 1.0
 
         [HideInInspector] _LightGroupIndex("LightGroupIndex", Int) = 0
+        [HideInInspector] _StandardLightContribution("StandardLightContribution", Float) = 1
+        [HideInInspector] _CharacterLightContribution("CharacterLightContribution", Float) = 0
     }
 
     HLSLINCLUDE

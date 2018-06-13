@@ -38,8 +38,8 @@ float _GrimeDSmoothness;
 
 // Light groups:
 StructuredBuffer<DirectionalLightData> _CharacterLights;
-float _StandardLightContribution = 1.0;
-float _CharacterLightContribution = 0.0;
+float _StandardLightContribution;
+float _CharacterLightContribution;
 
 // TODO: move this function to commonLighting.hlsl once validated it work correctly
 float GetSpecularOcclusionFromBentAO(float3 V, float3 bentNormalWS, SurfaceData surfaceData)
