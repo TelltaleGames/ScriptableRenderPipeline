@@ -70,30 +70,30 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             return new Vector4(dir.x, dir.y, dir.z, WindSpeed * 0.2777f);
         }
 
-        //void OnDrawGizmos()
-        //{
-        //    Vector3 dir = (transform.position + transform.forward).normalized;
+        void OnDrawGizmos()
+        {
+            Vector3 dir = (transform.position + transform.forward).normalized;
 
-        //    Gizmos.color = Color.green;
-        //    Gizmos.DrawIcon(transform.position, "Wind.png", false);
-        //    Vector3 up = transform.up;
-        //    Vector3 side = transform.right;
+            Gizmos.color = Color.green;
+            Gizmos.DrawIcon(transform.position, "Wind.png", false);
+            Vector3 up = transform.up;
+            Vector3 side = transform.right;
 
-        //    Vector3 end = transform.position + transform.forward * WindSpeed;
-        //    Gizmos.DrawLine(transform.position, end);
+            Vector3 end = transform.position + transform.forward * WindSpeed;
+            Gizmos.DrawLine(transform.position, end);
 
-        //    float s = WindSpeed * 0.05f;
-        //    Vector3 front = transform.forward * WindSpeed * 0.1f;
+            float s = WindSpeed * 0.05f;
+            Vector3 front = transform.forward * WindSpeed * 0.1f;
 
-        //    Gizmos.DrawLine(end, end - front + up * s);
-        //    Gizmos.DrawLine(end, end - front - up * s);
-        //    Gizmos.DrawLine(end, end - front + side * s);
-        //    Gizmos.DrawLine(end, end - front - side * s);
+            Gizmos.DrawLine(end, end - front + up * s);
+            Gizmos.DrawLine(end, end - front - up * s);
+            Gizmos.DrawLine(end, end - front + side * s);
+            Gizmos.DrawLine(end, end - front - side * s);
 
-        //    Gizmos.DrawLine(end - front - side * s, end - front + up * s);
-        //    Gizmos.DrawLine(end - front + up * s, end - front + side * s);
-        //    Gizmos.DrawLine(end - front + side * s, end - front - up * s);
-        //    Gizmos.DrawLine(end - front - up * s, end - front - side * s);
-        //}
+            Gizmos.DrawLine(end - front - side * s, end - front + up * s);
+            Gizmos.DrawLine(end - front + up * s, end - front + side * s);
+            Gizmos.DrawLine(end - front + side * s, end - front - up * s);
+            Gizmos.DrawLine(end - front - up * s, end - front - side * s);
+        }
     }
 }

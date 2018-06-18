@@ -189,7 +189,7 @@ Shader "HDRenderPipeline/CharacterLit"
         // Following enum should be material feature flags (i.e bitfield), however due to Gbuffer encoding constrain many combination exclude each other
         // so we use this enum as "material ID" which can be interpreted as preset of bitfield of material feature
         // The only material feature flag that can be added in all cases is clear coat
-        [Enum(Subsurface Scattering, 0, Standard, 1, Anisotropy, 2, Iridescence, 3, Specular Color, 4, Translucent, 5)] _MaterialID("MaterialId", Int) = 1 // MaterialId.Standard
+        [Enum(Subsurface Scattering, 0, Standard, 1, Anisotropy, 2, Iridescence, 3, Specular Color, 4, Translucent, 5, Hair, 6)] _MaterialID("MaterialId", Int) = 1 // MaterialId.Standard
         [ToggleUI] _TransmissionEnable("_TransmissionEnable", Float) = 1.0
 
         [Enum(None, 0, Vertex displacement, 1, Pixel displacement, 2)] _DisplacementMode("DisplacementMode", Int) = 0
@@ -214,6 +214,18 @@ Shader "HDRenderPipeline/CharacterLit"
         [Enum(UV0, 0, UV1, 1, UV2, 2, UV3, 3, Planar, 4, Triplanar, 5)] _UVEmissive("UV Set for emissive", Float) = 0
         _TexWorldScaleEmissive("Scale to apply on world coordinate", Float) = 1.0
         [HideInInspector] _UVMappingMaskEmissive("_UVMappingMaskEmissive", Color) = (1, 0, 0, 0)
+
+        // Hair
+        _HairNoiseMap("Hair Noise Map", 2D) = "grey" {}
+        _HairNoiseIntensity("Hair Noise Intensity", Range(0.0, 1.0)) = 0.0
+        _HairSpecularMap("Hair Specular Map", 2D) = "white" {}
+        _HairSpecularColor("Color", Color) = (1, 1, 1)
+        _HairSmoothnessPrimary("Hair Smoothness Primary", Range(0.0, 1.0)) = 0.6
+        _HairSmoothnessSecondary("Hair Smoothness Secondary", Range(0.0, 1.0)) = 0.3
+        _HairShiftPrimary("Hair Shift Primary", Range(-1.0, 1.0)) = -0.2
+        _HairShiftSecondary("Hair Shift Secondary", Range(-1.0, 1.0)) = -0.5
+        [HideInInspector] _UVMappingMaskHair("UVMappingMask Hair", Color) = (1, 0, 0, 0)
+        [Enum(UV0, 0, UV1, 1, UV2, 2, UV3, 3)] _UVHair("UV Set for hair noise", Float) = 0
 
         // Wind
         [ToggleUI]  _EnableWind("Enable Wind", Float) = 0.0
@@ -296,6 +308,7 @@ Shader "HDRenderPipeline/CharacterLit"
     #pragma shader_feature _MATERIAL_FEATURE_CLEAR_COAT
     #pragma shader_feature _MATERIAL_FEATURE_IRIDESCENCE
     #pragma shader_feature _MATERIAL_FEATURE_SPECULAR_COLOR
+    #pragma shader_feature _MATERIAL_FEATURE_HAIR
 
     // enable dithering LOD crossfade
     #pragma multi_compile _ LOD_FADE_CROSSFADE
@@ -307,7 +320,7 @@ Shader "HDRenderPipeline/CharacterLit"
     // Define
     //-------------------------------------------------------------------------------------
 
-    #define UNITY_MATERIAL_LIT // Need to be define before including Material.hlsl
+    #define UNITY_MATERIAL_CHARACTERLIT // Need to be define before including Material.hlsl
     // Use surface gradient normal mapping as it handle correctly triplanar normal mapping and multiple UVSet
     #define SURFACE_GRADIENT
     // This shader support vertex modification
@@ -618,7 +631,7 @@ Shader "HDRenderPipeline/CharacterLit"
             #include "../../Lighting/Lighting.hlsl"
             #include "../Lit/ShaderPass/LitSharePass.hlsl"
             #include "CharacterLitData.hlsl"
-            #include "CharacterLitPassForward.hlsl"
+            #include "ShaderPass/CharacterLitPassForward.hlsl"
 
             ENDHLSL
         }

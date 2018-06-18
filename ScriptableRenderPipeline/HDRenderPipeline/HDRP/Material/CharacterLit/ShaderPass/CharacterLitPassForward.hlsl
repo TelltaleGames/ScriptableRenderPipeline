@@ -96,9 +96,9 @@ void Frag(PackedVaryingsToPS packedInput,
             AggregateLighting aggregateLighting;
             ZERO_INITIALIZE(AggregateLighting, aggregateLighting);
 
-            uint characterLightCount;
-            uint characterLightStride;
-            _CharacterLights.GetDimensions(characterLightCount, characterLightStride);
+            uint characterLightCount = 0;
+            uint characterLightStride = 0;
+            //_CharacterLights.GetDimensions(characterLightCount, characterLightStride);
 
             for (uint i = 0; i < characterLightCount; ++i)
             {

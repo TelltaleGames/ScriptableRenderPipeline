@@ -109,6 +109,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent iridescenceThicknessMapText = new GUIContent("Iridescence Layer Thickness map");
             public static GUIContent iridescenceThicknessRemapText = new GUIContent("Iridescence Layer Thickness remap");
 
+            // Hair
+            public static GUIContent UVHairMappingText = new GUIContent("Hair Noise UV", "");
+            public static GUIContent hairSpecularColorText = new GUIContent("Hair Secondary Specular", "Color of secondary hair highlight");
+            public static GUIContent hairNoiseMapText = new GUIContent("Hair Noise Map", "Shift highlights along hair strands based on this texture");
+            public static GUIContent hairNoiseIntensityText = new GUIContent("Hair Noise Intensity", "Amount to shift highlights");
+            public static GUIContent hairSmoothnessPrimaryText = new GUIContent("Primary Smoothness", "Smoothness of Primary Hair Highlight");
+            public static GUIContent hairSmoothnessSecondaryText = new GUIContent("Secondary Smoothness", "Smoothness of Secondary Hair Highlight");
+            public static GUIContent hairShiftPrimaryText = new GUIContent("Primary Shift", "Shift Highlight along tangent direction");
+            public static GUIContent hairShiftSecondaryText = new GUIContent("Secondary Shift", "Shift Highlight along tangent direction");
+
             // Clear Coat
             public static GUIContent coatMaskText = new GUIContent("Coat Mask", "Attenuate the coating effect (similar to change to IOR of 1");
 
@@ -185,6 +195,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             UV3
         }
 
+        public enum UVHairMapping
+        {
+            UV0,
+            UV1,
+            UV2,
+            UV3
+        }
         protected MaterialProperty[] UVBase = new MaterialProperty[kMaxLayerCount];
         protected const string kUVBase = "_UVBase";
         protected MaterialProperty[] TexWorldScale = new MaterialProperty[kMaxLayerCount];
@@ -397,6 +414,28 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected MaterialProperty UVMappingMaskEmissive = null;
         protected const string kUVMappingMaskEmissive = "_UVMappingMaskEmissive";
 
+        // hair params
+        protected MaterialProperty UVHair = null;
+        protected const string kUVHair = "_UVHair";
+        protected MaterialProperty UVMappingMaskHair = null;
+        protected const string kUVMappingMaskHair = "_UVMappingMaskHair";
+        protected MaterialProperty hairSpecularMap = null;
+        protected const string kHairSpecularMap = "_HairSpecularMap";
+        protected MaterialProperty hairSpecularColor = null;
+        protected const string kHairSpecularColor = "_HairSpecularColor";
+        protected MaterialProperty hairNoiseMap = null;
+        protected const string kHairNoiseMap = "_HairNoiseMap";
+        protected MaterialProperty hairNoiseIntensity = null;
+        protected const string kHairNoiseIntensity = "_HairNoiseIntensity";
+        protected MaterialProperty hairSmoothnessPrimary = null;
+        protected const string kHairSmoothnessPrimary = "_HairSmoothnessPrimary";
+        protected MaterialProperty hairSmoothnessSecondary = null;
+        protected const string kHairSmoothnessSecondary = "_HairSmoothnessSecondary";
+        protected MaterialProperty hairShiftPrimary = null;
+        protected const string kHairShiftPrimary = "_HairShiftPrimary";
+        protected MaterialProperty hairShiftSecondary = null;
+        protected const string kHairShiftSecondary = "_HairShiftSecondary";
+
         protected MaterialProperty enableSpecularOcclusion = null;
         protected const string kEnableSpecularOcclusion = "_EnableSpecularOcclusion";
 
@@ -515,6 +554,19 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             grimeDSmoothness = FindProperty(kGrimeDSmoothness, props);
         }
 
+        protected void FindMaterialHairProperties(MaterialProperty[] props)
+        {
+            UVHair = FindProperty(kUVHair, props);
+            UVMappingMaskHair = FindProperty(kUVMappingMaskHair, props);
+            hairSpecularMap = FindProperty(kHairSpecularMap, props);
+            hairSpecularColor = FindProperty(kHairSpecularColor, props);
+            hairNoiseMap = FindProperty(kHairNoiseMap, props);
+            hairNoiseIntensity = FindProperty(kHairNoiseIntensity, props);
+            hairSmoothnessPrimary = FindProperty(kHairSmoothnessPrimary, props);
+            hairSmoothnessSecondary = FindProperty(kHairSmoothnessSecondary, props);
+            hairShiftPrimary = FindProperty(kHairShiftPrimary, props);
+            hairShiftSecondary = FindProperty(kHairShiftSecondary, props);
+        }
 
         protected void FindMaterialEmissiveProperties(MaterialProperty[] props)
         {
@@ -535,6 +587,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             FindMaterialLayerProperties(props);
             FindMaterialEmissiveProperties(props);
+            FindMaterialHairProperties(props);
             FindMaterialDecalProperties(props);
             FindMaterialGrimeProperties(props);
 
@@ -634,14 +687,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     diffusionProfileID[layerIndex].floatValue = profileID;
             }
 
-            if ((int)materialID.floatValue == (int)BaseLitGUI.MaterialId.LitSSS)
+            if ((int)materialID.floatValue == (int)BaseCharacterLitGUI.MaterialId.LitSSS)
             {
                 m_MaterialEditor.ShaderProperty(subsurfaceMask[layerIndex], Styles.subsurfaceMaskText);
                 m_MaterialEditor.TexturePropertySingleLine(Styles.subsurfaceMaskMapText, subsurfaceMaskMap[layerIndex]);
             }
 
-            if ((int)materialID.floatValue == (int)BaseLitGUI.MaterialId.LitTranslucent ||
-                ((int)materialID.floatValue == (int)BaseLitGUI.MaterialId.LitSSS && transmissionEnable.floatValue > 0.0f))
+            if ((int)materialID.floatValue == (int)BaseCharacterLitGUI.MaterialId.LitTranslucent ||
+                ((int)materialID.floatValue == (int)BaseCharacterLitGUI.MaterialId.LitSSS && transmissionEnable.floatValue > 0.0f))
             {
                 m_MaterialEditor.TexturePropertySingleLine(Styles.thicknessMapText, thicknessMap[layerIndex]);
                 if (thicknessMap[layerIndex].textureValue != null)
@@ -683,6 +736,44 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 // Allow the user to set the constant value of thickness if no thickness map is provided.
                 m_MaterialEditor.ShaderProperty(iridescenceThickness, Styles.iridescenceThicknessText);
             }
+        }
+
+        protected void ShaderHairInputGUI(Material material)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Hair", EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+
+            m_MaterialEditor.TexturePropertySingleLine(Styles.hairSpecularColorText, hairSpecularMap, hairSpecularColor);
+            m_MaterialEditor.TexturePropertySingleLine(Styles.hairNoiseMapText, hairNoiseMap, hairNoiseIntensity);
+
+            if (material.GetTexture(kHairNoiseMap))
+            {
+                EditorGUI.indentLevel++;
+                m_MaterialEditor.ShaderProperty(UVHair, Styles.UVHairMappingText);
+                EditorGUILayout.Space();
+                UVBaseMapping uvHairMapping = (UVBaseMapping)UVHair.floatValue;
+
+                float X, Y, Z, W;
+                X = (uvHairMapping == UVBaseMapping.UV0) ? 1.0f : 0.0f;
+                Y = (uvHairMapping == UVBaseMapping.UV1) ? 1.0f : 0.0f;
+                Z = (uvHairMapping == UVBaseMapping.UV2) ? 1.0f : 0.0f;
+                W = (uvHairMapping == UVBaseMapping.UV3) ? 1.0f : 0.0f;
+
+                UVMappingMaskHair.colorValue = new Color(X, Y, Z, W);
+                m_MaterialEditor.TextureScaleOffsetProperty(hairNoiseMap);
+
+                EditorGUI.indentLevel--;
+            }
+
+            m_MaterialEditor.TexturePropertySingleLine(Styles.tangentMapText, tangentMap);
+            m_MaterialEditor.ShaderProperty(hairShiftPrimary, Styles.hairShiftPrimaryText);
+            m_MaterialEditor.ShaderProperty(hairSmoothnessPrimary, Styles.hairSmoothnessPrimaryText);
+            m_MaterialEditor.ShaderProperty(hairShiftSecondary, Styles.hairShiftSecondaryText);
+            m_MaterialEditor.ShaderProperty(hairSmoothnessSecondary, Styles.hairSmoothnessSecondaryText);
+
+            EditorGUI.indentLevel--;
+            EditorGUILayout.Space();
         }
 
         protected void ShaderClearCoatInputGUI()
@@ -748,9 +839,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             m_MaterialEditor.TexturePropertySingleLine(Styles.baseColorText, baseColorMap[layerIndex], baseColor[layerIndex]);
 
-            if ((BaseLitGUI.MaterialId)materialID.floatValue == BaseLitGUI.MaterialId.LitStandard ||
-                (BaseLitGUI.MaterialId)materialID.floatValue == BaseLitGUI.MaterialId.LitAniso ||
-                (BaseLitGUI.MaterialId)materialID.floatValue == BaseLitGUI.MaterialId.LitIridescence)
+            if ((BaseCharacterLitGUI.MaterialId)materialID.floatValue == BaseCharacterLitGUI.MaterialId.LitStandard ||
+                (BaseCharacterLitGUI.MaterialId)materialID.floatValue == BaseCharacterLitGUI.MaterialId.LitAniso ||
+                (BaseCharacterLitGUI.MaterialId)materialID.floatValue == BaseCharacterLitGUI.MaterialId.LitIridescence)
             {
                 m_MaterialEditor.ShaderProperty(metallic[layerIndex], Styles.metallicText);
             }
@@ -782,7 +873,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 }
             }
 
-            m_MaterialEditor.TexturePropertySingleLine(((BaseLitGUI.MaterialId)materialID.floatValue == BaseLitGUI.MaterialId.LitSpecular) ? Styles.maskMapSpecularText : Styles.maskMapSText, maskMap[layerIndex]);
+            m_MaterialEditor.TexturePropertySingleLine(((BaseCharacterLitGUI.MaterialId)materialID.floatValue == BaseCharacterLitGUI.MaterialId.LitSpecular) ? Styles.maskMapSpecularText : Styles.maskMapSText, maskMap[layerIndex]);
 
             m_MaterialEditor.ShaderProperty(normalMapSpace[layerIndex], Styles.normalMapSpaceText);
 
@@ -848,26 +939,29 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 }
             }
 
-            switch ((BaseLitGUI.MaterialId)materialID.floatValue)
+            switch ((BaseCharacterLitGUI.MaterialId)materialID.floatValue)
             {
-                case BaseLitGUI.MaterialId.LitSSS:
-                case BaseLitGUI.MaterialId.LitTranslucent:
+                case BaseCharacterLitGUI.MaterialId.LitSSS:
+                case BaseCharacterLitGUI.MaterialId.LitTranslucent:
                     ShaderSSSAndTransmissionInputGUI(material, layerIndex);
                     break;
-                case BaseLitGUI.MaterialId.LitStandard:
+                case BaseCharacterLitGUI.MaterialId.LitStandard:
                     // Nothing
                     break;
 
                 // Following mode are not supported by layered lit and will not be call by it
                 // as the MaterialId enum don't define it
-                case BaseLitGUI.MaterialId.LitAniso:
+                case BaseCharacterLitGUI.MaterialId.LitAniso:
                     ShaderAnisoInputGUI();
                     break;
-                case BaseLitGUI.MaterialId.LitSpecular:
+                case BaseCharacterLitGUI.MaterialId.LitSpecular:
                     ShaderSpecularColorInputGUI(material);
                     break;
-                case BaseLitGUI.MaterialId.LitIridescence:
+                case BaseCharacterLitGUI.MaterialId.LitIridescence:
                     ShaderIridescenceInputGUI();
+                    break;
+                case BaseCharacterLitGUI.MaterialId.LitHair:
+                    // Nothing
                     break;
 
                 default:
@@ -875,7 +969,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     break;
             }
 
-            if (!isLayeredLit)
+            if (!isLayeredLit && (BaseCharacterLitGUI.MaterialId)materialID.floatValue != BaseCharacterLitGUI.MaterialId.LitHair)
             {
                 ShaderClearCoatInputGUI();
             }
@@ -909,55 +1003,58 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     InvTilingScale[layerIndex].floatValue = InvTilingScale[layerIndex].floatValue / TexWorldScale[layerIndex].floatValue;
                 }
             }
-
             EditorGUI.indentLevel--;
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField(Styles.detailText, EditorStyles.boldLabel);
 
-            EditorGUI.indentLevel++;
-            m_MaterialEditor.TexturePropertySingleLine(Styles.detailMapNormalText, detailMap[layerIndex]);
-
-            if (material.GetTexture(isLayeredLit ? kDetailMap + layerIndex : kDetailMap))
+            if((BaseCharacterLitGUI.MaterialId)materialID.floatValue != BaseCharacterLitGUI.MaterialId.LitHair)
             {
+
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField(Styles.detailText, EditorStyles.boldLabel);
                 EditorGUI.indentLevel++;
+                m_MaterialEditor.TexturePropertySingleLine(Styles.detailMapNormalText, detailMap[layerIndex]);
 
-                // When Planar or Triplanar is enable the UVDetail use the same mode, so we disable the choice on UVDetail
-                if (uvBaseMapping == UVBaseMapping.Planar)
+                if (material.GetTexture(isLayeredLit ? kDetailMap + layerIndex : kDetailMap))
                 {
-                    EditorGUILayout.LabelField(Styles.UVDetailMappingText.text + ": Planar");
-                }
-                else if (uvBaseMapping == UVBaseMapping.Triplanar)
-                {
-                    EditorGUILayout.LabelField(Styles.UVDetailMappingText.text + ": Triplanar");
-                }
-                else
-                {
-                    m_MaterialEditor.ShaderProperty(UVDetail[layerIndex], Styles.UVDetailMappingText);
-                }
+                    EditorGUI.indentLevel++;
 
-                // Setup the UVSet for detail, if planar/triplanar is use for base, it will override the mapping of detail (See shader code)
-                X = ((UVDetailMapping)UVDetail[layerIndex].floatValue == UVDetailMapping.UV0) ? 1.0f : 0.0f;
-                Y = ((UVDetailMapping)UVDetail[layerIndex].floatValue == UVDetailMapping.UV1) ? 1.0f : 0.0f;
-                Z = ((UVDetailMapping)UVDetail[layerIndex].floatValue == UVDetailMapping.UV2) ? 1.0f : 0.0f;
-                W = ((UVDetailMapping)UVDetail[layerIndex].floatValue == UVDetailMapping.UV3) ? 1.0f : 0.0f;
-                UVDetailsMappingMask[layerIndex].colorValue = new Color(X, Y, Z, W);
+                    // When Planar or Triplanar is enable the UVDetail use the same mode, so we disable the choice on UVDetail
+                    if (uvBaseMapping == UVBaseMapping.Planar)
+                    {
+                        EditorGUILayout.LabelField(Styles.UVDetailMappingText.text + ": Planar");
+                    }
+                    else if (uvBaseMapping == UVBaseMapping.Triplanar)
+                    {
+                        EditorGUILayout.LabelField(Styles.UVDetailMappingText.text + ": Triplanar");
+                    }
+                    else
+                    {
+                        m_MaterialEditor.ShaderProperty(UVDetail[layerIndex], Styles.UVDetailMappingText);
+                    }
 
-                EditorGUI.indentLevel++;
-                m_MaterialEditor.ShaderProperty(linkDetailsWithBase[layerIndex], Styles.linkDetailsWithBaseText);
+                    // Setup the UVSet for detail, if planar/triplanar is use for base, it will override the mapping of detail (See shader code)
+                    X = ((UVDetailMapping)UVDetail[layerIndex].floatValue == UVDetailMapping.UV0) ? 1.0f : 0.0f;
+                    Y = ((UVDetailMapping)UVDetail[layerIndex].floatValue == UVDetailMapping.UV1) ? 1.0f : 0.0f;
+                    Z = ((UVDetailMapping)UVDetail[layerIndex].floatValue == UVDetailMapping.UV2) ? 1.0f : 0.0f;
+                    W = ((UVDetailMapping)UVDetail[layerIndex].floatValue == UVDetailMapping.UV3) ? 1.0f : 0.0f;
+                    UVDetailsMappingMask[layerIndex].colorValue = new Color(X, Y, Z, W);
+
+                    EditorGUI.indentLevel++;
+                    m_MaterialEditor.ShaderProperty(linkDetailsWithBase[layerIndex], Styles.linkDetailsWithBaseText);
+                    EditorGUI.indentLevel--;
+
+                    m_MaterialEditor.TextureScaleOffsetProperty(detailMap[layerIndex]);
+                    if ((DisplacementMode)displacementMode.floatValue == DisplacementMode.Pixel && (UVDetail[layerIndex].floatValue != UVBase[layerIndex].floatValue))
+                    {
+                        if (material.GetTexture(kDetailMap + m_PropertySuffixes[layerIndex]))
+                            EditorGUILayout.HelpBox(Styles.perPixelDisplacementDetailsWarning.text, MessageType.Warning);
+                    }
+                    m_MaterialEditor.ShaderProperty(detailAlbedoScale[layerIndex], Styles.detailAlbedoScaleText);
+                    m_MaterialEditor.ShaderProperty(detailNormalScale[layerIndex], Styles.detailNormalScaleText);
+                    m_MaterialEditor.ShaderProperty(detailSmoothnessScale[layerIndex], Styles.detailSmoothnessScaleText);
+                    EditorGUI.indentLevel--;
+                }
                 EditorGUI.indentLevel--;
-
-                m_MaterialEditor.TextureScaleOffsetProperty(detailMap[layerIndex]);
-                if ((DisplacementMode)displacementMode.floatValue == DisplacementMode.Pixel && (UVDetail[layerIndex].floatValue != UVBase[layerIndex].floatValue))
-                {
-                    if (material.GetTexture(kDetailMap + m_PropertySuffixes[layerIndex]))
-                        EditorGUILayout.HelpBox(Styles.perPixelDisplacementDetailsWarning.text, MessageType.Warning);
-                }
-                m_MaterialEditor.ShaderProperty(detailAlbedoScale[layerIndex], Styles.detailAlbedoScaleText);
-                m_MaterialEditor.ShaderProperty(detailNormalScale[layerIndex], Styles.detailNormalScaleText);
-                m_MaterialEditor.ShaderProperty(detailSmoothnessScale[layerIndex], Styles.detailSmoothnessScaleText);
-                EditorGUI.indentLevel--;
-            }
-            EditorGUI.indentLevel--;
+            } // end do detail if !hair
 
             var surfaceTypeValue = (SurfaceType)surfaceType.floatValue;
             if (surfaceTypeValue == SurfaceType.Transparent
@@ -1177,10 +1274,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected override void MaterialPropertiesGUI(Material material)
         {
             DoLayerGUI(material, 0, false, false);
-            DoEmissiveGUI(material);
-            DoAsperityGUI(material);
-            DoDecalGUI(material);
-            DoGrimeGUI(material);
+            if((BaseCharacterLitGUI.MaterialId)materialID.floatValue == BaseCharacterLitGUI.MaterialId.LitHair)
+            {
+                ShaderHairInputGUI(material);
+            } else { // NOTE: move any of these outside of the else{} block if they are wanted in the hair material
+                DoEmissiveGUI(material);
+                DoAsperityGUI(material);
+                DoDecalGUI(material);
+                DoGrimeGUI(material);
+            }
             // The parent Base.ShaderPropertiesGUI will call DoEmissionArea
         }
 
@@ -1262,15 +1364,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 material.DisableKeyword("_REQUIRE_UV3");
             }
 
-            BaseLitGUI.MaterialId materialId = (BaseLitGUI.MaterialId)material.GetFloat(kMaterialID);
-            CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_SUBSURFACE_SCATTERING", materialId == BaseLitGUI.MaterialId.LitSSS);
-            CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_TRANSMISSION", materialId == BaseLitGUI.MaterialId.LitTranslucent || (materialId == BaseLitGUI.MaterialId.LitSSS && material.GetFloat(kTransmissionEnable) > 0.0f));
+            BaseCharacterLitGUI.MaterialId materialId = (BaseCharacterLitGUI.MaterialId)material.GetFloat(kMaterialID);
+            CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_SUBSURFACE_SCATTERING", materialId == BaseCharacterLitGUI.MaterialId.LitSSS);
+            CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_TRANSMISSION", materialId == BaseCharacterLitGUI.MaterialId.LitTranslucent || (materialId == BaseCharacterLitGUI.MaterialId.LitSSS && material.GetFloat(kTransmissionEnable) > 0.0f));
 
-            CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_ANISOTROPY", materialId == BaseLitGUI.MaterialId.LitAniso);
+            CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_ANISOTROPY", materialId == BaseCharacterLitGUI.MaterialId.LitAniso);
+            CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_HAIR", materialId == BaseCharacterLitGUI.MaterialId.LitHair);
             // No material Id for clear coat, just test the attribute
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_CLEAR_COAT", material.GetFloat(kCoatMask) > 0.0 || material.GetTexture(kCoatMaskMap));
-            CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_IRIDESCENCE", materialId == BaseLitGUI.MaterialId.LitIridescence);
-            CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_SPECULAR_COLOR", materialId == BaseLitGUI.MaterialId.LitSpecular);
+            CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_IRIDESCENCE", materialId == BaseCharacterLitGUI.MaterialId.LitIridescence);
+            CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_SPECULAR_COLOR", materialId == BaseCharacterLitGUI.MaterialId.LitSpecular);
 
             var refractionModeValue = (Lit.RefractionMode)material.GetFloat(kRefractionMode);
             // We can't have refraction in pre-refraction queue

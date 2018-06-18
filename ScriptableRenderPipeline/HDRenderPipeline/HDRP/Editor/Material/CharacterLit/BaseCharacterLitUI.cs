@@ -88,8 +88,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             LitAniso = 2,
             LitIridescence = 3,
             LitSpecular = 4,
-            LitTranslucent = 5
-        };
+            LitTranslucent = 5,
+            LitHair = 6
+        }
 
         public enum HeightmapParametrization
         {

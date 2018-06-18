@@ -36,6 +36,19 @@ float _GrimeBSmoothness;
 float _GrimeCSmoothness;
 float _GrimeDSmoothness;
 
+uniform sampler2D _HairSpecularMap;
+float3 _HairSpecularColor;
+TEXTURE2D(_HairNoiseMap);
+SAMPLER(sampler_HairNoiseMap);
+//uniform sampler2D _HairNoiseMap;
+float4 _HairNoiseMap_ST;
+float _HairNoiseIntensity;
+float _HairSmoothnessPrimary;
+float _HairSmoothnessSecondary;
+float _HairShiftPrimary;
+float _HairShiftSecondary;
+float4 _UVMappingMaskHair;
+
 // Light groups:
 StructuredBuffer<DirectionalLightData> _CharacterLights;
 float _StandardLightContribution;
@@ -284,7 +297,6 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     asperityMix = lerp(asperityMix, _DecalAsperity, decalAlpha);
 #endif
 
-
 #ifdef _ENABLEGRIME
     float4 grimeChannels = float4(_GrimeAIntensity, _GrimeBIntensity, _GrimeCIntensity, _GrimeDIntensity) * tex2D(_GrimeMaskMap, input.texCoord0.xy);
 
@@ -301,9 +313,7 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     surfaceData.metallic = lerp(surfaceData.metallic, 0.0, grimeChannels.g);
     surfaceData.metallic = lerp(surfaceData.metallic, 0.0, grimeChannels.b);
     surfaceData.metallic = lerp(surfaceData.metallic, 0.0, grimeChannels.a);
-
 #endif
-
 
     // Use bent normal to sample GI if available
 #ifdef _BENTNORMALMAP
@@ -323,8 +333,32 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     surfaceData.specularOcclusion = 1.0;
 #endif
 
+#ifdef _MATERIAL_FEATURE_HAIR
+    // if you want v to be tangent dir for hair, not u:
+    surfaceData.tangentWS = Orthonormalize(cross(surfaceData.normalWS, surfaceData.tangentWS), surfaceData.normalWS);
+    // for default tangent dir = u
+    // surfaceData.tangentWS = Orthonormalize(surfaceData.tangentWS, surfaceData.normalWS);
+
+    float2 uvHair =
+        _UVMappingMaskHair.x * input.texCoord0.xy +
+        _UVMappingMaskHair.y * input.texCoord1.xy +
+        _UVMappingMaskHair.z * input.texCoord2.xy +
+        _UVMappingMaskHair.w * input.texCoord3.xy;
+
+    ComputeLayerTexCoord(
+                            input.texCoord0, input.texCoord1, input.texCoord2, input.texCoord3, _UVMappingMaskHair, _UVMappingMaskHair,
+                            _HairNoiseMap_ST.xy, _HairNoiseMap_ST.zw, float2(0.0, 0.0), float2(0.0, 0.0), 1.0, false,
+                            input.positionWS, 1.0, UV_MAPPING_UVSET, layerTexCoord);
+
+    UVMapping hairNoiseMapMapping = layerTexCoord.base;
+
+    float4 hairNoise = _HairNoiseIntensity * (SAMPLE_UVMAPPING_TEXTURE2D(_HairNoiseMap, sampler_HairNoiseMap, hairNoiseMapMapping).r * 2.0 - 1.0);
+    surfaceData.hairOffset = hairNoise;
+
+#else
     // This is use with anisotropic material
     surfaceData.tangentWS = Orthonormalize(surfaceData.tangentWS, surfaceData.normalWS);
+#endif
 
 //#ifndef _DISABLE_DBUFFER
 //    AddDecalContribution(posInput, surfaceData);
