@@ -86,9 +86,13 @@ void Frag(PackedVaryingsToPS packedInput,
         bakeLightingData.bakeShadowMask = float4(builtinData.shadowMask0, builtinData.shadowMask1, builtinData.shadowMask2, builtinData.shadowMask3);
 #endif
         LightLoop(V, posInput, preLightData, bsdfData, bakeLightingData, featureFlags, _LightGroupIndex, diffuseLighting, specularLighting);
-            
-        // Apply per-object directional lights:
+
+        diffuseLighting *= _StandardLightContribution;
+        specularLighting *= _StandardLightContribution;
+
+        if (_CharacterLightContribution > 0)
         {
+            // Apply per-object directional lights:
             LightLoopContext context;
             context.sampleReflection = 0;
             context.shadowContext = InitShadowContext();
@@ -96,20 +100,15 @@ void Frag(PackedVaryingsToPS packedInput,
             AggregateLighting aggregateLighting;
             ZERO_INITIALIZE(AggregateLighting, aggregateLighting);
 
-            uint characterLightCount = 0;
-            uint characterLightStride = 0;
-            //_CharacterLights.GetDimensions(characterLightCount, characterLightStride);
-
-            for (uint i = 0; i < characterLightCount; ++i)
+            for (uint i = 0; i < 3; ++i)
             {
                 DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _CharacterLights[i], bsdfData, bakeLightingData);
                 AccumulateDirectLighting(lighting, 1.0, aggregateLighting); 
             }
             
-            diffuseLighting = diffuseLighting * _StandardLightContribution + aggregateLighting.direct.diffuse * _CharacterLightContribution;
-            specularLighting = specularLighting * _StandardLightContribution + aggregateLighting.direct.specular * _CharacterLightContribution;
+            diffuseLighting += aggregateLighting.direct.diffuse * _CharacterLightContribution;
+            specularLighting += aggregateLighting.direct.specular * _CharacterLightContribution;
         }
-
 
 #ifdef OUTPUT_SPLIT_LIGHTING
         if (_EnableSubsurfaceScattering != 0 && ShouldOutputSplitLighting(bsdfData))
