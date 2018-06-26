@@ -635,7 +635,7 @@ Shader "HDRenderPipeline/CharacterLit"
             #include "../../Lighting/Lighting.hlsl"
             #include "../Lit/ShaderPass/LitSharePass.hlsl"
             #include "CharacterLitData.hlsl"
-            #include "ShaderPass/CharacterLitPassForward.hlsl"
+            #include "../../ShaderPass/ShaderPassForward.hlsl"
 
             ENDHLSL
         }
