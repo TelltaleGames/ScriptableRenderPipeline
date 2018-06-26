@@ -154,8 +154,20 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         }
     }
 
-        // Light groups.
-        float environmentReflectionsWeight = FetchEnvironmentReflectionsWeight(lightGroupIndex);
+#if TELLTALE_CHARACTER_LIGHING
+    aggregateLighting.direct.diffuse *= _StandardLightContribution;
+    aggregateLighting.direct.specular *= _StandardLightContribution;
+
+    if (_CharacterLightContribution > 0)
+    {
+        // Apply per-object directional lights:
+        for (i = 0; i < 3; ++i)
+        {
+            DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _CharacterLights[i], bsdfData, bakeLightingData);
+            AccumulateDirectLighting(lighting, _CharacterLightContribution, characterAggregateLighting);
+        }
+    }
+#endif
 
     float reflectionHierarchyWeight = 0.0; // Max: 1.0
     float refractionHierarchyWeight = 0.0; // Max: 1.0
@@ -272,15 +284,21 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
                 }
             }
         }
-
     }
 
-        // Light groups.
-        aggregateLighting.indirect.specularReflected *= environmentReflectionsWeight;
-        aggregateLighting.indirect.specularTransmitted *= environmentReflectionsWeight;
+    // Light groups.
+    float environmentReflectionsWeight = FetchEnvironmentReflectionsWeight(lightGroupIndex);
+#if TELLTALE_CHARACTER_LIGHING
+    environmentReflectionsWeight *= _StandardLightContribution;
+#endif
+    aggregateLighting.indirect.specularReflected *= environmentReflectionsWeight;
+    aggregateLighting.indirect.specularTransmitted *= environmentReflectionsWeight;
 
     // Light groups.
     float environmentLightWeight = FetchEnvironmentLightWeight(lightGroupIndex);
+#if TELLTALE_CHARACTER_LIGHING
+    environmentLightWeight *= _StandardLightContribution;
+#endif
 
     // Also Apply indiret diffuse (GI)
     // PostEvaluateBSDF will perform any operation wanted by the material and sum everything into diffuseLighting and specularLighting
