@@ -249,8 +249,7 @@ Shader "HDRenderPipeline/CharacterLit"
         [ToggleUI] _SupportDBuffer("Support DBuffer", Float) = 1.0
 
         [HideInInspector] _LightGroupIndex("LightGroupIndex", Int) = 0
-        [HideInInspector] _StandardLightContribution("StandardLightContribution", Float) = 1
-        [HideInInspector] _CharacterLightContribution("CharacterLightContribution", Float) = 0
+        [HideInInspector] _Contribution_Std_Char_Env_Refl("Lighting Contribution Std/Char/Env/Env Refl", Vector) = (1, 0, 1, 1)
     }
 
     HLSLINCLUDE
@@ -636,6 +635,7 @@ Shader "HDRenderPipeline/CharacterLit"
             #include "../Lit/ShaderPass/LitSharePass.hlsl"
             #include "CharacterLitData.hlsl"
             #include "../../ShaderPass/ShaderPassForward.hlsl"
+
 
             ENDHLSL
         }

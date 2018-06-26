@@ -50,6 +50,11 @@ StructuredBuffer<ShadowData>           _ShadowDatas;
 #define LIGHT_GROUP_PUNCTUAL_OFFSET 18
 StructuredBuffer<float>                _LightGroupData;
 
+#ifdef TELLTALE_CHARACTER_LIGHTING
+StructuredBuffer<DirectionalLightData> _CharacterLights;
+float4 _Contribution_Std_Char_Env_Refl;
+#endif
+
 // Used by directional and spot lights
 TEXTURE2D_ARRAY(_CookieTextures);
 

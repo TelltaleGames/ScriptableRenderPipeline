@@ -154,17 +154,17 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         }
     }
 
-#if TELLTALE_CHARACTER_LIGHING
-    aggregateLighting.direct.diffuse *= _StandardLightContribution;
-    aggregateLighting.direct.specular *= _StandardLightContribution;
+#ifdef TELLTALE_CHARACTER_LIGHTING
+    aggregateLighting.direct.diffuse *= _Contribution_Std_Char_Env_Refl.x;
+    aggregateLighting.direct.specular *= _Contribution_Std_Char_Env_Refl.x;
 
-    if (_CharacterLightContribution > 0)
+    if (_Contribution_Std_Char_Env_Refl.y > 0)
     {
         // Apply per-object directional lights:
         for (i = 0; i < 3; ++i)
         {
             DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _CharacterLights[i], bsdfData, bakeLightingData);
-            AccumulateDirectLighting(lighting, _CharacterLightContribution, characterAggregateLighting);
+            AccumulateDirectLighting(lighting, _Contribution_Std_Char_Env_Refl.y, aggregateLighting);
         }
     }
 #endif
@@ -288,16 +288,16 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
 
     // Light groups.
     float environmentReflectionsWeight = FetchEnvironmentReflectionsWeight(lightGroupIndex);
-#if TELLTALE_CHARACTER_LIGHING
-    environmentReflectionsWeight *= _StandardLightContribution;
+#ifdef TELLTALE_CHARACTER_LIGHTING
+    environmentReflectionsWeight *= _Contribution_Std_Char_Env_Refl.w;
 #endif
     aggregateLighting.indirect.specularReflected *= environmentReflectionsWeight;
     aggregateLighting.indirect.specularTransmitted *= environmentReflectionsWeight;
 
     // Light groups.
     float environmentLightWeight = FetchEnvironmentLightWeight(lightGroupIndex);
-#if TELLTALE_CHARACTER_LIGHING
-    environmentLightWeight *= _StandardLightContribution;
+#ifdef TELLTALE_CHARACTER_LIGHTING
+    environmentLightWeight *= _Contribution_Std_Char_Env_Refl.z;
 #endif
 
     // Also Apply indiret diffuse (GI)

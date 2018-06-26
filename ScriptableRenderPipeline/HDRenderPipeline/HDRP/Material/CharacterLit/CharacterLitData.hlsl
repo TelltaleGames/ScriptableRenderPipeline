@@ -49,11 +49,6 @@ float _HairShiftPrimary;
 float _HairShiftSecondary;
 float4 _UVMappingMaskHair;
 
-// Light groups:
-StructuredBuffer<DirectionalLightData> _CharacterLights;
-float _StandardLightContribution;
-float _CharacterLightContribution;
-
 // TODO: move this function to commonLighting.hlsl once validated it work correctly
 float GetSpecularOcclusionFromBentAO(float3 V, float3 bentNormalWS, SurfaceData surfaceData)
 {
