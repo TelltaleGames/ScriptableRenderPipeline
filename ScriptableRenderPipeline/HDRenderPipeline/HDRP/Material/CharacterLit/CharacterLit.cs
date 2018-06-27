@@ -10,7 +10,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // If change, be sure it match what is done in Lit.hlsl: MaterialFeatureFlagsFromGBuffer
         // Material bit mask must match the size define LightDefinitions.s_MaterialFeatureMaskFlags value
         [GenerateHLSL(PackingRules.Exact)]
-        public new enum MaterialFeatureFlags
+        new public enum MaterialFeatureFlags
         {
             LitStandard             = 1 << 0,   // For material classification we need to identify that we are indeed use as standard material, else we are consider as sky/background element
             LitSpecularColor        = 1 << 1,   // LitSpecularColor is not use statically but only dynamically
@@ -29,7 +29,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         // Main structure that store the user data (i.e user input of master node in material graph)
         [GenerateHLSL(PackingRules.Exact, false, true, 1000)]
-        public new struct SurfaceData
+        new public struct SurfaceData
         {
             [SurfaceDataAttributes("MaterialFeatures")]
             public uint materialFeatures;
@@ -115,7 +115,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         //-----------------------------------------------------------------------------
 
         [GenerateHLSL(PackingRules.Exact, false, true, 1030)]
-        public new struct BSDFData
+        new public struct BSDFData
         {
             public uint materialFeatures;
 

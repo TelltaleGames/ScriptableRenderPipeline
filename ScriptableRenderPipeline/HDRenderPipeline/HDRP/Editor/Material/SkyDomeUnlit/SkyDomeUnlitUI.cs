@@ -28,12 +28,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             public static GUIContent CloudDistantMapText = new GUIContent("Cloud Texture", "");
             public static GUIContent CloudDistantColorText = new GUIContent("Cloud Tint", "");
+            public static GUIContent CloudRimIntensityText = new GUIContent("Cloud Rim Intensity", "");
+
             public static GUIContent CloudDistantScrollSpeedText = new GUIContent("Scroll Speed", "");
 
             public static GUIContent CloudOverheadMapText = new GUIContent("Cloud Texture", "");
             public static GUIContent CloudOverheadHeightText = new GUIContent("Cloud Height", "");
             public static GUIContent CloudOverheadColorText = new GUIContent("Cloud Tint", "");
             public static GUIContent CloudOverheadScrollSpeedText = new GUIContent("Scroll Speed", "");
+            public static GUIContent CloudOverheadScrollHeadingText = new GUIContent("Scroll Heading", "");
 
             public static GUIContent StarMapText = new GUIContent("Star Texture", "");
             public static GUIContent StarColorText = new GUIContent("Star Tint/Alpha", "");
@@ -72,8 +75,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected const string kCloudDistantMap = "_CloudDistantMap";
         protected MaterialProperty cloudDistantColor = null;
         protected const string kCloudDistantColor = "_CloudDistantColor";
+        protected MaterialProperty cloudRimIntensity = null;
+        protected const string kCloudRimIntensity = "_CloudRimIntensity";
         protected MaterialProperty cloudDistantScrollSpeed = null;
         protected const string kCloudDistantScrollSpeed = "_CloudDistantScrollSpeed";
+        protected MaterialProperty cloudDistantScrollHeading = null;
+        protected const string kCloudDistantScrollHeading = "_CloudDistantScrollHeading";
 
         protected MaterialProperty cloudOverheadMap = null;
         protected const string kCloudOverheadMap = "_CloudOverheadMap";
@@ -83,6 +90,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected const string kCloudOverheadColor = "_CloudOverheadColor";
         protected MaterialProperty cloudOverheadScrollSpeed = null;
         protected const string kCloudOverheadScrollSpeed = "_CloudOverheadScrollSpeed";
+        protected MaterialProperty cloudOverheadScrollHeading = null;
+        protected const string kCloudOverheadScrollHeading = "_CloudOverheadScrollHeading";
 
         protected MaterialProperty starMap = null;
         protected const string kStarMap = "_StarMap";
@@ -99,7 +108,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected const string kSunHazeExponent = "_SunHazeExponent";
 
 
-        override protected void FindMaterialProperties(MaterialProperty[] props)
+        protected override void FindMaterialProperties(MaterialProperty[] props)
         {
             skyGradZenithColor = FindProperty(kSkyGradZenithColor, props);
             skyGradHorizonColor = FindProperty(kSkyGradHorizonColor, props);
@@ -116,12 +125,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             cloudDistantMap = FindProperty(kCloudDistantMap, props);
             cloudDistantColor = FindProperty(kCloudDistantColor, props);
+            cloudRimIntensity = FindProperty(kCloudRimIntensity, props);
             cloudDistantScrollSpeed = FindProperty(kCloudDistantScrollSpeed, props);
 
             cloudOverheadMap = FindProperty(kCloudOverheadMap, props);
             cloudOverheadHeight = FindProperty(kCloudOverheadHeight, props);
             cloudOverheadColor = FindProperty(kCloudOverheadColor, props);
             cloudOverheadScrollSpeed = FindProperty(kCloudOverheadScrollSpeed, props);
+            cloudOverheadScrollHeading = FindProperty(kCloudOverheadScrollHeading, props);
 
             starMap = FindProperty(kStarMap, props);
             starColor = FindProperty(kStarColor, props);
@@ -152,7 +163,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_MaterialEditor.ShaderProperty(horizonGradAlphaBias, Styles.horizonGradAlphaBiasText);
             EditorGUILayout.LabelField("Direction", EditorStyles.boldLabel);
                 EditorGUI.indentLevel++;
+                EditorGUI.BeginChangeCheck();
                 m_MaterialEditor.ShaderProperty(horizonGradDirection, Styles.horizonGradDirectionText);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    float horX = Mathf.Sin(material.GetFloat("_HorizonGradDirection") * Mathf.PI / 180.0f);
+                    float horZ = Mathf.Cos(material.GetFloat("_HorizonGradDirection") * Mathf.PI / 180.0f);
+                    material.SetVector( "_HorizonGradDirVector", new Vector4(horX, 0.0f, horZ, 1.0f) );
+                }
                 m_MaterialEditor.ShaderProperty(horizonGradDirectionalAtten, Styles.horizonGradDirectionalAttenText);
                 EditorGUI.indentLevel--;
             EditorGUI.indentLevel--;
@@ -162,6 +180,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             EditorGUI.indentLevel++;
             m_MaterialEditor.TexturePropertySingleLine(Styles.CloudDistantMapText, cloudDistantMap, cloudDistantColor);
             m_MaterialEditor.TextureScaleOffsetProperty(cloudDistantMap);
+            m_MaterialEditor.ShaderProperty(cloudRimIntensity, Styles.CloudRimIntensityText);
             m_MaterialEditor.ShaderProperty(cloudDistantScrollSpeed, Styles.CloudDistantScrollSpeedText);
             EditorGUI.indentLevel--;
             EditorGUILayout.Space();
@@ -172,6 +191,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_MaterialEditor.TextureScaleOffsetProperty(cloudOverheadMap);
             m_MaterialEditor.ShaderProperty(cloudOverheadHeight, Styles.CloudOverheadHeightText);
             m_MaterialEditor.ShaderProperty(cloudOverheadScrollSpeed, Styles.CloudOverheadScrollSpeedText);
+            EditorGUI.BeginChangeCheck();
+            m_MaterialEditor.ShaderProperty(cloudOverheadScrollHeading, Styles.CloudOverheadScrollHeadingText);
+            if (EditorGUI.EndChangeCheck())
+            {
+                float ovdScrollX = Mathf.Sin(material.GetFloat("_CloudOverheadScrollHeading") * Mathf.PI / 180.0f);
+                float ovdScrollZ = Mathf.Cos(material.GetFloat("_CloudOverheadScrollHeading") * Mathf.PI / 180.0f);
+                material.SetVector( "_CloudOverheadScrollVector", new Vector4(-ovdScrollX, 0.0f, -ovdScrollZ, 1.0f) );
+            }
             EditorGUI.indentLevel--;
             EditorGUILayout.Space();
 
@@ -185,9 +212,20 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             EditorGUILayout.LabelField("Sun / Moon", EditorStyles.boldLabel);
             EditorGUI.indentLevel++;
             m_MaterialEditor.ShaderProperty(sunColor, Styles.SunColorText);
+            m_MaterialEditor.ShaderProperty(sunHazeExponent, Styles.SunHazeExponentText);
+            EditorGUI.BeginChangeCheck();
             m_MaterialEditor.ShaderProperty(sunElevation, Styles.SunElevationText);
             m_MaterialEditor.ShaderProperty(sunAzimuth, Styles.SunAzimuthText);
-            m_MaterialEditor.ShaderProperty(sunHazeExponent, Styles.SunHazeExponentText);
+            if (EditorGUI.EndChangeCheck())
+            {
+                float elevRadians = material.GetFloat("_SunElevation") * Mathf.PI / 180.0f;
+                float azimRadians = material.GetFloat("_SunAzimuth") * Mathf.PI / 180.0f;
+                float hyp = Mathf.Cos(elevRadians);
+                float sunX = hyp * Mathf.Sin(azimRadians);
+                float sunY = Mathf.Sin(elevRadians);
+                float sunZ = hyp * Mathf.Cos(azimRadians);
+                material.SetVector( "_SunVector", new Vector4(sunX, sunY, sunZ, 1.0f) );
+            }
             EditorGUI.indentLevel--;
             EditorGUILayout.Space();
         }
@@ -198,11 +236,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         protected override void VertexAnimationPropertiesGUI()
         {
-        }
-
-        protected override bool ShouldEmissionBeEnabled(Material mat)
-        {
-            return false;
         }
 
         protected override void SetupMaterialKeywordsAndPassInternal(Material material)

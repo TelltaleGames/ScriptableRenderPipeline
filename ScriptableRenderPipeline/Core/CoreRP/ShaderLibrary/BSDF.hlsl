@@ -437,10 +437,23 @@ float3 KajiyaKaySpecular(float3 T, float3 V, float3 H, float3 L, float3 N, float
     float sinTHSq_TRT = (saturate(1.0 - (TdH_TRT * TdH_TRT)));
 
     // fresnel
-    float fV_R = 0.05 + 0.95*pow(abs(dot(V,T_R)), 4.0);             // view dir fresnel
-    float fL_R = 0.05 + 0.95*pow(abs(dot(L,T_R)), 4.0);             // light dir fresnel
-    float fV_TRT = 0.05 + 0.95*pow(abs(dot(V,T_TRT)), 4.0);         // view dir fresnel
-    float fL_TRT = 0.05 + 0.95*pow(abs(dot(L,T_TRT)), 4.0);         // light dir fresnel
+    float VdT_R4 = dot(V,T_R);
+    VdT_R4 = VdT_R4*VdT_R4; // squared
+    VdT_R4 = VdT_R4*VdT_R4; // pow 4
+    float LdT_R4 = dot(L,T_R);
+    LdT_R4 = LdT_R4*LdT_R4; // squared
+    LdT_R4 = LdT_R4*LdT_R4; // pow 4
+    float VdT_TRT4 = dot(V,T_TRT);
+    VdT_TRT4 = VdT_TRT4*VdT_TRT4; // squared
+    VdT_TRT4 = VdT_TRT4*VdT_TRT4; // pow 4
+    float LdT_TRT4 = dot(L,T_TRT);
+    LdT_TRT4 = LdT_TRT4*LdT_TRT4; // squared
+    LdT_TRT4 = LdT_TRT4*LdT_TRT4; // pow 4
+
+    float fV_R = 0.05 + 0.95*VdT_R4;             // view dir fresnel
+    float fL_R = 0.05 + 0.95*LdT_R4;             // light dir fresnel
+    float fV_TRT = 0.05 + 0.95*VdT_TRT4;         // view dir fresnel
+    float fL_TRT = 0.05 + 0.95*LdT_TRT4;         // light dir fresnel
 
     // reduce specR when viewing T head-on
     float fT = 0.5 + 0.5*dot(-V,T_R); // 1 when viewing in T dir, 0 when viewing against T dir.  No science.
