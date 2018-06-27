@@ -43,11 +43,11 @@ StructuredBuffer<EnvLightData>         _EnvLightDatas;
 StructuredBuffer<ShadowData>           _ShadowDatas;
 
 // Light groups.
-#define LIGHT_GROUP_STRIDE 48
+#define LIGHT_GROUP_STRIDE 64
 #define LIGHT_GROUP_ENVIRONMENT_LIGHT_OFFSET 0
 #define LIGHT_GROUP_ENVIRONMENT_REFLECTIONS_OFFSET 1
 #define LIGHT_GROUP_DIRECTIONAL_OFFSET 2
-#define LIGHT_GROUP_PUNCTUAL_OFFSET 18
+#define LIGHT_GROUP_PUNCTUAL_OFFSET 6
 StructuredBuffer<float>                _LightGroupData;
 
 #ifdef TELLTALE_CHARACTER_LIGHTING

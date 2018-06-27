@@ -276,9 +276,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 			Decal = 8
         };
 
-        public const int k_MaxDirectionalLightsOnScreen = 16;
-        public const int k_MaxPunctualLightsOnScreen    = 30;
-        public const int k_MaxAreaLightsOnScreen        = 64;
+        public const int k_MaxDirectionalLightsOnScreen = 4;
+        public const int k_MaxPunctualLightsOnScreen    = 54;
+        public const int k_MaxAreaLightsOnScreen        = 4;
         public const int k_MaxDecalsOnScreen = 512;
         public const int k_MaxLightsOnScreen = k_MaxDirectionalLightsOnScreen + k_MaxPunctualLightsOnScreen + k_MaxAreaLightsOnScreen + k_MaxDecalsOnScreen;
         public const int k_MaxEnvLightsOnScreen = 64;
@@ -288,13 +288,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static readonly Vector3 k_BoxCullingExtentThreshold = Vector3.one * 0.01f;
 
         // Light groups.
-        public const int k_MaxLightGroups = 16;
-        public const int k_MaxEnvironmentLightLightGroups = 1;
-        public const int k_MaxEnvironmentReflectionsLightGroups = 1;
-        public const int k_LightGroupStride = k_MaxEnvironmentLightLightGroups + k_MaxEnvironmentReflectionsLightGroups + k_MaxPunctualLightsOnScreen + k_MaxDirectionalLightsOnScreen;
+        // When these constants change, matching constants in LightLoopDef.hlsl must also be updated.
+        public const int k_MaxLightGroups = 32;
+        public const int k_MaxEnvironmentLightWeights = 1;
+        public const int k_MaxEnvironmentReflectionsWeights = 1;
+        public const int k_LightGroupStride = k_MaxEnvironmentLightWeights + k_MaxEnvironmentReflectionsWeights + k_MaxDirectionalLightsOnScreen + k_MaxPunctualLightsOnScreen + k_MaxAreaLightsOnScreen;
         public const int k_EnvironmentLightLightGroupOffset = 0;
-        public const int k_EnvironmentReflectionsLightGroupOffset = k_EnvironmentLightLightGroupOffset + k_MaxEnvironmentLightLightGroups;
-        public const int k_DirectionalLightsLightGroupOffset = k_EnvironmentReflectionsLightGroupOffset + k_MaxEnvironmentReflectionsLightGroups;
+        public const int k_EnvironmentReflectionsLightGroupOffset = k_EnvironmentLightLightGroupOffset + k_MaxEnvironmentLightWeights;
+        public const int k_DirectionalLightsLightGroupOffset = k_EnvironmentReflectionsLightGroupOffset + k_MaxEnvironmentReflectionsWeights;
         public const int k_PunctualLightsLightGroupOffset = k_DirectionalLightsLightGroupOffset + k_MaxDirectionalLightsOnScreen;
 
         // Static keyword is required here else we get a "DestroyBuffer can only be called from the main thread"
@@ -1596,9 +1597,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     // 1. Count the number of lights and sort all lights by category, type and volume - This is required for the fptl/cluster shader code
                     // If we reach maximum of lights available on screen, then we discard the light.
                     // Lights are processed in order, so we don't discards light based on their importance but based on their ordering in visible lights list.
-                    int directionalLightcount = 0;
-                    int punctualLightcount = 0;
-                    int areaLightCount = 0;
+                    int preSortDirectionalLightCount = 0;
+                    int preSortPunctualLightCount = 0;
+                    int preSortAreaLightCount = 0;
 
                     int lightCount = Math.Min(cullResults.visibleLights.Count, k_MaxLightsOnScreen);
                     var sortKeys = new uint[lightCount];
@@ -1622,8 +1623,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             switch (light.lightType)
                             {
                                 case LightType.Spot:
-                                    if (punctualLightcount >= k_MaxPunctualLightsOnScreen)
+                                    if (preSortPunctualLightCount >= k_MaxPunctualLightsOnScreen)
                                         continue;
+                                    preSortPunctualLightCount++;
                                     switch (additionalData.spotLightShape)
                                     {
                                         case SpotLightShape.Cone:
@@ -1645,16 +1647,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                                     break;
 
                                 case LightType.Directional:
-                                    if (directionalLightcount >= k_MaxDirectionalLightsOnScreen)
+                                    if (preSortDirectionalLightCount >= k_MaxDirectionalLightsOnScreen)
                                         continue;
+                                    preSortDirectionalLightCount++;
                                     gpuLightType = GPULightType.Directional;
                                     // No need to add volume, always visible
                                     lightVolumeType = LightVolumeType.Count; // Count is none
                                     break;
 
                                 case LightType.Point:
-                                    if (punctualLightcount >= k_MaxPunctualLightsOnScreen)
+                                    if (preSortPunctualLightCount >= k_MaxPunctualLightsOnScreen)
                                         continue;
+                                    preSortPunctualLightCount++;
                                     gpuLightType = GPULightType.Point;
                                     lightVolumeType = LightVolumeType.Sphere;
                                     break;
@@ -1671,15 +1675,17 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             switch (additionalData.lightTypeExtent)
                             {
                                 case LightTypeExtent.Rectangle:
-                                    if (areaLightCount >= k_MaxAreaLightsOnScreen)
+                                    if (preSortAreaLightCount >= k_MaxAreaLightsOnScreen)
                                         continue;
+                                    preSortAreaLightCount++;
                                     gpuLightType = GPULightType.Rectangle;
                                     lightVolumeType = LightVolumeType.Box;
                                     break;
 
                                 case LightTypeExtent.Line:
-                                    if (areaLightCount >= k_MaxAreaLightsOnScreen)
+                                    if (preSortAreaLightCount >= k_MaxAreaLightsOnScreen)
                                         continue;
+                                    preSortAreaLightCount++;
                                     gpuLightType = GPULightType.Line;
                                     lightVolumeType = LightVolumeType.Box;
                                     break;
@@ -1691,11 +1697,16 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         }
 
                         uint shadow = m_ShadowIndices.ContainsKey(lightIndex) ? 1u : 0;
+
                         // 5 bit (0x1F) light category, 5 bit (0x1F) GPULightType, 5 bit (0x1F) lightVolume, 1 bit for shadow casting, 16 bit index
                         sortKeys[sortCount++] = (uint)lightCategory << 27 | (uint)gpuLightType << 22 | (uint)lightVolumeType << 17 | shadow << 16 | (uint)lightIndex;
                     }
 
                     CoreUtils.QuickSort(sortKeys, 0, sortCount - 1); // Call our own quicksort instead of Array.Sort(sortKeys, 0, sortCount) so we don't allocate memory (note the SortCount-1 that is different from original call).
+
+                    int postSortDirectionalLightCount = 0;
+                    int postSortPunctualLightCount = 0;
+                    int postSortAreaLightCount = 0;
 
                     // TODO: Refactor shadow management
                     // The good way of managing shadow:
@@ -1741,9 +1752,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             if (GetDirectionalLightData(cmd, shadowSettings, gpuLightType, light, additionalLightData, additionalShadowData, lightIndex))
                             {
                                 // Light groups.
-                                SetLightGroupWeightsForLight(light.light, k_DirectionalLightsLightGroupOffset + directionalLightcount, lightGroupMap);
+                                SetLightGroupWeightsForLight(light.light, k_DirectionalLightsLightGroupOffset + postSortDirectionalLightCount, lightGroupMap);
 
-                                directionalLightcount++;
+                                postSortDirectionalLightCount++;
 
                                 // We make the light position camera-relative as late as possible in order
                                 // to allow the preceding code to work with the absolute world space coordinates.
@@ -1770,10 +1781,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                                 case LightCategory.Punctual:
                                     // Light groups.
                                     SetLightGroupWeightsForLight(light.light, k_PunctualLightsLightGroupOffset + lightDataIndex, lightGroupMap);
-                                    punctualLightcount++;
+                                    postSortPunctualLightCount++;
                                     break;
                                 case LightCategory.Area:
-                                    areaLightCount++;
+                                    postSortAreaLightCount++;
                                     break;
                                 default:
                                     Debug.Assert(false, "TODO: encountered an unknown LightCategory.");
@@ -1799,11 +1810,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     }
 
                     // Sanity check
-                    Debug.Assert(m_lightList.directionalLights.Count == directionalLightcount);
-                    Debug.Assert(m_lightList.lights.Count == areaLightCount + punctualLightcount);
+                    Debug.Assert(preSortDirectionalLightCount == postSortDirectionalLightCount);
+                    Debug.Assert(preSortPunctualLightCount == postSortPunctualLightCount);
+                    Debug.Assert(preSortAreaLightCount == postSortAreaLightCount);
 
-                    m_punctualLightCount = punctualLightcount;
-                    m_areaLightCount = areaLightCount;
+                    Debug.Assert(m_lightList.directionalLights.Count == postSortDirectionalLightCount);
+                    Debug.Assert(m_lightList.lights.Count == postSortAreaLightCount + postSortPunctualLightCount);
+
+                    m_punctualLightCount = postSortPunctualLightCount;
+                    m_areaLightCount = postSortAreaLightCount;
 
                     // Redo everything but this time with envLights
                     int envLightCount = 0;
