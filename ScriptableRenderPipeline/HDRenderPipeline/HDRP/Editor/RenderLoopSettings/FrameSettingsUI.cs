@@ -1,4 +1,4 @@
-﻿using UnityEditor.AnimatedValues;
+using UnityEditor.AnimatedValues;
 using UnityEngine.Events;
 
 namespace UnityEditor.Experimental.Rendering
@@ -135,6 +135,7 @@ namespace UnityEditor.Experimental.Rendering
             EditorGUILayout.PropertyField(p.enableTransmission, _.GetContent("Enable Transmission"));
             EditorGUILayout.PropertyField(p.enableShadow, _.GetContent("Enable Shadow"));
             EditorGUILayout.PropertyField(p.enableContactShadow, _.GetContent("Enable Contact Shadows"));
+            EditorGUILayout.PropertyField(p.enableTTContactShadows, _.GetContent("Enable Telltale Contact Shadows"));
             EditorGUILayout.PropertyField(p.enableShadowMask, _.GetContent("Enable Shadow Masks"));
         }
     }

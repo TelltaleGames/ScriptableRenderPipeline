@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine.XR;
 
@@ -17,6 +17,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public bool enableSSAO = true;
         public bool enableSubsurfaceScattering = true;
         public bool enableTransmission = true;  // Caution: this is only for debug, it doesn't save the cost of Transmission execution
+        public bool enableTTContactShadows = false;
 
         // Setup by system
         public float diffuseGlobalDimmer = 1.0f;
