@@ -20,6 +20,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         Shadows,
         SubsurfaceScattering,
         VolumetricLighting,
-        DBuffer
+        DBuffer,
+        TelltaleShadowCasterId
     }
 }

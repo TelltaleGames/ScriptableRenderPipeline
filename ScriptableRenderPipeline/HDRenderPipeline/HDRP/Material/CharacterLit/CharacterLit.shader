@@ -669,17 +669,15 @@ Shader "HDRenderPipeline/CharacterLit"
 
             Cull[_CullMode]
             ZWrite On
-            ColorMask 0
 
             HLSLPROGRAM
 
-            #define SHADERPASS SHADERPASS_DEPTH_ONLY
-            #define CUTOFF_TRANSPARENT_DEPTH_POSTPASS
+            #define SHADERPASS SHADERPASS_TELLTALE_SHADOW_CASTER_ID
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
             #include "../Lit/ShaderPass/LitDepthPass.hlsl"
             #include "CharacterLitData.hlsl"
-            #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
+            #include "ShaderPass/ShaderPassTelltaleObjectId.hlsl"
 
             ENDHLSL
         }
