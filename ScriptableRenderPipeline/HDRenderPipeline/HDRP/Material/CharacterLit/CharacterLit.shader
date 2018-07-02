@@ -661,6 +661,28 @@ Shader "HDRenderPipeline/CharacterLit"
 
             ENDHLSL
         }
+
+        Pass
+        {
+            Name "TelltaleShadowCasterIds"
+            Tags { "LightMode" = "TelltaleShadowCasterIds" }
+
+            Cull[_CullMode]
+            ZWrite On
+            ColorMask 0
+
+            HLSLPROGRAM
+
+            #define SHADERPASS SHADERPASS_DEPTH_ONLY
+            #define CUTOFF_TRANSPARENT_DEPTH_POSTPASS
+            #include "../../ShaderVariables.hlsl"
+            #include "../../Material/Material.hlsl"
+            #include "../Lit/ShaderPass/LitDepthPass.hlsl"
+            #include "CharacterLitData.hlsl"
+            #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
+
+            ENDHLSL
+        }
     }
 
     CustomEditor "Experimental.Rendering.HDPipeline.CharacterLitGUI"
