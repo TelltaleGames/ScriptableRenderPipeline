@@ -61,6 +61,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // Misc
         VolumeUpdate,
 
+        // Telltale.
+        ClearTelltaleShadowCasterIds,
+        TelltaleShadowCasterIds,
+
         Max
     }
 

@@ -101,6 +101,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         RTHandle m_CameraDepthBufferCopy;
         RTHandle m_CameraStencilBufferCopy;
 
+        RTHandle m_telltaleShadowCasterIds;
+
         RTHandle m_VelocityBuffer;
         RTHandle m_DeferredShadowBuffer;
         RTHandle m_AmbientOcclusionBuffer;
@@ -287,6 +289,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 m_AmbientOcclusionBuffer = RTHandle.Alloc(Vector2.one, filterMode: FilterMode.Bilinear, colorFormat: RenderTextureFormat.R8, sRGB: false, enableRandomWrite: true, name: "AmbientOcclusion");
             }
 
+            if (m_Asset.renderPipelineSettings.supportTelltaleContactShadows)
+            {
+                m_telltaleShadowCasterIds = RTHandle.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.R8, sRGB: false, enableMSAA: true, name: "TelltaleShadowCasterIds");
+            }
+
             if (m_Asset.renderPipelineSettings.supportMotionVectors)
             {
                 m_VelocityBuffer = RTHandle.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: Builtin.GetVelocityBufferFormat(), sRGB: Builtin.GetVelocityBufferSRGBFlag(), enableMSAA: true, name: "Velocity");
@@ -317,6 +324,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             RTHandle.Release(m_CameraDepthStencilBuffer);
             RTHandle.Release(m_CameraDepthBufferCopy);
             RTHandle.Release(m_CameraStencilBufferCopy);
+
+            RTHandle.Release(m_telltaleShadowCasterIds);
 
             RTHandle.Release(m_AmbientOcclusionBuffer);
             RTHandle.Release(m_VelocityBuffer);
@@ -874,6 +883,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                     bool forcePrepassForDecals = m_DbufferManager.vsibleDecalCount > 0;
                     RenderDepthPrepass(m_CullResults, hdCamera, renderContext, cmd, forcePrepassForDecals);
+
+                    RenderObjectsTelltaleShadowCasterIds(m_CullResults, hdCamera, renderContext, cmd);
 
                     RenderObjectsVelocity(m_CullResults, hdCamera, renderContext, cmd);
 
@@ -1536,6 +1547,20 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 HDUtils.SetRenderTarget(cmd, hdCamera, m_CameraDepthStencilBuffer);
                 RenderTransparentRenderList(cullResults, hdCamera.camera, renderContext, cmd, m_TransparentDepthPostpassNames);
+            }
+        }
+
+        void RenderObjectsTelltaleShadowCasterIds(CullResults cullResults, HDCamera hdCamera, ScriptableRenderContext renderContext, CommandBuffer cmd)
+        {
+            if (!m_FrameSettings.enableTelltaleContactShadows)
+            {
+                return;
+            }
+
+            using (new ProfilingSample(cmd, "Telltale Shadow Caster IDs", CustomSamplerId.TelltaleShadowCasterIds.GetSampler()))
+            {
+                HDUtils.SetRenderTarget(cmd, hdCamera, m_telltaleShadowCasterIds, m_CameraDepthStencilBuffer, ClearFlag.Color, CoreUtils.clearColorAllBlack);
+                RenderOpaqueRenderList(cullResults, hdCamera.camera, renderContext, cmd, HDShaderPassNames.s_TelltaleShadowCasterIdsName);
             }
         }
 
