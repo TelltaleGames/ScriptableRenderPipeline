@@ -17,7 +17,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public bool enableSSAO = true;
         public bool enableSubsurfaceScattering = true;
         public bool enableTransmission = true;  // Caution: this is only for debug, it doesn't save the cost of Transmission execution
-        public bool enableTTContactShadows = false;
+        public bool enableTelltaleContactShadows = false;
 
         // Setup by system
         public float diffuseGlobalDimmer = 1.0f;
@@ -114,6 +114,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             aggregate.enableSSAO = srcFrameSettings.enableSSAO && renderPipelineSettings.supportSSAO;
             aggregate.enableSubsurfaceScattering = camera.cameraType != CameraType.Reflection && srcFrameSettings.enableSubsurfaceScattering && renderPipelineSettings.supportSubsurfaceScattering;
             aggregate.enableTransmission = srcFrameSettings.enableTransmission;
+            aggregate.enableTelltaleContactShadows = srcFrameSettings.enableTelltaleContactShadows && renderPipelineSettings.supportTelltaleContactShadows;
 
             // We have to fall back to forward-only rendering when scene view is using wireframe rendering mode
             // as rendering everything in wireframe + deferred do not play well together
@@ -268,6 +269,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         new DebugUI.BoolField { displayName = "Enable Transmission", getter = () => frameSettings.enableTransmission, setter = value => frameSettings.enableTransmission = value },
                         new DebugUI.BoolField { displayName = "Enable Shadows", getter = () => frameSettings.enableShadow, setter = value => frameSettings.enableShadow = value },
                         new DebugUI.BoolField { displayName = "Enable Contact Shadows", getter = () => frameSettings.enableContactShadows, setter = value => frameSettings.enableContactShadows = value },
+                        new DebugUI.BoolField { displayName = "Enable Telltale Contact Shadows", getter = () => frameSettings.enableTelltaleContactShadows, setter = value => frameSettings.enableTelltaleContactShadows = value },
                         new DebugUI.BoolField { displayName = "Enable ShadowMask", getter = () => frameSettings.enableShadowMask, setter = value => frameSettings.enableShadowMask = value },
                     }
                 }

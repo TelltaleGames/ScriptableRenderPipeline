@@ -1,4 +1,4 @@
-﻿using UnityEngine.Experimental.Rendering.HDPipeline;
+using UnityEngine.Experimental.Rendering.HDPipeline;
 
 namespace UnityEditor.Experimental.Rendering
 {
@@ -17,6 +17,7 @@ namespace UnityEditor.Experimental.Rendering
         public SerializedProperty supportMotionVectors;
         public SerializedProperty supportStereo;
         public SerializedProperty enableUltraQualitySSS;
+        public SerializedProperty supportTelltaleContactShadows;
 
         public SerializedGlobalLightLoopSettings lightLoopSettings;
         public SerializedShadowInitParameters shadowInitParams;
@@ -37,6 +38,7 @@ namespace UnityEditor.Experimental.Rendering
             supportMotionVectors = root.Find((RenderPipelineSettings s) => s.supportMotionVectors);
             supportStereo = root.Find((RenderPipelineSettings s) => s.supportStereo);
             enableUltraQualitySSS = root.Find((RenderPipelineSettings s) => s.enableUltraQualitySSS);
+            supportTelltaleContactShadows = root.Find((RenderPipelineSettings s) => s.supportTelltaleContactShadows);
 
             lightLoopSettings = new SerializedGlobalLightLoopSettings(root.Find((RenderPipelineSettings s) => s.lightLoopSettings));
             shadowInitParams = new SerializedShadowInitParameters(root.Find((RenderPipelineSettings s) => s.shadowInitParams));

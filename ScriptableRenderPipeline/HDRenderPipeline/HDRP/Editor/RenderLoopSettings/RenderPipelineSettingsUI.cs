@@ -1,4 +1,4 @@
-﻿using UnityEngine.Events;
+using UnityEngine.Events;
 
 namespace UnityEditor.Experimental.Rendering
 {
@@ -80,6 +80,7 @@ namespace UnityEditor.Experimental.Rendering
             EditorGUILayout.PropertyField(d.supportMotionVectors, _.GetContent("Support Motion Vectors"));
             EditorGUILayout.PropertyField(d.supportStereo, _.GetContent("Support Stereo Rendering"));
             EditorGUILayout.PropertyField(d.enableUltraQualitySSS, _.GetContent("Enable Ultra Quality SSS"));
+            EditorGUILayout.PropertyField(d.supportTelltaleContactShadows, _.GetContent("Support Telltale Contact Shadows"));
             --EditorGUI.indentLevel;
         }
     }
