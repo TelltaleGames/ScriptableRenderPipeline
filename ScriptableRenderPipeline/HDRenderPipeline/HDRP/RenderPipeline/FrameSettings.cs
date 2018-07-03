@@ -17,7 +17,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public bool enableSSAO = true;
         public bool enableSubsurfaceScattering = true;
         public bool enableTransmission = true;  // Caution: this is only for debug, it doesn't save the cost of Transmission execution
-        public bool enableTelltaleContactShadows = false;
+        public bool enableTelltaleContactShadows = true;
 
         // Setup by system
         public float diffuseGlobalDimmer = 1.0f;
