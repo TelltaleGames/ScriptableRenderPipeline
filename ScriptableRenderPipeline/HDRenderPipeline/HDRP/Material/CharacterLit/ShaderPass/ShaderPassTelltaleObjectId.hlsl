@@ -43,5 +43,5 @@ void Frag(  PackedVaryingsToPS packedInput,
     BuiltinData builtinData;
     GetSurfaceAndBuiltinData(input, V, posInput, surfaceData, builtinData);
 
-    output = 1.0/255.0;
+    output = _ShadowMaskId / 255.0;
 }

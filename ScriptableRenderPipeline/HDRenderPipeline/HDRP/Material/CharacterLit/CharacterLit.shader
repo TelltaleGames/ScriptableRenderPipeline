@@ -250,6 +250,8 @@ Shader "HDRenderPipeline/CharacterLit"
 
         [HideInInspector] _LightGroupIndex("LightGroupIndex", Int) = 0
         [HideInInspector] _Contribution_Std_Char_Env_Refl("Lighting Contribution Std/Char/Env/Env Refl", Vector) = (1, 0, 1, 1)
+
+        [HideInInspector] _ShadowMaskId("Shadow Mask Id", Int) = 0
     }
 
     HLSLINCLUDE
