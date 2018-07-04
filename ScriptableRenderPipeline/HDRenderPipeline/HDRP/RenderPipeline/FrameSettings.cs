@@ -58,6 +58,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             frameSettings.enableSSAO = this.enableSSAO;
             frameSettings.enableSubsurfaceScattering = this.enableSubsurfaceScattering;
             frameSettings.enableTransmission = this.enableTransmission;
+            frameSettings.enableTelltaleContactShadows = this.enableTelltaleContactShadows;
 
             frameSettings.diffuseGlobalDimmer = this.diffuseGlobalDimmer;
             frameSettings.specularGlobalDimmer = this.specularGlobalDimmer;
@@ -164,6 +165,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 aggregate.enablePostprocess = false;
                 aggregate.enableStereo = false;
                 aggregate.enableShadowMask = false;
+                aggregate.enableTelltaleContactShadows = false;
             }
 
             LightLoopSettings.InitializeLightLoopSettings(camera, aggregate, renderPipelineSettings, srcFrameSettings, ref aggregate.lightLoopSettings);
