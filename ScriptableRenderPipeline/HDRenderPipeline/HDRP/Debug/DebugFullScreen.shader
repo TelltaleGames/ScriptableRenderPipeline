@@ -197,6 +197,11 @@ Shader "Hidden/HDRenderPipeline/DebugFullScreen"
                     float linearDepth = frac(posInput.linearDepth * 0.1);
                     return float4(linearDepth.xxx, 1.0);
                 }
+                if (_FullScreenDebugMode == FULLSCREENDEBUGMODE_TELLTALE_CONTACT_SHADOWS)
+                {
+                    float4 color = SAMPLE_TEXTURE2D(_DebugFullScreenTexture, s_point_clamp_sampler, input.texcoord);
+                    return float4(color.rgb, 1.0);
+                }
 
                 return float4(0.0, 0.0, 0.0, 0.0);
             }

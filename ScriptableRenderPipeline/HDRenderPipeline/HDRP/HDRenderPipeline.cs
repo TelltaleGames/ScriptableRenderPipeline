@@ -980,7 +980,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         {
                             using (new ProfilingSample(cmd, "Telltale Contact Shadows", CustomSamplerId.TelltaleConctactShadows.GetSampler()))
                             {
+                                // When debug is enabled we need to clear otherwise we may see non-shadows areas with stale values.
+                                if (m_CurrentDebugDisplaySettings.fullScreenDebugMode == FullScreenDebugMode.TelltaleContactShadows)
+                                {
+                                    HDUtils.SetRenderTarget(cmd, hdCamera, m_telltaleContactShadows, ClearFlag.Color, CoreUtils.clearColorAllBlack);
+                                }
+
                                 m_LightLoop.RenderTelltaleContactShadows(hdCamera, m_telltaleShadowCasterIds, m_telltaleContactShadows, GetDepthTexture(), cmd);
+
+                                PushFullScreenDebugTexture(cmd, m_DeferredShadowBuffer, hdCamera, FullScreenDebugMode.TelltaleContactShadows);
                             }
                         }
 

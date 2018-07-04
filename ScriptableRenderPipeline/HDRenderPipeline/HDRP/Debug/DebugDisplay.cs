@@ -17,6 +17,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         PreRefractionColorPyramid,
         DepthPyramid,
         FinalColorPyramid,
+        TelltaleContactShadows,
         MaxLightingFullScreenDebug,
 
         // Rendering
