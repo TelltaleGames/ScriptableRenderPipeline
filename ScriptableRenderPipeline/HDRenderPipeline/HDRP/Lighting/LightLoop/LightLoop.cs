@@ -607,7 +607,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             s_deferredDirectionalShadow_Normals_Kernel = deferredDirectionalShadowComputeShader.FindKernel("DeferredDirectionalShadow_Normals");
             s_deferredDirectionalShadow_Contact_Normals_Kernel = deferredDirectionalShadowComputeShader.FindKernel("DeferredDirectionalShadow_Contact_Normals");
 
-            s_telltaleContactShadowKernel = telltaleContactShadowComputeShader.FindKernel("DeferredDirectionalShadow_Contact");
+            s_telltaleContactShadowKernel = telltaleContactShadowComputeShader.FindKernel("TelltaleContactShadow");
 
             for (int variant = 0; variant < LightDefinitions.s_NumFeatureVariants; variant++)
             {
@@ -2452,7 +2452,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._DeferredShadowTextureUAV, contactShadowOutRT);
                 cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._MainDepthTexture, depthTexture);
 
-                int deferredShadowTileSize = 16; // Must match DeferreDirectionalShadow.compute
+                int deferredShadowTileSize = 16; // Must match TelltaleContactShadow.compute
                 int numTilesX = (hdCamera.actualWidth + (deferredShadowTileSize - 1)) / deferredShadowTileSize;
                 int numTilesY = (hdCamera.actualHeight + (deferredShadowTileSize - 1)) / deferredShadowTileSize;
 
