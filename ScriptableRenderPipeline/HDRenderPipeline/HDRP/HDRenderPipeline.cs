@@ -295,7 +295,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             if (m_Asset.renderPipelineSettings.supportTelltaleContactShadows)
             {
                 m_telltaleShadowCasterIds = RTHandle.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.R8, sRGB: false, enableMSAA: true, name: "TelltaleShadowCasterIds");
-                m_telltaleContactShadows = RTHandle.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.RG16, sRGB: false, enableMSAA: true, name: "TelltaleContactShadows");
+                m_telltaleContactShadows = RTHandle.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.RG16, sRGB: false, enableRandomWrite: true, name: "DeferredShadow");
             }
 
             if (m_Asset.renderPipelineSettings.supportMotionVectors)
@@ -988,7 +988,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                                 m_LightLoop.RenderTelltaleContactShadows(hdCamera, m_telltaleShadowCasterIds, m_telltaleContactShadows, GetDepthTexture(), cmd);
 
-                                PushFullScreenDebugTexture(cmd, m_DeferredShadowBuffer, hdCamera, FullScreenDebugMode.TelltaleContactShadows);
+                                PushFullScreenDebugTexture(cmd, m_telltaleContactShadows, hdCamera, FullScreenDebugMode.TelltaleContactShadows);
                             }
                         }
 
