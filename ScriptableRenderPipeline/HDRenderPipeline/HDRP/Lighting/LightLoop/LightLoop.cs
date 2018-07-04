@@ -16,8 +16,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public float[] environmentReflectionsWeights;
     }
 
-    public class TelltaleScreenSpaceShadowSettings
+    public class TelltaleContactShadowSettings
     {
+        public bool enable = true;
+        public float length = 0.15f;
+        public float distanceScaleFactor = 0.5f;
+        public float maxDistance = 50.0f;
+        public float fadeDistance = 5.0f;
+        public int sampleCount = 8;
+
         public ComputeBuffer lightBuffer;
     }
 
@@ -469,7 +476,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // Light groups.
         public static RetrieveLightGroupMapDelegate RetrieveLightGroupMap { get; set; }
 
-        public TelltaleScreenSpaceShadowSettings TelltaleShadowSettings { get; set; }
+        public TelltaleContactShadowSettings TelltaleShadowSettings { get; set; }
 
         // shadow related stuff
         FrameId m_FrameId = new FrameId();
@@ -2414,7 +2421,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public void RenderTelltaleContactShadows(HDCamera hdCamera, RTHandle contactShadowRT, RTHandle contactShadowOutRT, RenderTargetIdentifier depthTexture, CommandBuffer cmd)
         {
-            if (TelltaleShadowSettings == null)
+            TelltaleContactShadowSettings shadowSettings = TelltaleShadowSettings;
+
+            if (shadowSettings == null || !shadowSettings.enable || shadowSettings.length <= 0)
             {
                 cmd.SetGlobalTexture(HDShaderIDs._TelltaleContactShadowTexture, RuntimeUtilities.blackTexture);
                 return;
@@ -2422,30 +2431,20 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             using (new ProfilingSample(cmd, "Deferred Directional Shadow", CustomSamplerId.TPDeferredDirectionalShadow.GetSampler()))
             {
-/*                ContactShadows contactShadows = VolumeManager.instance.stack.GetComponent<ContactShadows>();
-
-                bool enableContactShadows = m_FrameSettings.enableContactShadows && contactShadows.enable && contactShadows.length > 0.0f;
-                int kernel;
-                if (enableContactShadows)
-                    kernel = m_FrameSettings.enableForwardRenderingOnly ? s_deferredDirectionalShadow_Contact_Kernel : s_deferredDirectionalShadow_Contact_Normals_Kernel;
-                else
-                    kernel = m_FrameSettings.enableForwardRenderingOnly ? s_deferredDirectionalShadowKernel : s_deferredDirectionalShadow_Normals_Kernel;
+                int kernel = s_deferredDirectionalShadow_Contact_Kernel;
 
                 m_ShadowMgr.BindResources(cmd, deferredDirectionalShadowComputeShader, kernel);
 
-                if (enableContactShadows)
-                {
-                    float contactShadowRange = Mathf.Clamp(contactShadows.fadeDistance, 0.0f, contactShadows.maxDistance);
-                    float contactShadowFadeEnd = contactShadows.maxDistance;
-                    float contactShadowOneOverFadeRange = 1.0f / (contactShadowRange);
-                    Vector4 contactShadowParams = new Vector4(contactShadows.length, contactShadows.distanceScaleFactor, contactShadowFadeEnd, contactShadowOneOverFadeRange);
-                    cmd.SetComputeVectorParam(deferredDirectionalShadowComputeShader, HDShaderIDs._DirectionalContactShadowParams, contactShadowParams);
-                    cmd.SetComputeIntParam(deferredDirectionalShadowComputeShader, HDShaderIDs._DirectionalContactShadowSampleCount, contactShadows.sampleCount);
-                }
+                float contactShadowRange = Mathf.Clamp(shadowSettings.fadeDistance, 0.0f, shadowSettings.maxDistance);
+                float contactShadowFadeEnd = shadowSettings.maxDistance;
+                float contactShadowOneOverFadeRange = 1.0f / (contactShadowRange);
+                Vector4 contactShadowParams = new Vector4(shadowSettings.length, shadowSettings.distanceScaleFactor, contactShadowFadeEnd, contactShadowOneOverFadeRange);
+                cmd.SetComputeVectorParam(deferredDirectionalShadowComputeShader, HDShaderIDs._DirectionalContactShadowParams, contactShadowParams);
+                cmd.SetComputeIntParam(deferredDirectionalShadowComputeShader, HDShaderIDs._DirectionalContactShadowSampleCount, shadowSettings.sampleCount);
 
                 cmd.SetComputeIntParam(deferredDirectionalShadowComputeShader, HDShaderIDs._DirectionalShadowIndex, m_CurrentSunLightShadowIndex);
                 cmd.SetComputeVectorParam(deferredDirectionalShadowComputeShader, HDShaderIDs._DirectionalLightDirection, -m_CurrentSunLight.transform.forward);
-                cmd.SetComputeTextureParam(deferredDirectionalShadowComputeShader, kernel, HDShaderIDs._DeferredShadowTextureUAV, deferredShadowRT);
+                cmd.SetComputeTextureParam(deferredDirectionalShadowComputeShader, kernel, HDShaderIDs._DeferredShadowTextureUAV, contactShadowOutRT);
                 cmd.SetComputeTextureParam(deferredDirectionalShadowComputeShader, kernel, HDShaderIDs._MainDepthTexture, depthTexture);
 
                 int deferredShadowTileSize = 16; // Must match DeferreDirectionalShadow.compute
@@ -2457,8 +2456,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 // TODO: Update for stereo
                 cmd.DispatchCompute(deferredDirectionalShadowComputeShader, kernel, numTilesX, numTilesY, 1);
 
-                cmd.SetGlobalTexture(HDShaderIDs._DeferredShadowTexture, deferredShadowRT);
-*/
+                cmd.SetGlobalTexture(HDShaderIDs._TelltaleContactShadowTexture, contactShadowOutRT);
             }
         }
 
