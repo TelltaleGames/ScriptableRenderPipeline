@@ -33,6 +33,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public ComputeShader deferredComputeShader;
         public ComputeShader deferredDirectionalShadowComputeShader;
         public ComputeShader volumetricLightingCS;
+        public ComputeShader telltaleContactShadowComputeShader;
 
         public ComputeShader subsurfaceScatteringCS; // Disney SSS
         public Shader subsurfaceScattering; // Jimenez SSS

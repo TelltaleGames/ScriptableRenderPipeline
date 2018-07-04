@@ -390,6 +390,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         private ComputeShader clearDispatchIndirectShader { get { return m_Resources.clearDispatchIndirectShader; } }
         private ComputeShader deferredComputeShader { get { return m_Resources.deferredComputeShader; } }
         private ComputeShader deferredDirectionalShadowComputeShader { get { return m_Resources.deferredDirectionalShadowComputeShader; } }
+        private ComputeShader telltaleContactShadowComputeShader { get { return m_Resources.telltaleContactShadowComputeShader; } }
 
 
         static int s_GenAABBKernel;
@@ -413,6 +414,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         static int s_deferredDirectionalShadow_Contact_Kernel;
         static int s_deferredDirectionalShadow_Normals_Kernel;
         static int s_deferredDirectionalShadow_Contact_Normals_Kernel;
+
+        static int s_telltaleContactShadowKernel;
 
         static ComputeBuffer s_LightVolumeDataBuffer = null;
         static ComputeBuffer s_ConvexBoundsBuffer = null;
@@ -603,6 +606,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             s_deferredDirectionalShadow_Contact_Kernel = deferredDirectionalShadowComputeShader.FindKernel("DeferredDirectionalShadow_Contact");
             s_deferredDirectionalShadow_Normals_Kernel = deferredDirectionalShadowComputeShader.FindKernel("DeferredDirectionalShadow_Normals");
             s_deferredDirectionalShadow_Contact_Normals_Kernel = deferredDirectionalShadowComputeShader.FindKernel("DeferredDirectionalShadow_Contact_Normals");
+
+            s_telltaleContactShadowKernel = telltaleContactShadowComputeShader.FindKernel("DeferredDirectionalShadow_Contact");
 
             for (int variant = 0; variant < LightDefinitions.s_NumFeatureVariants; variant++)
             {
@@ -2419,7 +2424,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
         }
 
-        public void RenderTelltaleContactShadows(HDCamera hdCamera, RTHandle contactShadowRT, RTHandle contactShadowOutRT, RenderTargetIdentifier depthTexture, CommandBuffer cmd)
+        public void RenderTelltaleContactShadows(HDCamera hdCamera, RTHandle shadowCasterIds, RTHandle contactShadowOutRT, RenderTargetIdentifier depthTexture, CommandBuffer cmd)
         {
             TelltaleContactShadowSettings shadowSettings = TelltaleShadowSettings;
 
@@ -2429,32 +2434,32 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 return;
             }
 
-            using (new ProfilingSample(cmd, "Deferred Directional Shadow", CustomSamplerId.TPDeferredDirectionalShadow.GetSampler()))
+            using (new ProfilingSample(cmd, "Telltale Contact Shadows", CustomSamplerId.TPDeferredDirectionalShadow.GetSampler()))
             {
-                int kernel = s_deferredDirectionalShadow_Contact_Kernel;
+                int kernel = s_telltaleContactShadowKernel;
 
-                m_ShadowMgr.BindResources(cmd, deferredDirectionalShadowComputeShader, kernel);
+                m_ShadowMgr.BindResources(cmd, telltaleContactShadowComputeShader, kernel);
 
                 float contactShadowRange = Mathf.Clamp(shadowSettings.fadeDistance, 0.0f, shadowSettings.maxDistance);
                 float contactShadowFadeEnd = shadowSettings.maxDistance;
                 float contactShadowOneOverFadeRange = 1.0f / (contactShadowRange);
                 Vector4 contactShadowParams = new Vector4(shadowSettings.length, shadowSettings.distanceScaleFactor, contactShadowFadeEnd, contactShadowOneOverFadeRange);
-                cmd.SetComputeVectorParam(deferredDirectionalShadowComputeShader, HDShaderIDs._DirectionalContactShadowParams, contactShadowParams);
-                cmd.SetComputeIntParam(deferredDirectionalShadowComputeShader, HDShaderIDs._DirectionalContactShadowSampleCount, shadowSettings.sampleCount);
+                cmd.SetComputeVectorParam(telltaleContactShadowComputeShader, HDShaderIDs._DirectionalContactShadowParams, contactShadowParams);
+                cmd.SetComputeIntParam(telltaleContactShadowComputeShader, HDShaderIDs._DirectionalContactShadowSampleCount, shadowSettings.sampleCount);
 
-                cmd.SetComputeIntParam(deferredDirectionalShadowComputeShader, HDShaderIDs._DirectionalShadowIndex, m_CurrentSunLightShadowIndex);
-                cmd.SetComputeVectorParam(deferredDirectionalShadowComputeShader, HDShaderIDs._DirectionalLightDirection, -m_CurrentSunLight.transform.forward);
-                cmd.SetComputeTextureParam(deferredDirectionalShadowComputeShader, kernel, HDShaderIDs._DeferredShadowTextureUAV, contactShadowOutRT);
-                cmd.SetComputeTextureParam(deferredDirectionalShadowComputeShader, kernel, HDShaderIDs._MainDepthTexture, depthTexture);
+                cmd.SetComputeIntParam(telltaleContactShadowComputeShader, HDShaderIDs._DirectionalShadowIndex, m_CurrentSunLightShadowIndex);
+                cmd.SetComputeVectorParam(telltaleContactShadowComputeShader, HDShaderIDs._DirectionalLightDirection, -m_CurrentSunLight.transform.forward);
+                cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._DeferredShadowTextureUAV, contactShadowOutRT);
+                cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._MainDepthTexture, depthTexture);
 
                 int deferredShadowTileSize = 16; // Must match DeferreDirectionalShadow.compute
                 int numTilesX = (hdCamera.actualWidth + (deferredShadowTileSize - 1)) / deferredShadowTileSize;
                 int numTilesY = (hdCamera.actualHeight + (deferredShadowTileSize - 1)) / deferredShadowTileSize;
 
-                hdCamera.SetupComputeShader(deferredDirectionalShadowComputeShader, cmd);
+                hdCamera.SetupComputeShader(telltaleContactShadowComputeShader, cmd);
 
                 // TODO: Update for stereo
-                cmd.DispatchCompute(deferredDirectionalShadowComputeShader, kernel, numTilesX, numTilesY, 1);
+                cmd.DispatchCompute(telltaleContactShadowComputeShader, kernel, numTilesX, numTilesY, 1);
 
                 cmd.SetGlobalTexture(HDShaderIDs._TelltaleContactShadowTexture, contactShadowOutRT);
             }

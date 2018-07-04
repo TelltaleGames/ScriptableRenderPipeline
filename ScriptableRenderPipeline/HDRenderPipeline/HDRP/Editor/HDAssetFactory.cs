@@ -80,6 +80,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 newAsset.deferredDirectionalShadowComputeShader = Load<ComputeShader>(HDRenderPipelinePath + "Lighting/DeferredDirectionalShadow.compute");
                 newAsset.volumetricLightingCS = Load<ComputeShader>(HDRenderPipelinePath + "Lighting/Volumetrics/Resources/VolumetricLighting.compute");
 
+                newAsset.telltaleContactShadowComputeShader = Load<ComputeShader>(HDRenderPipelinePath + "Lighting/TelltaleContactShadow.compute");
+
                 newAsset.subsurfaceScatteringCS = Load<ComputeShader>(HDRenderPipelinePath + "Material/SubsurfaceScattering/SubsurfaceScattering.compute");
                 newAsset.subsurfaceScattering = Load<Shader>(HDRenderPipelinePath + "Material/SubsurfaceScattering/SubsurfaceScattering.shader");
                 newAsset.combineLighting = Load<Shader>(HDRenderPipelinePath + "Material/SubsurfaceScattering/CombineLighting.shader");
