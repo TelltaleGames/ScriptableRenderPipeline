@@ -102,6 +102,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         RTHandle m_CameraStencilBufferCopy;
 
         RTHandle m_telltaleShadowCasterIds;
+        RTHandle m_telltaleContactShadows;
 
         RTHandle m_VelocityBuffer;
         RTHandle m_DeferredShadowBuffer;
@@ -170,6 +171,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         bool                            m_ValidAPI; // False by default mean we render normally, true mean we don't render anything
 
         public Material GetBlitMaterial() { return m_Blit; }
+
+        public LightLoop LightLoop => m_LightLoop;
 
         FrameSettings m_FrameSettings; // Init every frame
 
@@ -292,6 +295,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             if (m_Asset.renderPipelineSettings.supportTelltaleContactShadows)
             {
                 m_telltaleShadowCasterIds = RTHandle.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.R8, sRGB: false, enableMSAA: true, name: "TelltaleShadowCasterIds");
+                m_telltaleContactShadows = RTHandle.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.RG16, sRGB: false, enableMSAA: true, name: "TelltaleContactShadows");
             }
 
             if (m_Asset.renderPipelineSettings.supportMotionVectors)
@@ -326,6 +330,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             RTHandle.Release(m_CameraStencilBufferCopy);
 
             RTHandle.Release(m_telltaleShadowCasterIds);
+            RTHandle.Release(m_telltaleContactShadows);
 
             RTHandle.Release(m_AmbientOcclusionBuffer);
             RTHandle.Release(m_VelocityBuffer);
@@ -969,6 +974,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                             m_LightLoop.RenderDeferredDirectionalShadow(hdCamera, m_DeferredShadowBuffer, GetDepthTexture(), cmd);
                             PushFullScreenDebugTexture(cmd, m_DeferredShadowBuffer, hdCamera, FullScreenDebugMode.DeferredShadows);
+                        }
+
+                        if (m_FrameSettings.enableTelltaleContactShadows)
+                        {
+                            using (new ProfilingSample(cmd, "Telltale Contact Shadows", CustomSamplerId.TelltaleConctactShadows.GetSampler()))
+                            {
+                                m_LightLoop.RenderTelltaleContactShadows(hdCamera, m_telltaleShadowCasterIds, m_telltaleContactShadows, GetDepthTexture(), cmd);
+                            }
                         }
 
                         if (m_FrameSettings.enableAsyncCompute)

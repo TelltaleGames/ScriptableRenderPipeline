@@ -116,6 +116,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public static readonly int _LightGroupData = Shader.PropertyToID("_LightGroupData"); // Light groups.
 
+        public static readonly int _TelltaleContactShadowTexture = Shader.PropertyToID("_TelltaleContactShadowTexture");
+
         public static readonly int g_isLogBaseBufferEnabled = Shader.PropertyToID("g_isLogBaseBufferEnabled");
         public static readonly int g_vLayeredOffsetsBuffer = Shader.PropertyToID("g_vLayeredOffsetsBuffer");
 
@@ -169,6 +171,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static readonly int _DirectionalContactShadowParams = Shader.PropertyToID("_ScreenSpaceShadowsParameters");
         public static readonly int _DirectionalContactShadowSampleCount = Shader.PropertyToID("_SampleCount");
         public static readonly int _DirectionalLightDirection = Shader.PropertyToID("_LightDirection");
+
+        public static readonly int _TelltaleShadowLights = Shader.PropertyToID("_TelltaleShadowLights");
 
         public static readonly int unity_OrthoParams = Shader.PropertyToID("unity_OrthoParams");
         public static readonly int _ZBufferParams = Shader.PropertyToID("_ZBufferParams");
