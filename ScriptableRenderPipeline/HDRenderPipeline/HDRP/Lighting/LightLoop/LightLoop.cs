@@ -2424,7 +2424,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
         }
 
-        public void RenderTelltaleContactShadows(HDCamera hdCamera, RTHandle shadowCasterIds, RTHandle contactShadowOutRT, RenderTargetIdentifier depthTexture, CommandBuffer cmd)
+        public void RenderTelltaleContactShadows(HDCamera hdCamera, RTHandle shadowMaskIds, RTHandle contactShadowOutRT, RenderTargetIdentifier depthTexture, CommandBuffer cmd)
         {
             TelltaleContactShadowSettings shadowSettings = TelltaleShadowSettings;
 
@@ -2448,6 +2448,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 cmd.SetComputeIntParam(telltaleContactShadowComputeShader, HDShaderIDs._DirectionalContactShadowSampleCount, shadowSettings.sampleCount);
 
                 cmd.SetComputeVectorParam(telltaleContactShadowComputeShader, HDShaderIDs._DirectionalLightDirection, -m_CurrentSunLight.transform.forward); // TODO JLS: Remove this line.
+                cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._TelltaleShadowMaskIds, shadowMaskIds);
                 cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._DeferredShadowTextureUAV, contactShadowOutRT);
                 cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._MainDepthTexture, depthTexture);
 

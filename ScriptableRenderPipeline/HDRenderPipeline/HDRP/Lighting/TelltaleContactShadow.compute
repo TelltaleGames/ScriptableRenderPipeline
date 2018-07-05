@@ -2,6 +2,8 @@
 #pragma kernel TelltaleContactShadow                    CONTACT_SHADOW=TelltaleContactShadow
 #pragma kernel TelltaleContactShadow_Normals            CONTACT_SHADOW=TelltaleContactShadow_Normals	        ENABLE_NORMALS
 
+#define OUTPUT_MASK_IDS 0
+
 #ifdef ENABLE_NORMALS
 #   define LIGHTLOOP_TILE_PASS 1
 #   define USE_FPTL_LIGHTLIST  1 // deferred opaque always use FPTL
@@ -22,6 +24,7 @@
 
 //#pragma enable_d3d11_debug_symbols
 
+RWTexture2D<float> _TelltaleShadowMaskIds;
 RWTexture2D<float4> _DeferredShadowTextureUAV;
 
 CBUFFER_START(DeferredShadowParameters)
@@ -109,6 +112,41 @@ float ScreenSpaceShadowRayCast(float3 positionWS, float3 rayDirection, float ray
 	return occluded;
 }
 
+float4 GetMaskIdColor(int maskId)
+{
+    float4 color = float4(0, 0, 0, 0);
+
+    switch (maskId)
+    {
+    case 0:
+        color = float4(0, 0, 0, 0);
+        break;
+    case 1:
+        color = float4(1, 0, 0, 0);
+        break;
+    case 2:
+        color = float4(0, 1, 0, 0);
+        break;
+    case 3:
+        color = float4(0, 0, 1, 0);
+        break;
+    case 4:
+        color = float4(1, 1, 0, 0);
+        break;
+    case 5:
+        color = float4(0, 1, 1, 0);
+        break;
+    case 6:
+        color = float4(1, 0, 1, 0);
+        break;
+    default:
+        color = float4(1, 1, 1, 0);
+        break;
+    }
+
+    return color;
+}
+
 [numthreads(DEFERRED_SHADOW_TILE_SIZE, DEFERRED_SHADOW_TILE_SIZE, 1)]
 void CONTACT_SHADOW(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
 {
@@ -117,14 +155,32 @@ void CONTACT_SHADOW(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_G
 
 	float depth = LOAD_TEXTURE2D(_MainDepthTexture, pixelCoord.xy).x;
 
-	if (depth == UNITY_RAW_FAR_CLIP_VALUE)
-		return;
+#if !OUTPUT_MASK_IDS
+    if (depth == UNITY_RAW_FAR_CLIP_VALUE)
+    {
+        return;
+    }
+#endif
 
-	PositionInputs posInput = GetPositionInput(pixelCoord.xy, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, UNITY_MATRIX_VP, tileCoord);
+    float maskIdFloat = _TelltaleShadowMaskIds[pixelCoord];
+    int maskId = (int)(maskIdFloat * 255.0f);
+
+#if !OUTPUT_MASK_IDS
+
+    if (maskId == 0)
+    {
+        return;
+    }
+
+    PositionInputs posInput = GetPositionInput(pixelCoord.xy, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, UNITY_MATRIX_VP, tileCoord);
 
 	float occluded = ScreenSpaceShadowRayCast(posInput.positionWS, normalize(_LightDirection), _ContactShadowLength * max(0.5, posInput.linearDepth * _ContactShadowDistanceScaleFactor));
 	float shadow = 1.0 - occluded * saturate((_ContactShadowFadeEnd - posInput.linearDepth) * _ContactShadowFadeOneOverRange);
 
-
 	_DeferredShadowTextureUAV[pixelCoord] = float4(shadow, shadow, 0.0, 0.0);
+#else // !OUTPUT_MASK_IDS
+
+    _DeferredShadowTextureUAV[pixelCoord] = GetMaskIdColor(maskId);
+
+#endif // OUTPUT_MASK_IDS
 }

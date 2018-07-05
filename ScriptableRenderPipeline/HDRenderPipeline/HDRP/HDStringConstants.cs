@@ -173,6 +173,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static readonly int _DirectionalLightDirection = Shader.PropertyToID("_LightDirection");
 
         public static readonly int _TelltaleShadowLights = Shader.PropertyToID("_TelltaleShadowLights");
+        public static readonly int _TelltaleShadowMaskIds = Shader.PropertyToID("_TelltaleShadowMaskIds");
 
         public static readonly int unity_OrthoParams = Shader.PropertyToID("unity_OrthoParams");
         public static readonly int _ZBufferParams = Shader.PropertyToID("_ZBufferParams");
