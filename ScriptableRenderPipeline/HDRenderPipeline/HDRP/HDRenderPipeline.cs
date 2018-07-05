@@ -1582,6 +1582,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 HDUtils.SetRenderTarget(cmd, hdCamera, m_telltaleShadowCasterIds, m_CameraDepthStencilBuffer, ClearFlag.Color, CoreUtils.clearColorAllBlack);
                 RenderOpaqueRenderList(cullResults, hdCamera.camera, renderContext, cmd, HDShaderPassNames.s_TelltaleShadowCasterIdsName);
+
+                PushFullScreenDebugTexture(cmd, m_telltaleShadowCasterIds, hdCamera, FullScreenDebugMode.TelltaleShadowCasterIds);
             }
         }
 
