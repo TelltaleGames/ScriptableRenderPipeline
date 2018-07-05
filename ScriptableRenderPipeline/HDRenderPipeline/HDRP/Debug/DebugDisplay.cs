@@ -28,6 +28,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         MaxRenderingFullScreenDebug
     }
 
+    [GenerateHLSL]
+    public enum TelltaleContactShadowsDebugMode
+    {
+        AllLights,
+        Light0,
+        Light1,
+        Light2
+    }
+
     public class DebugDisplaySettings
     {
         public static string k_PanelDisplayStats = "Display Stats";
@@ -43,6 +52,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public float debugOverlayRatio = 0.33f;
         public FullScreenDebugMode  fullScreenDebugMode = FullScreenDebugMode.None;
         public float fullscreenDebugMip = 0.0f;
+        public TelltaleContactShadowsDebugMode telltaleContactShadowsDebugMode = TelltaleContactShadowsDebugMode.AllLights;
 
         public MaterialDebugSettings materialDebugSettings = new MaterialDebugSettings();
         public LightingDebugSettings lightingDebugSettings = new LightingDebugSettings();
@@ -309,6 +319,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             }
                         }
                     });
+                    break;
+                }
+                case FullScreenDebugMode.TelltaleContactShadows:
+                {
+                    list.Add(new DebugUI.EnumField
+                    {
+                        displayName = "Telltale Contact Shadow Selection",
+                        getter = () => (int)telltaleContactShadowsDebugMode,
+                        setter = value => telltaleContactShadowsDebugMode = (TelltaleContactShadowsDebugMode)value,
+                        autoEnum = typeof(TelltaleContactShadowsDebugMode)
+                    });
+                    fullscreenDebugMip = 0;
                     break;
                 }
                 default:

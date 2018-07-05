@@ -25,6 +25,7 @@ Shader "Hidden/HDRenderPipeline/DebugFullScreen"
             TEXTURE2D(_DebugFullScreenTexture);
             float _FullScreenDebugMode;
             float _RequireToFlipInputTexture;
+            float _TelltaleContactShadowsDebugMode;
 
             struct Attributes
             {
@@ -245,6 +246,18 @@ Shader "Hidden/HDRenderPipeline/DebugFullScreen"
                 if (_FullScreenDebugMode == FULLSCREENDEBUGMODE_TELLTALE_CONTACT_SHADOWS)
                 {
                     float4 color = SAMPLE_TEXTURE2D(_DebugFullScreenTexture, s_point_clamp_sampler, input.texcoord);
+                    if (_TelltaleContactShadowsDebugMode == TELLTALECONTACTSHADOWSDEBUGMODE_LIGHT0)
+                    {
+                        color = color.xxxw;
+                    }
+                    if (_TelltaleContactShadowsDebugMode == TELLTALECONTACTSHADOWSDEBUGMODE_LIGHT1)
+                    {
+                        color = color.yyyw;
+                    }
+                    if (_TelltaleContactShadowsDebugMode == TELLTALECONTACTSHADOWSDEBUGMODE_LIGHT2)
+                    {
+                        color = color.zzzw;
+                    }
                     return float4(color.rgb, 1.0);
                 }
 

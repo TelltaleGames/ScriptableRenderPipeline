@@ -288,7 +288,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static readonly int _CameraDepthTexture = Shader.PropertyToID("_CameraDepthTexture");
         public static readonly int _CameraMotionVectorsTexture = Shader.PropertyToID("_CameraMotionVectorsTexture");
         public static readonly int _FullScreenDebugMode = Shader.PropertyToID("_FullScreenDebugMode");
-
+        public static readonly int _TelltaleContactShadowsDebugMode = Shader.PropertyToID("_TelltaleContactShadowsDebugMode");
+        
         public static readonly int _InputCubemap = Shader.PropertyToID("_InputCubemap");
         public static readonly int _Mipmap = Shader.PropertyToID("_Mipmap");
 
