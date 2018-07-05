@@ -149,7 +149,12 @@ float4 GetMaskIdColor(int maskId)
         color = float4(1, 0, 1, 0);
         break;
     default:
-        color = float4(1, 1, 1, 0);
+        {
+            int hash = (maskId * 251);
+            float level = (32 + (hash % (255-32))) / 255.0f;
+            color = float4(level, level, level, 0);
+
+        }
         break;
     }
 
