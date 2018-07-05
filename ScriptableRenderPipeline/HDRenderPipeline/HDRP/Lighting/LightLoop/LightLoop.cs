@@ -2448,6 +2448,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 cmd.SetComputeIntParam(telltaleContactShadowComputeShader, HDShaderIDs._DirectionalContactShadowSampleCount, shadowSettings.sampleCount);
 
                 cmd.SetComputeVectorParam(telltaleContactShadowComputeShader, HDShaderIDs._DirectionalLightDirection, -m_CurrentSunLight.transform.forward); // TODO JLS: Remove this line.
+
+                cmd.SetComputeBufferParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._TelltaleShadowLights, shadowSettings.lightBuffer);
                 cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._TelltaleShadowMaskIds, shadowMaskIds);
                 cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._DeferredShadowTextureUAV, contactShadowOutRT);
                 cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._MainDepthTexture, depthTexture);

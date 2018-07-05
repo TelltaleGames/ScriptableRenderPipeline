@@ -24,6 +24,7 @@
 
 //#pragma enable_d3d11_debug_symbols
 
+RWStructuredBuffer<float3> _TelltaleShadowLights;
 RWTexture2D<float> _TelltaleShadowMaskIds;
 RWTexture2D<float4> _DeferredShadowTextureUAV;
 
@@ -39,11 +40,12 @@ CBUFFER_END
 #define _ContactShadowFadeOneOverRange      _ScreenSpaceShadowsParameters.w
 
 #define DEFERRED_SHADOW_TILE_SIZE 16
+#define SHADOW_LIGHT_STRIDE 3
 
 // Return 1.0 if occluded 0.0 if not
 float ScreenSpaceShadowRayCast(float3 positionWS, float3 rayDirection, float rayLength)
 {
-	uint3 hashInput = uint3(abs(GetAbsolutePositionWS(positionWS)) * 1000);
+	uint3 hashInput = uint3(abs(GetAbsolutePositionWS(positionWS)) * 100000);
 	// Dither pattern is shifted by 0.5 because we want to jitter the ray starting position backward and forward (so we need values between -0.5 and 0.5)
 	float ditherBias = 0.5;
 	float dither = GenerateHashedRandomFloat(hashInput) - ditherBias;
@@ -112,6 +114,13 @@ float ScreenSpaceShadowRayCast(float3 positionWS, float3 rayDirection, float ray
 	return occluded;
 }
 
+float EvaluateShadowForLight(int lightIndex, int maskId, float maskIdFloat, PositionInputs posInput)
+{
+    float3 lightDirection = _TelltaleShadowLights[maskId * SHADOW_LIGHT_STRIDE + lightIndex];
+    float occluded = ScreenSpaceShadowRayCast(posInput.positionWS, lightDirection, _ContactShadowLength * max(0.5, posInput.linearDepth * _ContactShadowDistanceScaleFactor));
+    return 1.0 - occluded * saturate((_ContactShadowFadeEnd - posInput.linearDepth) * _ContactShadowFadeOneOverRange);
+}
+
 float4 GetMaskIdColor(int maskId)
 {
     float4 color = float4(0, 0, 0, 0);
@@ -174,10 +183,11 @@ void CONTACT_SHADOW(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_G
 
     PositionInputs posInput = GetPositionInput(pixelCoord.xy, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, UNITY_MATRIX_VP, tileCoord);
 
-	float occluded = ScreenSpaceShadowRayCast(posInput.positionWS, normalize(_LightDirection), _ContactShadowLength * max(0.5, posInput.linearDepth * _ContactShadowDistanceScaleFactor));
-	float shadow = 1.0 - occluded * saturate((_ContactShadowFadeEnd - posInput.linearDepth) * _ContactShadowFadeOneOverRange);
+    float shadow0 = EvaluateShadowForLight(0, maskId, maskIdFloat, posInput);
+    float shadow1 = EvaluateShadowForLight(1, maskId, maskIdFloat, posInput);
+    float shadow2 = EvaluateShadowForLight(2, maskId, maskIdFloat, posInput);
 
-	_DeferredShadowTextureUAV[pixelCoord] = float4(shadow, shadow, 0.0, 0.0);
+    _DeferredShadowTextureUAV[pixelCoord] = float4(shadow0, shadow1, shadow2, 0.0);
 #else // !OUTPUT_MASK_IDS
 
     _DeferredShadowTextureUAV[pixelCoord] = GetMaskIdColor(maskId);
