@@ -240,7 +240,7 @@ Shader "Hidden/HDRenderPipeline/DebugFullScreen"
                 if (_FullScreenDebugMode == FULLSCREENDEBUGMODE_TELLTALE_SHADOW_CASTER_IDS)
                 {
                     float maskIdFloat = SAMPLE_TEXTURE2D(_DebugFullScreenTexture, s_point_clamp_sampler, input.texcoord).x;
-                    int maskId = (int)(maskIdFloat * 255.0f);
+                    int maskId = (int)(maskIdFloat * 255.0f + 0.5f);
                     return GetMaskIdColor(maskId);
                 }
                 if (_FullScreenDebugMode == FULLSCREENDEBUGMODE_TELLTALE_CONTACT_SHADOWS)
