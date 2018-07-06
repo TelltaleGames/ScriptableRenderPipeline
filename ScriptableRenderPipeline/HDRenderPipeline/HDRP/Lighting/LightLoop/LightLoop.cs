@@ -2438,16 +2438,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 int kernel = s_telltaleContactShadowKernel;
 
-                m_ShadowMgr.BindResources(cmd, telltaleContactShadowComputeShader, kernel);
-
                 float contactShadowRange = Mathf.Clamp(shadowSettings.fadeDistance, 0.0f, shadowSettings.maxDistance);
                 float contactShadowFadeEnd = shadowSettings.maxDistance;
                 float contactShadowOneOverFadeRange = 1.0f / (contactShadowRange);
                 Vector4 contactShadowParams = new Vector4(shadowSettings.length, shadowSettings.distanceScaleFactor, contactShadowFadeEnd, contactShadowOneOverFadeRange);
                 cmd.SetComputeVectorParam(telltaleContactShadowComputeShader, HDShaderIDs._DirectionalContactShadowParams, contactShadowParams);
                 cmd.SetComputeIntParam(telltaleContactShadowComputeShader, HDShaderIDs._DirectionalContactShadowSampleCount, shadowSettings.sampleCount);
-
-                cmd.SetComputeVectorParam(telltaleContactShadowComputeShader, HDShaderIDs._DirectionalLightDirection, -m_CurrentSunLight.transform.forward); // TODO JLS: Remove this line.
 
                 cmd.SetComputeBufferParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._TelltaleShadowLights, shadowSettings.lightBuffer);
                 cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._TelltaleShadowMaskIds, shadowMaskIds);

@@ -29,7 +29,6 @@ RWTexture2D<float> _TelltaleShadowMaskIds;
 RWTexture2D<float4> _DeferredShadowTextureUAV;
 
 CBUFFER_START(DeferredShadowParameters)
-float3  _LightDirection; // TODO JLS: Remove when no longer needed.
 float4  _ScreenSpaceShadowsParameters;
 int     _SampleCount;
 CBUFFER_END
