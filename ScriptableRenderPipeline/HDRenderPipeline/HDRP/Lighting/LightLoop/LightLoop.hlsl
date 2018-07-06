@@ -163,7 +163,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         // Apply per-object directional lights:
         for (i = 0; i < 3; ++i)
         {
-            DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _CharacterLights[i], bsdfData, bakeLightingData);
+            DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _CharacterLights[i], bsdfData, bakeLightingData, true);
             AccumulateDirectLighting(lighting, _Contribution_Std_Char_Env_Refl.y, aggregateLighting);
         }
     }

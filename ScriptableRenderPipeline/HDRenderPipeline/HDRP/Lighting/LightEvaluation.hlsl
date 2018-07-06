@@ -29,6 +29,7 @@ float3 EvaluateCookie_Directional(LightLoopContext lightLoopContext, Directional
 void EvaluateLight_Directional(LightLoopContext lightLoopContext, PositionInputs posInput,
                                DirectionalLightData lightData, BakeLightingData bakeLightingData,
                                float3 N, float3 L,
+                               bool useTelltaleContactShadow,
                                out float3 color, out float attenuation)
 {
     float3 positionWS = posInput.positionWS;
@@ -46,29 +47,39 @@ void EvaluateLight_Directional(LightLoopContext lightLoopContext, PositionInputs
         color *= cookie;
     }
 
-#ifdef SHADOWS_SHADOWMASK
-    // shadowMaskSelector.x is -1 if there is no shadow mask
-    // Note that we override shadow value (in case we don't have any dynamic shadow)
-    shadow = shadowMask = (lightData.shadowMaskSelector.x >= 0.0) ? dot(bakeLightingData.bakeShadowMask, lightData.shadowMaskSelector) : 1.0;
-#endif
-
-    UNITY_BRANCH if (lightData.shadowIndex >= 0)
+#ifdef TELLTALE_CHARACTER_LIGHTING
+    if (useTelltaleContactShadow)
     {
-#ifdef USE_DEFERRED_DIRECTIONAL_SHADOWS
-        shadow = LOAD_TEXTURE2D(_DeferredShadowTexture, posInput.positionSS).x;
-#else
-        shadow = GetDirectionalShadowAttenuation(lightLoopContext.shadowContext, positionWS, N, lightData.shadowIndex, L, posInput.positionSS);
+        float4 contactShadowChannels = LOAD_TEXTURE2D(_TelltaleContactShadowTexture, posInput.positionSS);
+        shadow = dot(contactShadowChannels.xyz, lightData.shadowMaskSelector.xyz); 
+    }
+    else
 #endif
+    {
+    #ifdef SHADOWS_SHADOWMASK
+        // shadowMaskSelector.x is -1 if there is no shadow mask
+        // Note that we override shadow value (in case we don't have any dynamic shadow)
+        shadow = shadowMask = (lightData.shadowMaskSelector.x >= 0.0) ? dot(bakeLightingData.bakeShadowMask, lightData.shadowMaskSelector) : 1.0;
+    #endif
 
-#ifdef SHADOWS_SHADOWMASK
-        float fade = saturate(posInput.linearDepth * lightData.fadeDistanceScaleAndBias.x + lightData.fadeDistanceScaleAndBias.y);
+        UNITY_BRANCH if (lightData.shadowIndex >= 0)
+        {
+    #ifdef USE_DEFERRED_DIRECTIONAL_SHADOWS
+            shadow = LOAD_TEXTURE2D(_DeferredShadowTexture, posInput.positionSS).x;
+    #else
+            shadow = GetDirectionalShadowAttenuation(lightLoopContext.shadowContext, positionWS, N, lightData.shadowIndex, L, posInput.positionSS);
+    #endif
 
-        // See comment in EvaluateBSDF_Punctual
-        shadow = lightData.dynamicShadowCasterOnly ? min(shadowMask, shadow) : shadow;
-        shadow = lerp(shadow, shadowMask, fade); // Caution to lerp parameter: fade is the reverse of shadowDimmer
+    #ifdef SHADOWS_SHADOWMASK
+            float fade = saturate(posInput.linearDepth * lightData.fadeDistanceScaleAndBias.x + lightData.fadeDistanceScaleAndBias.y);
 
-        // Note: There is no shadowDimmer when there is no shadow mask
-#endif
+            // See comment in EvaluateBSDF_Punctual
+            shadow = lightData.dynamicShadowCasterOnly ? min(shadowMask, shadow) : shadow;
+            shadow = lerp(shadow, shadowMask, fade); // Caution to lerp parameter: fade is the reverse of shadowDimmer
+
+            // Note: There is no shadowDimmer when there is no shadow mask
+    #endif
+        }
     }
 
     attenuation *= shadow;

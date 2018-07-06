@@ -1,4 +1,4 @@
-﻿// SurfaceData is define in Lit.cs which generate Lit.cs.hlsl
+// SurfaceData is define in Lit.cs which generate Lit.cs.hlsl
 #include "Lit.cs.hlsl"
 #include "../SubsurfaceScattering/SubsurfaceScattering.hlsl"
 #include "CoreRP/ShaderLibrary/VolumeRendering.hlsl"
@@ -1330,7 +1330,7 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
 
     float3 color;
     float attenuation;
-    EvaluateLight_Directional(lightLoopContext, posInput, lightData, bakeLightingData, N, L, color, attenuation);
+    EvaluateLight_Directional(lightLoopContext, posInput, lightData, bakeLightingData, N, L, false, color, attenuation);
 
     float intensity = max(0, attenuation * NdotL); // Warning: attenuation can be greater than 1 due to the inverse square attenuation (when position is close to light)
 

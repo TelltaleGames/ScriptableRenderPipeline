@@ -53,6 +53,8 @@ StructuredBuffer<float>                _LightGroupData;
 #ifdef TELLTALE_CHARACTER_LIGHTING
 StructuredBuffer<DirectionalLightData> _CharacterLights;
 float4 _Contribution_Std_Char_Env_Refl;
+
+TEXTURE2D(_TelltaleContactShadowTexture);
 #endif
 
 // Used by directional and spot lights

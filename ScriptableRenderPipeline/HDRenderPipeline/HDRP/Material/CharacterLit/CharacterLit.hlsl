@@ -1367,7 +1367,8 @@ float3 EvaluateTransmission(BSDFData bsdfData, float NdotL, float NdotV, float a
 DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
                                         float3 V, PositionInputs posInput, PreLightData preLightData,
                                         DirectionalLightData lightData, BSDFData bsdfData,
-                                        BakeLightingData bakeLightingData)
+                                        BakeLightingData bakeLightingData,
+                                        bool useTelltaleContactShadow = false)
 {
     DirectLighting lighting;
     ZERO_INITIALIZE(DirectLighting, lighting);
@@ -1384,7 +1385,7 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
 
     float3 color;
     float attenuation;
-    EvaluateLight_Directional(lightLoopContext, posInput, lightData, bakeLightingData, N, L, color, attenuation);
+    EvaluateLight_Directional(lightLoopContext, posInput, lightData, bakeLightingData, N, L, useTelltaleContactShadow, color, attenuation);
 
     float intensity = max(0, attenuation * NdotL); // Warning: attenuation can be greater than 1 due to the inverse square attenuation (when position is close to light)
 
