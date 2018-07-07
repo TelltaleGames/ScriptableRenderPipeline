@@ -27,6 +27,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent materialIDText = new GUIContent("Material type", "Select a material feature to enable on top of regular material");
             public static GUIContent transmissionEnableText = new GUIContent("Enable Transmission", "Enable Transmission for getting  back lighting");
 
+            // Transmission Probe - used for TransmissionProbe materialID
+            public static GUIContent transmissionProbeText = new GUIContent("Transmission Probe", "Pre-rendered probe will be used in place of alpha blending.");
+            public static GUIContent fovCorrectionText = new GUIContent("FOV Correction", "Fake a wider or narrower FOV to compensate for parallax error.");
             // Per pixel displacement
             public static GUIContent ppdMinSamplesText = new GUIContent("Minimum steps", "Minimum steps (texture sample) to use with per pixel displacement mapping");
             public static GUIContent ppdMaxSamplesText = new GUIContent("Maximum steps", "Maximum steps (texture sample) to use with per pixel displacement mapping");
@@ -88,7 +91,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             LitAniso = 2,
             LitIridescence = 3,
             LitSpecular = 4,
-            LitTranslucent = 5
+            LitTranslucent = 5,
+            LitTransmissionProbe = 6
         };
 
         public enum HeightmapParametrization
@@ -120,6 +124,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected const string kDisplacementLockObjectScale = "_DisplacementLockObjectScale";
         protected MaterialProperty displacementLockTilingScale = null;
         protected const string kDisplacementLockTilingScale = "_DisplacementLockTilingScale";
+
+        // Transmission Probe param
+        protected MaterialProperty transmissionProbe = null;
+        protected const string kTransmissionProbe = "_TransmissionProbeMap";
+        protected MaterialProperty transmissionTint = null;
+        protected const string kTransmissionTint = "_TransmissionTint";
+        protected MaterialProperty fovCorrection = null;
+        protected const string kFovCorrection = "_FovCorrection";
 
         // Per pixel displacement params
         protected MaterialProperty ppdMinSamples = null;
@@ -181,6 +193,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             materialID = FindProperty(kMaterialID, props);
             transmissionEnable = FindProperty(kTransmissionEnable, props);
 
+            // Transmission Probe
+            transmissionProbe = FindProperty(kTransmissionProbe, props);
+            transmissionTint = FindProperty(kTransmissionTint, props);
+            fovCorrection = FindProperty(kFovCorrection, props);
+
+            // Displacement
             displacementMode = FindProperty(kDisplacementMode, props);
             displacementLockObjectScale = FindProperty(kDisplacementLockObjectScale, props);
             displacementLockTilingScale = FindProperty(kDisplacementLockTilingScale, props);
@@ -252,6 +270,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             {
                 EditorGUI.indentLevel++;
                 m_MaterialEditor.ShaderProperty(transmissionEnable, StylesBaseLit.transmissionEnableText);
+                EditorGUI.indentLevel--;
+            }
+
+            if ((int)materialID.floatValue == (int)BaseLitGUI.MaterialId.LitTransmissionProbe)
+            {
+                EditorGUI.indentLevel++;
+                m_MaterialEditor.TexturePropertySingleLine(StylesBaseLit.transmissionProbeText, transmissionProbe, transmissionTint);
+                m_MaterialEditor.ShaderProperty(fovCorrection, StylesBaseLit.fovCorrectionText);
                 EditorGUI.indentLevel--;
             }
 

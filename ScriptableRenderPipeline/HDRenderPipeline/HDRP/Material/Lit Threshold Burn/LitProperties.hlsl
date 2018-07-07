@@ -119,6 +119,8 @@ float _DistortionBlurRemapMax;
 
 //Burn
 float _BurnThreshold;
+float _BurnWidth;
+float3 _BurnColor;
 
 float _PPDMaxSamples;
 float _PPDMinSamples;

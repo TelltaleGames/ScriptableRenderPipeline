@@ -344,7 +344,7 @@ Shader "HDRenderPipeline/CharacterLit"
     // variable declaration
     //-------------------------------------------------------------------------------------
 
-    #include "../../Material/Lit/LitProperties.hlsl"
+    #include "CharacterLitProperties.hlsl"
 
     // All our shaders use same name for entry point
     #pragma vertex Vert

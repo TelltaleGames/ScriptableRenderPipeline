@@ -94,6 +94,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             // Burn
             public static string burnLabelText = "Burn Inputs";
             public static GUIContent burnText = new GUIContent("Burn Map", "Burn");
+            public static GUIContent burnEdgeWidthText = new GUIContent("Burn Width", "How large of a burning edge do we want");
             public static GUIContent burnThresholdText = new GUIContent("Burn Threshold", "Burn");
 
             // Transparency
@@ -290,6 +291,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         protected MaterialProperty burnMap = null;
         protected const string kBurnMap = "_BurnThresholdMap";
+        protected MaterialProperty burnColor = null;
+        protected const string kBurnColor = "_BurnColor";
+        protected MaterialProperty burnWidth = null;
+        protected const string kBurnWidth = "_BurnWidth";
         protected MaterialProperty burnThreshold = null;
         protected const string kBurnThreshold = "_BurnThreshold";
 
@@ -393,6 +398,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             //Burn
             burnMap = FindProperty(kBurnMap, props);
+            burnColor = FindProperty(kBurnColor, props);
+            burnWidth = FindProperty(kBurnWidth, props);
             burnThreshold = FindProperty(kBurnThreshold, props);
 
             // The next properties are only supported for regular Lit shader (not layered ones) because it's complicated to blend those parameters if they are different on a per layer basis.
@@ -874,7 +881,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             EditorGUILayout.Space();
             EditorGUILayout.LabelField(Styles.burnLabelText, EditorStyles.boldLabel);
             EditorGUI.indentLevel++;
-            m_MaterialEditor.ShaderProperty(burnMap, Styles.burnText);
+            m_MaterialEditor.TexturePropertySingleLine(Styles.burnText, burnMap, burnColor);
+            m_MaterialEditor.ShaderProperty(burnWidth, Styles.burnEdgeWidthText);
+            //m_MaterialEditor.ShaderProperty(burnMap, Styles.burnText);
             m_MaterialEditor.ShaderProperty(burnThreshold, Styles.burnThresholdText);
             EditorGUI.indentLevel--;
         }
