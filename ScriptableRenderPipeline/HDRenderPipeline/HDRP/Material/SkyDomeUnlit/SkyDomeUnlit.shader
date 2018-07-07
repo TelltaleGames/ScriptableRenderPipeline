@@ -5,8 +5,12 @@ Shader "HDRenderPipeline/SkyDomeUnlit"
         // Main Sky Texture Gradient
         _SkyGradHorizonColor("Horizon Color", Color) = (1, 1, 1, 1)
         _SkyGradZenithColor("Zenith Color", Color) = (0.1, 0.2, 1.0, 1)
+        _SkyGradTop("Top", Range(0,1)) = 1.0
+        _SkyGradBottom("Bottom", Range(-1,1)) = 0.0
         _SkyGradCurveBias("Curve Bias", Range(-1,1)) = 0.0
 
+        // Horizon Secondary Gradient
+        [Toggle(_HORIZON_GRADIENT)]  _HorizonGradEnable("Horizon Gradient", Float) = 0.0
         _HorizonGradIntensity("Horizon Intensity", Range(0,1)) = 1
         _HorizonGradColor1("Horizon Top Color", Color) = (1, 1, 1, 1)
         _HorizonGradColor0("Horizon Bottom Color", Color) = (1, 1, 1, 1)
@@ -17,11 +21,17 @@ Shader "HDRenderPipeline/SkyDomeUnlit"
         _HorizonGradDirVector("Dir Vector", Vector) = (1,0,0,1)
         _HorizonGradDirectionalAtten("Attenuation", Range(0,1)) = 0.0
 
-        _CloudDistantMap("Distant Clouds", 2D) = "black" {}
-        _CloudDistantColor("Cloud Tint", Color) = (1,1,1,1)
-        _CloudRimIntensity("Cloud Rim Intensity", Range(0,1)) = 1
-        _CloudDistantScrollSpeed("Cloud Speed", Float) = 0
+        // Clouds mapped cylindrically above the horizon
+        [Toggle(_CLOUDS_HORIZON)]  _CloudHorizonEnable("Horizon Clouds", Float) = 0.0
+        _CloudHorizonMap("Distant Clouds", 2D) = "black" {}
+        _CloudHorizonColor("Cloud Tint", Color) = (1,1,1,1)
+        _CloudHorizonUnlitColor("Unlit Color", Color) = (0,0,0,0)
+        _CloudHorizonLighting("Lighting", Range(0,1)) = 1
+        _CloudHorizonRim("Cloud Rim Intensity", Range(0,1)) = 1
+        _CloudHorizonScrollSpeed("Cloud Speed", Float) = 0
 
+        // Clouds mapped onto virtual overhead plane
+        [Toggle(_CLOUDS_OVERHEAD)]  _CloudOverheadEnable("Overhead Clouds", Float) = 0.0
         _CloudOverheadMap("Overhead Clouds", 2D) = "black" {}
         _CloudOverheadColor("Cloud Tint", Color) = (1,1,1,1)
         _CloudOverheadHeight("Cloud Height", Float) = 0
@@ -29,14 +39,39 @@ Shader "HDRenderPipeline/SkyDomeUnlit"
         _CloudOverheadScrollVector("Cloud Vector", Vector) = (1,0,0,1)
         _CloudOverheadScrollSpeed("Cloud Speed", Float) = 0
 
+        // Backdrop
+        [Toggle(_BACKDROP)]  _BackdropEnable("Backdrop", Float) = 0.0
+        _BackdropMap("Backdrop Map", 2D) = "black" {}
+        _BackdropEmissiveMap("Backdrop Emissive Map", 2D) = "black" {}
+        _BackdropEmissiveColor("Backdrop Emissive Color", Color) = (1,1,1,1)
+        _BackdropColor("Backdrop Tint", Color) = (1,1,1,1)
+        _BackdropFogTop("Backdrop Fog Top Position", Range(-1,1)) = 0.1
+        _BackdropFogTopColor("Backdrop Fog Top Color/Alpha", Color) = (1,1,1,0)
+        _BackdropFogBottom("Backdrop Fog Bottom Position", Range(-1,1)) = 0
+        _BackdropFogBottomColor("Backdrop Fog Bottom Color/Alpha", Color) = (1,1,1,1)
+
+        // Tiling star map using uv1
+        [Toggle(_STARS)]  _StarEnable("Stars", Float) = 0.0
         _StarMap("Star Map", 2D) = "black" {}
+        _StarMilkyWayMap("Star MilkyWay Map", 2D) = "black" {}
+        _StarMilkyWayIntensity("Star MilkyWay Intensity", Range(0,1)) = 1
+        _StarTwinkleMap("Star Twinkle Map", 2D) = "white" {}
+        _StarTwinkleIntensity("Star Twinkle Intensity", Range(0,1)) = 1
+        _StarTwinkleSpeed("Star Twinkle Speed", Float) = 1
         _StarColor("Star Color", Color) = (1,1,1,1)
 
-        _SunColor("Sun Color", Color) = (1,1,1,1)
+        // Sun or Moon + Glow & Haze
+        [Toggle(_VISIBLE_SUNMOON)]  _SunEnable("Sun/Moon", Float) = 0.0
         _SunElevation("Sun Elevation", Range(-90.0, 90.0)) = 45.0
         _SunAzimuth("Sun Azimuth", Range(0.0, 360.0)) = 0.0
-        _SunVector("Sun Vector", Vector) = (0.0, 0.707, 0.707, 1.0)
-        _SunHazeExponent("Sun Haze Exponent", Range(1,100)) = 50.0
+        _SunRadius("Sun Radius", Float) = 5
+        _SunColor("Sun Color", Color) = (1,1,1,1)
+        [HideInInspector] _SunVector("Sun Vector", Vector) = (0.0, 0.707, 0.707, 1.0)
+        _SunGlowColor("Sun Glow Color", Color) = (1,1,1,1)
+        _SunGlowExponent("Sun Glow Exponent", Range(1,1500)) = 150.0
+        _SunHazeColor("Sun Haze Color", Color) = (1,1,1,1)
+        _SunHazeExponent("Sun Haze Exponent", Range(1,500)) = 20.0
+
 
         // Blending state
         [HideInInspector] _SurfaceType("__surfacetype", Float) = 0.0
@@ -62,9 +97,12 @@ Shader "HDRenderPipeline/SkyDomeUnlit"
     // Variants
     //-------------------------------------------------------------------------------------
 
-    //#pragma shader_feature _DISTANT_CLOUD_MAP
-    //#pragma shader_feature _OVERHEAD_CLOUD_MAP
-    //#pragma shader_feature _VISIBLE_SUNMOON
+    #pragma shader_feature _HORIZON_GRADIENT
+    #pragma shader_feature _CLOUDS_HORIZON
+    #pragma shader_feature _CLOUDS_OVERHEAD
+    #pragma shader_feature _BACKDROP
+    #pragma shader_feature _STARS
+    #pragma shader_feature _VISIBLE_SUNMOON
 
     //-------------------------------------------------------------------------------------
     // Define

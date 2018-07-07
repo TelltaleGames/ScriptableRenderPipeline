@@ -1948,7 +1948,7 @@ IndirectLighting EvaluateBSDF_Env(  LightLoopContext lightLoopContext,
     {
         // No clear coat support with refraction
 
-        // specular transmisted lighting is the remaining of the reflection (let's use this approx)
+        // specular transmitted lighting is the remaining of the reflection (let's use this approx)
         // With refraction, we don't care about the clear coat value, only about the Fresnel, thus why we use 'envLighting ='
         envLighting = (1.0 - F) * preLD.rgb * preLightData.transparentTransmittance;
     }

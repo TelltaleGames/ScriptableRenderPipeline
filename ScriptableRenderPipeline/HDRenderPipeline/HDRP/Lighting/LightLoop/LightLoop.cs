@@ -1829,9 +1829,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     }
 
                     // Sanity check
-                    Debug.Assert(preSortDirectionalLightCount == postSortDirectionalLightCount);
-                    Debug.Assert(preSortPunctualLightCount == postSortPunctualLightCount);
-                    Debug.Assert(preSortAreaLightCount == postSortAreaLightCount);
+                    Debug.Assert(postSortDirectionalLightCount <= preSortDirectionalLightCount);
+                    Debug.Assert(postSortPunctualLightCount <= preSortPunctualLightCount);
+                    Debug.Assert(postSortAreaLightCount <= preSortAreaLightCount);
 
                     Debug.Assert(m_lightList.directionalLights.Count == postSortDirectionalLightCount);
                     Debug.Assert(m_lightList.lights.Count == postSortAreaLightCount + postSortPunctualLightCount);

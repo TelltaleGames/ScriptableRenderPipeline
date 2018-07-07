@@ -69,9 +69,17 @@ void GetBuiltinData(FragInputs input, SurfaceData surfaceData, float alpha, floa
     #endif
 
     builtinData.emissiveColor *= SAMPLE_UVMAPPING_TEXTURE2D(_EmissiveColorMap, sampler_EmissiveColorMap, emissiveMapMapping).rgb;
-    //builtinData.emissiveColor *= float4(1.0,0.0,0.0,1.0);
+
 #endif // _EMISSIVE_COLOR_MAP
 
+    // Burn emissives
+    float thresholdTexture = SAMPLE_TEXTURE2D(_BurnThresholdMap,sampler_BurnThresholdMap, input.texCoord1.xy).r;
+
+    float emissiveArea = step(thresholdTexture, _BurnThreshold + _BurnWidth);
+
+    //builtinData.emissiveColor = float3(50.0,0.0,0.0);
+    builtinData.emissiveColor = _BurnColor * float3(emissiveArea,emissiveArea,emissiveArea);
+    // End Burn Emissives
     builtinData.velocity = float2(0.0, 0.0);
 
 #if (SHADERPASS == SHADERPASS_DISTORTION) || defined(DEBUG_DISPLAY)

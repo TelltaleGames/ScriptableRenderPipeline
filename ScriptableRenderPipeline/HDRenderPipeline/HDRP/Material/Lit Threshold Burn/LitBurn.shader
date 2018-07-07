@@ -14,6 +14,8 @@ Shader "HDRenderPipeline/LitBurn"
 
         //Burn Inputs
         _BurnThresholdMap("Burn Threshold Map", 2D) = "white" {}
+        [HDR]_BurnColor("Burn Color", Color) = (128, 13, 0)
+        _BurnWidth("Burn Width", Range(0.0, .05)) = 0.01
         _BurnThreshold("Burn Threshold Amount", Range(0.0, 1.0)) = 0.0
 
 
@@ -278,6 +280,12 @@ Shader "HDRenderPipeline/LitBurn"
     #define SURFACE_GRADIENT
     // This shader support vertex modification
     #define HAVE_VERTEX_MODIFICATION
+
+    // Defines to force texcoord0 and texcoord1
+    #define ATTRIBUTES_NEED_TEXCOORD0
+    #define ATTRIBUTES_NEED_TEXCOORD1
+    #define VARYINGS_NEED_TEXCOORD0
+    #define VARYINGS_NEED_TEXCOORD1
 
     // If we use subsurface scattering, enable output split lighting (for forward pass)
     #if defined(_MATERIAL_FEATURE_SUBSURFACE_SCATTERING) && !defined(_SURFACE_TYPE_TRANSPARENT)

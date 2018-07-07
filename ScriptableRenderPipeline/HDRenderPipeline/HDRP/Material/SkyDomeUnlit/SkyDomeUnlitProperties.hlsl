@@ -1,15 +1,42 @@
 
+TEXTURE2D(_CloudHorizonMap);
+SAMPLER(sampler_CloudHorizonMap);
+
+TEXTURE2D(_CloudOverheadMap);
+SAMPLER(sampler_CloudOverheadMap);
+
+TEXTURE2D(_BackdropMap);
+SAMPLER(sampler_BackdropMap);
+TEXTURE2D(_BackdropEmissiveMap);
+SAMPLER(sampler_BackdropEmissiveMap);
+
+TEXTURE2D(_StarMap);
+SAMPLER(sampler_StarMap);
+
+TEXTURE2D(_StarMilkyWayMap);
+SAMPLER(sampler_StarMilkyWayMap);
+
+TEXTURE2D(_StarTwinkleMap);
+SAMPLER(sampler_StarTwinkleMap);
+
+
 CBUFFER_START(UnityPerMaterial)
 
-float4 _SkyColor;
-float4 _SkyColorMap_ST;
-float4 _SkyColorMap_TexelSize;
-float4 _SkyColorMap_MipInfo;
+float4 _BackdropColor;
+float4 _BackdropEmissiveColor;
+float4 _BackdropMap_ST;
+float _BackdropFogTop;
+float4 _BackdropFogTopColor;
+float _BackdropFogBottom;
+float4 _BackdropFogBottomColor;
 
 float3 _SkyGradHorizonColor;
 float3 _SkyGradZenithColor;
 float _SkyGradCurveBias;
+float _SkyGradTop;
+float _SkyGradBottom;
 
+float _HorizonGradEnable;
 float _HorizonGradIntensity;
 float3 _HorizonGradColor1;
 float3 _HorizonGradColor0;
@@ -20,32 +47,40 @@ float _HorizonGradDirection;
 float4 _HorizonGradDirVector;
 float _HorizonGradDirectionalAtten;
 
-TEXTURE2D(_CloudDistantMap);
-SAMPLER(sampler_CloudDistantMap);
-float4 _CloudDistantColor;
-float4 _CloudDistantMap_ST;
-float  _CloudDistantScrollSpeed;
+float  _CloudHorizonEnable;
+float4 _CloudHorizonColor;
+float3 _CloudHorizonUnlitColor;
+float _CloudHorizonLighting;
+float4 _CloudHorizonMap_ST;
+float  _CloudHorizonScrollSpeed;
+float  _CloudHorizonRim;
 float  _CloudOverheadScrollHeading;
-float4 _CloudOverheadScrollVector;
-float  _CloudRimIntensity;
 
-TEXTURE2D(_CloudOverheadMap);
-SAMPLER(sampler_CloudOverheadMap);
+float  _CloudOverheadEnable;
+float4 _CloudOverheadScrollVector;
 float  _CloudOverheadHeight;
 float4 _CloudOverheadColor;
 float4 _CloudOverheadMap_ST;
 float _CloudOverheadScrollSpeed;
 
-TEXTURE2D(_StarMap);
-SAMPLER(sampler_StarMap);
+float _StarEnable;
 float4 _StarColor;
 float4 _StarMap_ST;
+float4 _StarTwinkleMap_ST;
+float _StarMilkyWayIntensity;
+float _StarTwinkleIntensity;
+float _StarTwinkleSpeed;
 
+float _SunEnable;
+float _SunRadius;
 float4 _SunColor;
 float _SunElevation;
 float _SunAzimuth;
-float _SunHazeExponent;
 float4 _SunVector;
+float4 _SunGlowColor;
+float _SunGlowExponent;
+float4 _SunHazeColor;
+float _SunHazeExponent;
 
 // Caution: C# code in BaseLitUI.cs call LightmapEmissionFlagsProperty() which assume that there is an existing "_EmissionColor"
 // value that exist to identify if the GI emission need to be enabled.

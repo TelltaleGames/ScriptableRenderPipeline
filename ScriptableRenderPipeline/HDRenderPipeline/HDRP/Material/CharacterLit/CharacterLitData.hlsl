@@ -5,52 +5,6 @@
 #include "../MaterialUtilities.hlsl"
 #include "../../Lighting/LightDefinition.cs.hlsl"
 
-uniform sampler2D _DecalChannelMap;
-uniform sampler2D _DecalMaskMap;
-uniform sampler2D _DecalColorMap;
-uniform sampler2D _DecalNormalMap;
-float4 _DecalColor;
-float _DecalAIntensity;
-float _DecalBIntensity;
-float _DecalCIntensity;
-float _DecalDIntensity;
-float _DecalAsperity;
-float _DecalNormalScale;
-float _DecalSmoothnessRemapMin;
-float _DecalSmoothnessRemapMax;
-float _DecalAORemapMin;
-float _DecalAORemapMax;
-float4 _UVMappingMaskDecals;
-
-uniform sampler2D _GrimeMaskMap;
-float _GrimeAIntensity;
-float _GrimeBIntensity;
-float _GrimeCIntensity;
-float _GrimeDIntensity;
-float4 _GrimeAColor;
-float4 _GrimeBColor;
-float4 _GrimeCColor;
-float4 _GrimeDColor;
-float _GrimeASmoothness;
-float _GrimeBSmoothness;
-float _GrimeCSmoothness;
-float _GrimeDSmoothness;
-
-uniform sampler2D _HairSpecularMap;
-float3 _HairSpecularColor;
-TEXTURE2D(_HairNoiseMap);
-SAMPLER(sampler_HairNoiseMap);
-//uniform sampler2D _HairNoiseMap;
-float4 _HairNoiseMap_ST;
-float _HairNoiseIntensity;
-float _HairSmoothnessPrimary;
-float _HairSmoothnessSecondary;
-float _HairShiftPrimary;
-float _HairShiftSecondary;
-float4 _UVMappingMaskHair;
-
-int _ShadowMaskId;
-
 // TODO: move this function to commonLighting.hlsl once validated it work correctly
 float GetSpecularOcclusionFromBentAO(float3 V, float3 bentNormalWS, SurfaceData surfaceData)
 {

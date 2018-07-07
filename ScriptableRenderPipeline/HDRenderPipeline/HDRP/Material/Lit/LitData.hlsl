@@ -230,12 +230,28 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
         surfaceData.metallic = 0;
     }
 #endif
-    
+
     float asperityMix = _AsperityAmount * pow( 1.0 - ClampNdotV(dot(surfaceData.normalWS, V)), _AsperityExponent );
     surfaceData.baseColor.rgb = lerp(surfaceData.baseColor.rgb, float3(1.0,1.0,1.0), asperityMix);
 
     // Caution: surfaceData must be fully initialize before calling GetBuiltinData
     GetBuiltinData(input, surfaceData, alpha, bentNormalWS, depthOffset, builtinData);
+
+#ifdef _MATERIAL_FEATURE_TRANSMISSIONPROBE
+    float3 probeV = normalize( float3( dot(-V,surfaceData.normalWS), dot(-V,cross(surfaceData.tangentWS,surfaceData.normalWS)), -dot(-V,surfaceData.tangentWS) ) );
+    float3 fovCorrectionWeight = float3(0.0, 1.0-abs(probeV.y), 1.0-abs(probeV.z) );
+    float3 fovCorrection = float3(0, (1.0-2*input.texCoord0.y) * sqrt(fovCorrectionWeight.y), (2*input.texCoord0.x - 1.0) * sqrt(fovCorrectionWeight.z) );
+    float VdotN = 1.0 - dot(surfaceData.normalWS, V);
+    float VdotN2 = VdotN*VdotN;
+    float simpleFresnel = 1.0 - VdotN2*VdotN2;
+    float3 coords = normalize(probeV - _FovCorrection*fovCorrection);
+    //float3 coords = normalize(probeV);
+    builtinData.emissiveColor = SAMPLE_TEXTURECUBE(_TransmissionProbeMap, sampler_TransmissionProbeMap, coords).rgb * simpleFresnel * _TransmissionTint.rgb * _TransmissionTint.a * (1.0 - builtinData.opacity);
+    builtinData.emissiveIntensity = 1.0;
+
+    surfaceData.baseColor *= builtinData.opacity;
+#endif
+
 }
 
 #include "LitDataMeshModification.hlsl"

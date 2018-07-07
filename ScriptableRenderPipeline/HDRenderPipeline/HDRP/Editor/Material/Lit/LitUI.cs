@@ -527,6 +527,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
+        protected void ShaderTransmissionProbeGUI(Material material)
+        {
+        }
+
         protected void ShaderClearCoatInputGUI()
         {
             m_MaterialEditor.TexturePropertySingleLine(Styles.coatMaskText, coatMaskMap, coatMask);
@@ -592,7 +596,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             if ((BaseLitGUI.MaterialId)materialID.floatValue == BaseLitGUI.MaterialId.LitStandard ||
                 (BaseLitGUI.MaterialId)materialID.floatValue == BaseLitGUI.MaterialId.LitAniso ||
-                (BaseLitGUI.MaterialId)materialID.floatValue == BaseLitGUI.MaterialId.LitIridescence)
+                (BaseLitGUI.MaterialId)materialID.floatValue == BaseLitGUI.MaterialId.LitIridescence ||
+                (BaseLitGUI.MaterialId)materialID.floatValue == BaseLitGUI.MaterialId.LitTransmissionProbe)
             {
                 m_MaterialEditor.ShaderProperty(metallic[layerIndex], Styles.metallicText);
             }
@@ -710,6 +715,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     break;
                 case BaseLitGUI.MaterialId.LitIridescence:
                     ShaderIridescenceInputGUI();
+                    break;
+                case BaseLitGUI.MaterialId.LitTransmissionProbe:
+                    ShaderTransmissionProbeGUI(material);
                     break;
 
                 default:
@@ -910,7 +918,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         protected override bool ShouldEmissionBeEnabled(Material mat)
         {
-            return mat.GetFloat(kEmissiveIntensity) > 0.0f;
+            return mat.GetFloat(kEmissiveIntensity) > 0.0f // || (BaseLitGUI.MaterialId)materialID.floatValue == BaseLitGUI.MaterialId.LitTransmissionProbe
+;
         }
 
         protected override void SetupMaterialKeywordsAndPassInternal(Material material)
@@ -984,6 +993,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             BaseLitGUI.MaterialId materialId = (BaseLitGUI.MaterialId)material.GetFloat(kMaterialID);
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_SUBSURFACE_SCATTERING", materialId == BaseLitGUI.MaterialId.LitSSS);
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_TRANSMISSION", materialId == BaseLitGUI.MaterialId.LitTranslucent || (materialId == BaseLitGUI.MaterialId.LitSSS && material.GetFloat(kTransmissionEnable) > 0.0f));
+
+            CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_TRANSMISSIONPROBE", materialId == BaseLitGUI.MaterialId.LitTransmissionProbe);
 
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_ANISOTROPY", materialId == BaseLitGUI.MaterialId.LitAniso);
             // No material Id for clear coat, just test the attribute
