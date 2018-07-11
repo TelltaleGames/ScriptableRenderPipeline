@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine.Rendering;
 
@@ -29,7 +30,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         
         public FogGradientParameter gradient = new FogGradientParameter(null);
         [HideInInspector]
-        public TextureParameter gradientTexture = new TextureParameter(null, true); // TODO: Hide this once we're done with testing. It's here to cache the gradient texture / shouldn't be set by the user.
+        public TextureParameter gradientTexture = new TextureParameter(null, true); // This is here to cache the gradient texture / speed up interpolation, and shouldn't be set by the user.
 
         public abstract void PushShaderParameters(CommandBuffer cmd, FrameSettings frameSettings);
 
@@ -52,6 +53,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             cmd.SetGlobalTexture(m_GradientFogParam, gradientTexture.value);
         }
 
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+            if (gradientTexture.value == null && gradient.value != null)
+            {
+                gradientTexture.value = MakeTextureFromGradient(gradient.value);
+            }
+        }
+
         void OnValidate()
         {
             if(colorMode.value != FogColorMode.Gradient)
@@ -68,7 +78,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 return;
             }
 
-            gradientTexture.value = MakeTextureFromGradient(gradient.value); // TODO: Could hash the gradient and only regenerate the texture when it's changed.
+            // TODO: Could hash the gradient and only regenerate the texture when it's changed.
+            gradientTexture.value = MakeTextureFromGradient(gradient.value);
         }
 
         protected static Texture2D MakeTextureFromGradient(Gradient fogGradient, int resolution = 256)
@@ -130,8 +141,68 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public override void Interp(Gradient from, Gradient to, float t)
         {
             base.Interp(from, to, t);
-            // TODO: Either implement this to regenerate the gradient texture, or implement the equivalent method in VolumeParameter.TextureParameter.
-            // The latter option requires modifying another script, but would be more efficient at runtime...
+
+            // TODO: this is overkill, and prone to breaking due to gradient key limits. Instead, implement the equivalent method in VolumeParameter.TextureParameter.
+
+            // if(from == null)
+            // {
+            //     m_Value = to;
+            //     return;
+            // }
+            // else if (to == null)
+            // {
+            //     m_Value = from;
+            //     return;
+            // }
+            // 
+            // // Color
+            // 
+            // HashSet<float> colorTimes = new HashSet<float>();
+            // 
+            // foreach (GradientColorKey colorKey in from.colorKeys)
+            // {
+            //     colorTimes.Add(colorKey.time);
+            // }
+            // 
+            // foreach (GradientColorKey colorKey in to.colorKeys)
+            // {
+            //     colorTimes.Add(colorKey.time);
+            // }
+            // 
+            // var combinedColorKeys = new GradientColorKey[colorTimes.Count];
+            // int combinedColorIndex = 0;
+            // 
+            // foreach (float colorTime in colorTimes)
+            // {
+            //     Color combinedColor = Color.Lerp(from.Evaluate(colorTime), to.Evaluate(colorTime), t);
+            //     combinedColorKeys[combinedColorIndex++] = (new GradientColorKey(combinedColor, colorTime));
+            // }
+            // 
+            // // Alpha
+            // 
+            // HashSet<float> alphaTimes = new HashSet<float>();
+            // 
+            // foreach (GradientAlphaKey alphaKey in from.alphaKeys)
+            // {
+            //     alphaTimes.Add(alphaKey.time);
+            // }
+            // 
+            // foreach (GradientAlphaKey alphaKey in to.alphaKeys)
+            // {
+            //     alphaTimes.Add(alphaKey.time);
+            // }
+            // 
+            // var combinedAlphaKeys = new GradientAlphaKey[alphaTimes.Count];
+            // int combinedAlphaIndex = 0;
+            // 
+            // foreach (float alphaTime in alphaTimes)
+            // {
+            //     float combinedAlpha = Mathf.Lerp(from.Evaluate(alphaTime).a, to.Evaluate(alphaTime).a, t);
+            //     combinedAlphaKeys[combinedAlphaIndex++] = (new GradientAlphaKey(combinedAlpha, alphaTime));
+            // }
+            // 
+            // m_Value.SetKeys(combinedColorKeys, combinedAlphaKeys);
+
         }
     }
 }

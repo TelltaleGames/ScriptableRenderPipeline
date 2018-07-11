@@ -628,10 +628,47 @@ namespace UnityEngine.Experimental.Rendering
     [Serializable, DebuggerDisplay(k_DebuggerDisplay)]
     public sealed class TextureParameter : VolumeParameter<Texture>
     {
+        private Material blitMaterial;
+        private RenderTexture rt;
+        private int mainTexID = Shader.PropertyToID("_MainTex");
+        private int secondTexID = Shader.PropertyToID("_SecondTex");
+        private int blendID = Shader.PropertyToID("_Blend");
+
         public TextureParameter(Texture value, bool overrideState = false)
             : base(value, overrideState) { }
 
-        // TODO: Texture interpolation
+        public override void Interp(Texture from, Texture to, float t)
+        {
+            if (from == null)
+            {
+                if(to == null)
+                {
+                    return;
+                }
+                from = to;
+                m_Value = to;
+                return;
+            }
+
+            if (blitMaterial == null)
+            {
+                blitMaterial = new Material(Shader.Find("Hidden/Telltale/BlendImageEffect")) { hideFlags = HideFlags.HideAndDontSave };
+            }
+
+            blitMaterial.SetTexture(secondTexID, to);
+            blitMaterial.SetFloat(blendID, t);
+
+            if (rt == null)
+            {
+                rt = new RenderTexture(to.width, to.height, 0, RenderTextureFormat.ARGB32);
+            }
+
+            Graphics.Blit(from, rt, blitMaterial);
+
+             // TODO: This method doesn't blend correctly above two volumes; possibly due to blit timing? Test by doing this on the CPU instead... probably efficient enough anyway.
+
+            m_Value = rt;            
+        }
     }
 
     [Serializable, DebuggerDisplay(k_DebuggerDisplay)]
