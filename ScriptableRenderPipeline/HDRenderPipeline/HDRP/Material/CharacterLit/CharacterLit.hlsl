@@ -839,14 +839,14 @@ void GetSurfaceDataDebug(uint paramId, SurfaceData surfaceData, inout float3 res
     // Overide debug value output to be more readable
     switch (paramId)
     {
-    case DEBUGVIEW_LIT_SURFACEDATA_NORMAL_VIEW_SPACE:
+    case DEBUGVIEW_CHARACTERLIT_SURFACEDATA_NORMAL_VIEW_SPACE:
         // Convert to view space
         result = TransformWorldToViewDir(surfaceData.normalWS) * 0.5 + 0.5;
         break;
-    case DEBUGVIEW_LIT_SURFACEDATA_MATERIAL_FEATURES:
+    case DEBUGVIEW_CHARACTERLIT_SURFACEDATA_MATERIAL_FEATURES:
         result = (surfaceData.materialFeatures.xxx) / 255.0; // Aloow to read with color picker debug mode
         break;
-    case DEBUGVIEW_LIT_SURFACEDATA_INDEX_OF_REFRACTION:
+    case DEBUGVIEW_CHARACTERLIT_SURFACEDATA_INDEX_OF_REFRACTION:
         result = saturate((surfaceData.ior - 1.0) / 1.5).xxx;
         break;
     }
@@ -859,14 +859,14 @@ void GetBSDFDataDebug(uint paramId, BSDFData bsdfData, inout float3 result, inou
     // Overide debug value output to be more readable
     switch (paramId)
     {
-    case DEBUGVIEW_LIT_BSDFDATA_NORMAL_VIEW_SPACE:
+    case DEBUGVIEW_CHARACTERLIT_BSDFDATA_NORMAL_VIEW_SPACE:
         // Convert to view space
         result = TransformWorldToViewDir(bsdfData.normalWS) * 0.5 + 0.5;
         break;
-    case DEBUGVIEW_LIT_BSDFDATA_MATERIAL_FEATURES:
+    case DEBUGVIEW_CHARACTERLIT_BSDFDATA_MATERIAL_FEATURES:
         result = (bsdfData.materialFeatures.xxx) / 255.0; // Aloow to read with color picker debug mode
         break;
-    case DEBUGVIEW_LIT_BSDFDATA_IOR:
+    case DEBUGVIEW_CHARACTERLIT_BSDFDATA_IOR:
         result = saturate((bsdfData.ior - 1.0) / 1.5).xxx;
         break;
     }
