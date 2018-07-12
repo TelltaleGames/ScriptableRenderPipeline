@@ -60,10 +60,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         // All Setup Keyword functions must be static. It allow to create script to automatically update the shaders with a script if ocde change
         static public void SetupBaseUnlitKeywords(Material material)
         {
-            //bool alphaTestEnable = material.HasProperty(kAlphaCutoffEnabled) && material.GetFloat(kAlphaCutoffEnabled) > 0.0f;
             CoreUtils.SetKeyword(material, "_ALPHATEST_ON", false);
 
-            SurfaceType surfaceType = 0; // OPAQUE
             CoreUtils.SetKeyword(material, "_SURFACE_TYPE_TRANSPARENT", false);
 
             // These need to always be set either with opaque or transparent! So a users can switch to opaque and remove the keyword correctly
@@ -77,11 +75,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             material.SetInt("_ZWrite", 0);
             material.renderQueue = (int)HDRenderQueue.Priority.Opaque;
 
-            //bool fogEnabled = material.HasProperty(kEnableFogOnTransparent) && material.GetFloat(kEnableFogOnTransparent) > 0.0f && surfaceType == SurfaceType.Transparent;
             CoreUtils.SetKeyword(material, "_ENABLE_FOG_ON_TRANSPARENT", false);
-
-            bool isBackFaceEnable = false;//material.HasProperty(kTransparentBackfaceEnable) && material.GetFloat(kTransparentBackfaceEnable) > 0.0f && surfaceType == SurfaceType.Transparent;
-            bool doubleSidedEnable = false;//material.HasProperty(kDoubleSidedEnable) && material.GetFloat(kDoubleSidedEnable) > 0.0f;
 
             material.SetInt("_CullMode", (int)UnityEngine.Rendering.CullMode.Back);
         }
