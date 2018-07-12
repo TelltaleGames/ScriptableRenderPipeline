@@ -1,4 +1,4 @@
-﻿using UnityEngine.Rendering;
+using UnityEngine.Rendering;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
@@ -16,6 +16,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public Vector4 mask;
 			[SurfaceDataAttributes("HTileMask")]
 			public uint HTileMask; 
+            [SurfaceDataAttributes("Alpha")]
+            public float alpha;
         };
 
         [GenerateHLSL(PackingRules.Exact)]
