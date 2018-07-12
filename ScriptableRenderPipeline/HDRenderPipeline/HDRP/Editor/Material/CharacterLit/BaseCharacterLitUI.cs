@@ -56,6 +56,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent windDragText = new GUIContent("Drag");
             public static GUIContent windShiverDragText = new GUIContent("Shiver Drag");
             public static GUIContent windShiverDirectionalityText = new GUIContent("Shiver Directionality");
+            public static GUIContent windDownwindWeightText = new GUIContent("Shiver scaled by dot(normal, wind direction)");
 
             //public static GUIContent supportDBufferText = new GUIContent("Enable Decal", "Allow to specify if the material can receive decal or not");
         }
@@ -149,6 +150,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected const string kWindShiverDrag = "_ShiverDrag";
         protected MaterialProperty windShiverDirectionality = null;
         protected const string kWindShiverDirectionality = "_ShiverDirectionality";
+        protected MaterialProperty windDownwindWeight = null;
+        protected const string kWindDownwindWeight = "_DownwindWeight";
 
         // tessellation params
         protected MaterialProperty tessellationMode = null;
@@ -210,6 +213,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             windDrag = FindProperty(kWindDrag, props);
             windShiverDrag = FindProperty(kWindShiverDrag, props);
             windShiverDirectionality = FindProperty(kWindShiverDirectionality, props);
+            windDownwindWeight = FindProperty(kWindDownwindWeight, props);
 
             // Decal
             supportDBuffer = FindProperty(kSupportDBuffer, props);
@@ -334,6 +338,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 m_MaterialEditor.ShaderProperty(windDrag, StylesBaseLit.windDragText);
                 m_MaterialEditor.ShaderProperty(windShiverDrag, StylesBaseLit.windShiverDragText);
                 m_MaterialEditor.ShaderProperty(windShiverDirectionality, StylesBaseLit.windShiverDirectionalityText);
+                m_MaterialEditor.ShaderProperty(windDownwindWeight, StylesBaseLit.windDownwindWeightText);
                 EditorGUI.indentLevel--;
             }
 

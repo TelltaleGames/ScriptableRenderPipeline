@@ -234,6 +234,7 @@ Shader "HDRenderPipeline/CharacterLit"
         _Drag("Drag", float) = 1.0
         _ShiverDrag("Shiver Drag", float) = 0.2
         _ShiverDirectionality("Shiver Directionality", Range(0.0, 1.0)) = 0.5
+        _DownwindWeight("Downwind Weight", Range(0.0, 1.0)) = 0.0
 
         // Caution: C# code in BaseLitUI.cs call LightmapEmissionFlagsProperty() which assume that there is an existing "_EmissionColor"
         // value that exist to identify if the GI emission need to be enabled.

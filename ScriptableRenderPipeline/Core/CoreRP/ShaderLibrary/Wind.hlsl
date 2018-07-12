@@ -4,7 +4,7 @@ SAMPLER(sampler_WIND_SETTINGS_TexNoise);
 TEXTURE2D(WIND_SETTINGS_TexGust);
 SAMPLER(sampler_WIND_SETTINGS_TexGust);
 
-#ifdef _VERTEX_WIND 
+#ifdef _VERTEX_WIND
 #define ATTRIBUTES_NEED_TEXCOORD2
 #define VARYINGS_NEED_TEXCOORD2
 #endif
@@ -84,9 +84,9 @@ WindData GetAnalyticalWind(float3 WorldPosition, float3 PivotPosition, float dra
         ) * drag;
 
     // Shiver Noise
-    float3 shiverNoise = texNoise((WorldPosition - worldOffset)*WIND_SETTINGS_ShiverNoiseScale,0) * shiverDrag * WIND_SETTINGS_Turbulence;
+    float3 shiverNoise = texNoise((WorldPosition - worldOffset)*WIND_SETTINGS_ShiverNoiseScale,0).rgb * shiverDrag * WIND_SETTINGS_Turbulence;
 
-    float3 dir = trunkNoise;
+    float3 dir = normalizedDir;
     float flex = length(trunkNoise) + initialBend;
     float shiver = length(shiverNoise);
 
@@ -108,7 +108,12 @@ void ApplyWindDisplacement( inout float3    positionWS,
                             float           shiverDrag,
                             float           shiverDirectionality,
                             float           initialBend,
+#if defined(UNITY_MATERIAL_CHARACTERLIT)
+                            float           downwindWeighting,
+                            float3          shiverMask,
+#else
                             float           shiverMask,
+#endif
                             float4          time)
 {
     WindData wind = GetAnalyticalWind(positionWS, rootWP, drag, shiverDrag, initialBend, time);
@@ -119,9 +124,23 @@ void ApplyWindDisplacement( inout float3    positionWS,
         float3 rotAxis = cross(float3(0, 1, 0), wind.Direction);
 
         positionWS = Rotate(rootWP, positionWS, rotAxis, (wind.Strength) * 0.001 * att);
+        float3 sidedNormal = normalWS;
 
-        float3 shiverDirection = normalize(lerp(normalWS, normalize(wind.Direction + wind.ShiverDirection), shiverDirectionality));
-        positionWS += wind.ShiverStrength * shiverDirection * shiverMask;
+#if defined(UNITY_MATERIAL_CHARACTERLIT)
+        sidedNormal = lerp(normalWS, -normalWS, shiverMask.g);
+#endif
+
+        float3 shiverDirection = normalize(lerp(sidedNormal, normalize(wind.Direction + wind.ShiverDirection), shiverDirectionality));
+        float3 totalShiver = shiverDirection * wind.ShiverStrength;
+
+#if defined(UNITY_MATERIAL_CHARACTERLIT)
+        float normalAttenuation = 0.5 + 0.5*dot(sidedNormal, wind.Direction);
+        totalShiver = lerp(totalShiver, totalShiver * normalAttenuation * normalAttenuation, downwindWeighting) * shiverMask.r;
+#else
+        totalShiver *= shiverMask;
+#endif
+
+        positionWS += totalShiver;
     }
 
 }

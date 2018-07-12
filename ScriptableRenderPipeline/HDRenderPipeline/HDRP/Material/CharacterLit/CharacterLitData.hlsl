@@ -331,6 +331,6 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
 }
 
 #define _CHARACTER
-#include "../Lit/LitDataMeshModification.hlsl"
+#include "CharacterLitDataMeshModification.hlsl"
 
 #endif // #ifndef LAYERED_LIT_SHADER

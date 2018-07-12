@@ -918,7 +918,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         protected override bool ShouldEmissionBeEnabled(Material mat)
         {
-            return mat.GetFloat(kEmissiveIntensity) > 0.0f // || (BaseLitGUI.MaterialId)materialID.floatValue == BaseLitGUI.MaterialId.LitTransmissionProbe
+            return mat.GetFloat(kEmissiveIntensity) > 0.0f;
 ;
         }
 
@@ -995,6 +995,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_TRANSMISSION", materialId == BaseLitGUI.MaterialId.LitTranslucent || (materialId == BaseLitGUI.MaterialId.LitSSS && material.GetFloat(kTransmissionEnable) > 0.0f));
 
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_TRANSMISSIONPROBE", materialId == BaseLitGUI.MaterialId.LitTransmissionProbe);
+            //BaseLitGUI.TransmissionProbeOrientation probeOrientation = (BaseLitGUI.TransmissionProbeOrientation)material.GetFloat(kTransmissionProbeOrientation);
+            var probeOrientation = (BaseLitGUI.TransmissionProbeOrientation)material.GetFloat(kTransmissionProbeOrientation);
+            CoreUtils.SetKeyword(material, "_TRANSMISSION_PROBE_ORIENTATION", probeOrientation == BaseLitGUI.TransmissionProbeOrientation.Local);
 
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_ANISOTROPY", materialId == BaseLitGUI.MaterialId.LitAniso);
             // No material Id for clear coat, just test the attribute

@@ -123,6 +123,7 @@ Shader "HDRenderPipeline/Lit"
         // Transmission Probe
         _TransmissionProbeMap("Transmission Probe", Cube) = "black" {}
         _TransmissionTint("Transmission Tint", Color) = (1,1,1,1)
+        [Enum(Local, 0, World, 1)]_TransmissionProbeOrientation("Transmission Probe Orientation", Float) = 1.0
         _FovCorrection("FOV", Float) = 0.0
 
         // Stencil state
@@ -265,6 +266,7 @@ Shader "HDRenderPipeline/Lit"
     #pragma shader_feature _MATERIAL_FEATURE_IRIDESCENCE
     #pragma shader_feature _MATERIAL_FEATURE_SPECULAR_COLOR
     #pragma shader_feature _MATERIAL_FEATURE_TRANSMISSIONPROBE
+    #pragma shader_feature _TRANSMISSION_PROBE_ORIENTATION
 
     // enable dithering LOD crossfade
     #pragma multi_compile _ LOD_FADE_CROSSFADE

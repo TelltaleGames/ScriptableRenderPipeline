@@ -1,4 +1,4 @@
-Shader "HDRenderPipeline/LitBurn"
+Shader "HDRenderPipeline/FX/LitBurn"
 {
     Properties
     {

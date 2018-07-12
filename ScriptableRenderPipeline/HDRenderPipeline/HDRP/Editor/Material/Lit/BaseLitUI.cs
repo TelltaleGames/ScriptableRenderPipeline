@@ -29,6 +29,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             // Transmission Probe - used for TransmissionProbe materialID
             public static GUIContent transmissionProbeText = new GUIContent("Transmission Probe", "Pre-rendered probe will be used in place of alpha blending.");
+            public static GUIContent TransmissionProbeOrientationText = new GUIContent("Orientation", "Local vs. World Space orientation of the reflection probe.");
             public static GUIContent fovCorrectionText = new GUIContent("FOV Correction", "Fake a wider or narrower FOV to compensate for parallax error.");
             // Per pixel displacement
             public static GUIContent ppdMinSamplesText = new GUIContent("Minimum steps", "Minimum steps (texture sample) to use with per pixel displacement mapping");
@@ -101,6 +102,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             Amplitude = 1
         }
 
+        public enum TransmissionProbeOrientation
+        {
+            Local = 0,
+            World = 1
+        }
+
         protected MaterialProperty doubleSidedNormalMode = null;
         protected const string kDoubleSidedNormalMode = "_DoubleSidedNormalMode";
         protected MaterialProperty depthOffsetEnable = null;
@@ -132,6 +139,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected const string kTransmissionTint = "_TransmissionTint";
         protected MaterialProperty fovCorrection = null;
         protected const string kFovCorrection = "_FovCorrection";
+        protected MaterialProperty transmissionProbeOrientation = null;
+        protected const string kTransmissionProbeOrientation = "_TransmissionProbeOrientation";
 
         // Per pixel displacement params
         protected MaterialProperty ppdMinSamples = null;
@@ -193,11 +202,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             materialID = FindProperty(kMaterialID, props);
             transmissionEnable = FindProperty(kTransmissionEnable, props);
 
-            // Transmission Probe
-            transmissionProbe = FindProperty(kTransmissionProbe, props);
-            transmissionTint = FindProperty(kTransmissionTint, props);
-            fovCorrection = FindProperty(kFovCorrection, props);
-
             // Displacement
             displacementMode = FindProperty(kDisplacementMode, props);
             displacementLockObjectScale = FindProperty(kDisplacementLockObjectScale, props);
@@ -210,6 +214,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             ppdPrimitiveLength = FindProperty(kPpdPrimitiveLength, props);
             ppdPrimitiveWidth  = FindProperty(kPpdPrimitiveWidth, props);
             invPrimScale = FindProperty(kInvPrimScale, props);
+
+            //if ((int)materialID.floatValue == (int)BaseLitGUI.MaterialId.LitTransmissionProbe)
+            //{
+            // Transmission Probe
+            transmissionProbe = FindProperty(kTransmissionProbe, props, false);
+            transmissionTint = FindProperty(kTransmissionTint, props, false);
+            transmissionProbeOrientation = FindProperty(kTransmissionProbeOrientation, props, false);
+            fovCorrection = FindProperty(kFovCorrection, props, false);
+            //}
 
             // tessellation specific, silent if not found
             tessellationMode = FindProperty(kTessellationMode, props, false);
@@ -277,7 +290,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             {
                 EditorGUI.indentLevel++;
                 m_MaterialEditor.TexturePropertySingleLine(StylesBaseLit.transmissionProbeText, transmissionProbe, transmissionTint);
-                m_MaterialEditor.ShaderProperty(fovCorrection, StylesBaseLit.fovCorrectionText);
+                m_MaterialEditor.ShaderProperty(transmissionProbeOrientation, StylesBaseLit.TransmissionProbeOrientationText);
+                if((int)transmissionProbeOrientation.floatValue == (int)BaseLitGUI.TransmissionProbeOrientation.Local)
+                {
+                    m_MaterialEditor.ShaderProperty(fovCorrection, StylesBaseLit.fovCorrectionText);
+                }
                 EditorGUI.indentLevel--;
             }
 

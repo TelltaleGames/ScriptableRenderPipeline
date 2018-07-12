@@ -40,7 +40,7 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     //float3 headingVector = float3(sin(_HorizonGradDirection*3.14159/180.0), 0.0, cos(_HorizonGradDirection*3.14159/180.0) ); // MOVED THIS INTO .CS SCRIPT, PASSED IN AS _HorizonGradDirVector
 #ifdef _HORIZON_GRADIENT
     float3 dirFlat = normalize(dir*float3(1,0,1));
-    float dirAtten = 0.5 - 0.5*( dot(dirFlat, _HorizonGradDirVector) );
+    float dirAtten = 0.5 - 0.5*( dirFlat.x*_HorizonGradDirVector.x + dirFlat.z*_HorizonGradDirVector.z);
     float hrzY = clamp( (dir.y - _SkyGradBottom)/(1.0 -_SkyGradBottom), 0, 1);
     float horizonHeightRemap = max(0.001, min((hrzY+dirAtten*_HorizonGradDirectionalAtten)/_HorizonGradHeight,1.0));
     float horizonColorMix = pow( horizonHeightRemap, exp(3*_HorizonGradColorBias));

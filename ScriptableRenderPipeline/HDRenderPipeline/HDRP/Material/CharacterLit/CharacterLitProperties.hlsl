@@ -206,6 +206,7 @@ float _Stiffness;
 float _Drag;
 float _ShiverDrag;
 float _ShiverDirectionality;
+float _DownwindWeight;
 
 int _LightGroupIndex;
 

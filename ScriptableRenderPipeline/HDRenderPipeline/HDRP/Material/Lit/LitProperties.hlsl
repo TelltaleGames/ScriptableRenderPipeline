@@ -136,6 +136,7 @@ float _ThicknessMultiplier;
 
 // Transmission Probe
 float4 _TransmissionTint;
+float _TransmissionProbeOrientation;
 float _FovCorrection;
 
 // Caution: C# code in BaseLitUI.cs call LightmapEmissionFlagsProperty() which assume that there is an existing "_EmissionColor"
