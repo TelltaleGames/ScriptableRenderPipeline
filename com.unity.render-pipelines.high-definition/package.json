@@ -6,7 +6,6 @@
     "displayName": "HD Render Pipeline",
     "dependencies": {
         "com.unity.postprocessing": "2.0.7-preview",
-        "com.unity.render-pipelines.core": "2.0.4-preview.1",
-        "com.unity.shadergraph": "2.0.4-preview.1"
+        "com.unity.render-pipelines.core": "2.0.4-preview.1"
     }
 }
