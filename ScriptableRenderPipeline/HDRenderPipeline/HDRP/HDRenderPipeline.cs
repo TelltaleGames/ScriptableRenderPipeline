@@ -991,6 +991,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                                 PushFullScreenDebugTexture(cmd, m_telltaleContactShadows, hdCamera, FullScreenDebugMode.TelltaleContactShadows);
                             }
                         }
+                        else
+                        {
+                            m_LightLoop.SetDefaultContactShadows(cmd);
+                        }
 
                         if (m_FrameSettings.enableAsyncCompute)
                         {

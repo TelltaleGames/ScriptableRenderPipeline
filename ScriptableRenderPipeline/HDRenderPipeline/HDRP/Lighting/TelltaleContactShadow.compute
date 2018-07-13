@@ -190,7 +190,7 @@ void CONTACT_SHADOW(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_G
     float shadow1 = EvaluateShadowForLight(1, maskId, maskIdFloat, posInput);
     float shadow2 = EvaluateShadowForLight(2, maskId, maskIdFloat, posInput);
 
-    _DeferredShadowTextureUAV[pixelCoord] = float4(shadow0, shadow1, shadow2, 0.0);
+    _DeferredShadowTextureUAV[pixelCoord] = float4(shadow0, shadow1, shadow2, 1.0); // 1.0f in alpha indicates shadow set.
 #else // !OUTPUT_MASK_IDS
 
     _DeferredShadowTextureUAV[pixelCoord] = GetMaskIdColor(maskId);

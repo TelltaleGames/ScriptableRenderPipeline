@@ -50,8 +50,10 @@ void EvaluateLight_Directional(LightLoopContext lightLoopContext, PositionInputs
 #ifdef TELLTALE_CHARACTER_LIGHTING
     if (useTelltaleContactShadow)
     {
+        // When reading from a valid contact shadow texture, contactShadowChannels will be 1.
+        // In other cases, such as when Telltale contact shadows are disabled, contactShadowChannels will be all zero.
         float4 contactShadowChannels = LOAD_TEXTURE2D(_TelltaleContactShadowTexture, posInput.positionSS);
-        shadow = dot(contactShadowChannels.xyz, lightData.shadowMaskSelector.xyz); 
+        shadow = saturate(dot(contactShadowChannels.xyz, lightData.shadowMaskSelector.xyz) + (1 - contactShadowChannels.w));
     }
     else
 #endif

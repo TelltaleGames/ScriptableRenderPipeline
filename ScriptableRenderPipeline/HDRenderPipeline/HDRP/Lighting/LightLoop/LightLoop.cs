@@ -2424,13 +2424,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
         }
 
+        public void SetDefaultContactShadows(CommandBuffer cmd)
+        {
+            cmd.SetGlobalTexture(HDShaderIDs._TelltaleContactShadowTexture, RuntimeUtilities.transparentTexture);
+        }
+
         public void RenderTelltaleContactShadows(HDCamera hdCamera, RTHandle shadowMaskIds, RTHandle contactShadowOutRT, RenderTargetIdentifier depthTexture, CommandBuffer cmd)
         {
             TelltaleContactShadowSettings shadowSettings = TelltaleShadowSettings;
 
             if (shadowSettings == null || !shadowSettings.enable || shadowSettings.length <= 0)
             {
-                cmd.SetGlobalTexture(HDShaderIDs._TelltaleContactShadowTexture, RuntimeUtilities.blackTexture);
+                SetDefaultContactShadows(cmd);
                 return;
             }
 
