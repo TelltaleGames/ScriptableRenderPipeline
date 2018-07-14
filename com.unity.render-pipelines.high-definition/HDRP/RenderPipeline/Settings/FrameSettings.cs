@@ -19,6 +19,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public bool enableTransmission = true;  // Caution: this is only for debug, it doesn't save the cost of Transmission execution
         public bool enableAtmosphericScattering = true;
         public bool enableVolumetric = true;
+        public bool enableTelltaleContactShadows = true;
 
         // Setup by system
         public float diffuseGlobalDimmer = 1.0f;
@@ -60,6 +61,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             frameSettings.enableTransmission = this.enableTransmission;
             frameSettings.enableAtmosphericScattering = this.enableAtmosphericScattering;
             frameSettings.enableVolumetric = this.enableVolumetric;
+            frameSettings.enableTelltaleContactShadows = this.enableTelltaleContactShadows;
 
             frameSettings.diffuseGlobalDimmer = this.diffuseGlobalDimmer;
             frameSettings.specularGlobalDimmer = this.specularGlobalDimmer;
@@ -121,6 +123,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 aggregate.enableAtmosphericScattering = false;
             // Volumetric are disabled if there is no atmospheric scattering
             aggregate.enableVolumetric = srcFrameSettings.enableVolumetric && renderPipelineSettings.supportVolumetric && aggregate.enableAtmosphericScattering;
+            aggregate.enableTelltaleContactShadows = srcFrameSettings.enableTelltaleContactShadows && renderPipelineSettings.supportTelltaleContactShadows;
 
             // TODO: Add support of volumetric in planar reflection
             if (camera.cameraType == CameraType.Reflection)
@@ -178,6 +181,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 aggregate.enablePostprocess = false;
                 aggregate.enableStereo = false;
                 aggregate.enableShadowMask = false;
+                aggregate.enableTelltaleContactShadows = false;
             }
 
             LightLoopSettings.InitializeLightLoopSettings(camera, aggregate, renderPipelineSettings, srcFrameSettings, ref aggregate.lightLoopSettings);
@@ -282,6 +286,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         new DebugUI.BoolField { displayName = "Enable Transmission", getter = () => frameSettings.enableTransmission, setter = value => frameSettings.enableTransmission = value },
                         new DebugUI.BoolField { displayName = "Enable Shadows", getter = () => frameSettings.enableShadow, setter = value => frameSettings.enableShadow = value },
                         new DebugUI.BoolField { displayName = "Enable Contact Shadows", getter = () => frameSettings.enableContactShadows, setter = value => frameSettings.enableContactShadows = value },
+                        new DebugUI.BoolField { displayName = "Enable Telltale Contact Shadows", getter = () => frameSettings.enableTelltaleContactShadows, setter = value => frameSettings.enableTelltaleContactShadows = value },
                         new DebugUI.BoolField { displayName = "Enable ShadowMask", getter = () => frameSettings.enableShadowMask, setter = value => frameSettings.enableShadowMask = value },
                         new DebugUI.BoolField { displayName = "Enable Atmospheric Scattering", getter = () => frameSettings.enableAtmosphericScattering, setter = value => frameSettings.enableAtmosphericScattering = value },
                         new DebugUI.BoolField { displayName = "    Enable volumetric", getter = () => frameSettings.enableVolumetric, setter = value => frameSettings.enableVolumetric = value },

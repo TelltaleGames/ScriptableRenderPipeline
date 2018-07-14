@@ -6,6 +6,30 @@ using UnityEngine.Rendering.PostProcessing;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
+    // Light groups.
+    public class LightGroupMap
+    {
+        public int lightGroupCount;
+        public Dictionary<Component, float[]> lightToWeights;
+        public float[] defaultWeights;
+        public float[] environmentLightWeights;
+        public float[] environmentReflectionsWeights;
+    }
+
+    public class TelltaleContactShadowSettings
+    {
+        public bool enable = true;
+        public float length = 0.15f;
+        public float distanceScaleFactor = 0.5f;
+        public float maxDistance = 50.0f;
+        public float fadeDistance = 5.0f;
+        public int sampleCount = 8;
+
+        public ComputeBuffer lightBuffer;
+    }
+
+    public delegate LightGroupMap RetrieveLightGroupMapDelegate();
+
     class ShadowSetup : IDisposable
     {
         // shadow related stuff
@@ -267,8 +291,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         };
 
         public const int k_MaxDirectionalLightsOnScreen = 4;
-        public const int k_MaxPunctualLightsOnScreen    = 512;
-        public const int k_MaxAreaLightsOnScreen        = 64;
+        public const int k_MaxPunctualLightsOnScreen    = 54;
+        public const int k_MaxAreaLightsOnScreen        = 4;
         public const int k_MaxDecalsOnScreen = 512;
         public const int k_MaxLightsOnScreen = k_MaxDirectionalLightsOnScreen + k_MaxPunctualLightsOnScreen + k_MaxAreaLightsOnScreen + k_MaxDecalsOnScreen;
         public const int k_MaxEnvLightsOnScreen = 64;
@@ -277,12 +301,24 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public const int k_MaxStereoEyes = 2;
         public static readonly Vector3 k_BoxCullingExtentThreshold = Vector3.one * 0.01f;
 
+        // Light groups.
+        // When these constants change, matching constants in LightLoopDef.hlsl must also be updated.
+        public const int k_MaxLightGroups = 32;
+        public const int k_MaxEnvironmentLightWeights = 1;
+        public const int k_MaxEnvironmentReflectionsWeights = 1;
+        public const int k_LightGroupStride = k_MaxEnvironmentLightWeights + k_MaxEnvironmentReflectionsWeights + k_MaxDirectionalLightsOnScreen + k_MaxPunctualLightsOnScreen + k_MaxAreaLightsOnScreen;
+        public const int k_EnvironmentLightLightGroupOffset = 0;
+        public const int k_EnvironmentReflectionsLightGroupOffset = k_EnvironmentLightLightGroupOffset + k_MaxEnvironmentLightWeights;
+        public const int k_DirectionalLightsLightGroupOffset = k_EnvironmentReflectionsLightGroupOffset + k_MaxEnvironmentReflectionsWeights;
+        public const int k_PunctualLightsLightGroupOffset = k_DirectionalLightsLightGroupOffset + k_MaxDirectionalLightsOnScreen;
+
         // Static keyword is required here else we get a "DestroyBuffer can only be called from the main thread"
         ComputeBuffer m_DirectionalLightDatas = null;
         ComputeBuffer m_LightDatas = null;
         ComputeBuffer m_EnvLightDatas = null;
         ComputeBuffer m_shadowDatas = null;
         ComputeBuffer m_DecalDatas = null;
+        ComputeBuffer m_LightGroupData = null; // Light groups.
 
         Texture2DArray  m_DefaultTexture2DArray;
         Cubemap         m_DefaultTextureCube;
@@ -303,6 +339,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public List<EnvLightData> envLights;
             public List<ShadowData> shadows;
 
+            public float[] lightGroupWeights; // Light groups.
+
             public List<SFiniteLightBound> bounds;
             public List<LightVolumeData> lightVolumes;
             public List<SFiniteLightBound> rightEyeBounds;
@@ -319,6 +357,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 lightVolumes.Clear();
                 rightEyeBounds.Clear();
                 rightEyeLightVolumes.Clear();
+
+                // Light groups. Don't actually do any clearing of the array here.
             }
 
             public void Allocate()
@@ -327,6 +367,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 lights = new List<LightData>();
                 envLights = new List<EnvLightData>();
                 shadows = new List<ShadowData>();
+
+                lightGroupWeights = new float[0];
 
                 bounds = new List<SFiniteLightBound>();
                 lightVolumes = new List<LightVolumeData>();
@@ -353,6 +395,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         private ComputeShader clearDispatchIndirectShader { get { return m_Resources.clearDispatchIndirectShader; } }
         private ComputeShader deferredComputeShader { get { return m_Resources.deferredComputeShader; } }
         private ComputeShader deferredDirectionalShadowComputeShader { get { return m_Resources.deferredDirectionalShadowComputeShader; } }
+        private ComputeShader telltaleContactShadowComputeShader { get { return m_Resources.telltaleContactShadowComputeShader; } }
 
 
         static int s_GenAABBKernel;
@@ -374,6 +417,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         static int s_deferredDirectionalShadowKernel;
         static int s_deferredDirectionalShadow_Contact_Kernel;
+
+        static int s_telltaleContactShadowKernel;
 
         static ComputeBuffer s_LightVolumeDataBuffer = null;
         static ComputeBuffer s_ConvexBoundsBuffer = null;
@@ -434,8 +479,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public Light GetCurrentSunLight() { return m_CurrentSunLight; }
 
+        // Light groups.
+        public static RetrieveLightGroupMapDelegate RetrieveLightGroupMap { get; set; }
+
+        public TelltaleContactShadowSettings TelltaleShadowSettings { get; set; }
+
         // shadow related stuff
-        FrameId                 m_FrameId = new FrameId();
+        FrameId m_FrameId = new FrameId();
         ShadowSetup             m_ShadowSetup; // doesn't actually have to reside here, it would be enough to pass the IShadowManager in from the outside
         IShadowManager          m_ShadowMgr;
         List<int>               m_ShadowRequests = new List<int>();
@@ -509,6 +559,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_EnvLightDatas = new ComputeBuffer(k_MaxEnvLightsOnScreen, System.Runtime.InteropServices.Marshal.SizeOf(typeof(EnvLightData)));
             m_shadowDatas = new ComputeBuffer(k_MaxCascadeCount + k_MaxShadowOnScreen, System.Runtime.InteropServices.Marshal.SizeOf(typeof(ShadowData)));
             m_DecalDatas = new ComputeBuffer(k_MaxDecalsOnScreen, System.Runtime.InteropServices.Marshal.SizeOf(typeof(DecalData)));
+            m_LightGroupData = new ComputeBuffer(k_MaxLightGroups * k_LightGroupStride, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float))); // Light groups.
 
             GlobalLightLoopSettings gLightLoopSettings = hdAsset.GetRenderPipelineSettings().lightLoopSettings;
             m_CookieTexArray = new TextureCache2D("Cookie");
@@ -556,6 +607,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             s_deferredDirectionalShadowKernel = deferredDirectionalShadowComputeShader.FindKernel("DeferredDirectionalShadow");
             s_deferredDirectionalShadow_Contact_Kernel = deferredDirectionalShadowComputeShader.FindKernel("DeferredDirectionalShadow_Contact");
+
+            s_telltaleContactShadowKernel = telltaleContactShadowComputeShader.FindKernel("TelltaleContactShadow");
 
             for (int variant = 0; variant < LightDefinitions.s_NumFeatureVariants; variant++)
             {
@@ -621,6 +674,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             CoreUtils.SafeRelease(m_EnvLightDatas);
             CoreUtils.SafeRelease(m_shadowDatas);
             CoreUtils.SafeRelease(m_DecalDatas);
+            CoreUtils.SafeRelease(m_LightGroupData); // Light groups.
 
             if (m_ReflectionProbeCache != null)
             {
@@ -1449,6 +1503,84 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 light.bakingOutput.occlusionMaskChannel != -1;     // We need to have an occlusion mask channel assign, else we have no shadow mask
         }
 
+        private T[] GetInitializedArray<T>(int size, T value)
+        {
+            T[] result = new T[size];
+            for (int i = 0; i < size; i++)
+            {
+                result[i] = value;
+            }
+            return result;
+        }
+
+        // Light groups.
+        private LightGroupMap GetLightGroupMapAndInitWeights()
+        {
+            LightGroupMap lightGroupMap = null;
+            if (RetrieveLightGroupMap != null)
+            {
+                lightGroupMap = RetrieveLightGroupMap();
+            }
+
+            if (lightGroupMap == null)
+            {
+                float[] allEnabledWeights = GetInitializedArray(k_MaxLightGroups, 1.0f);
+                // Default map will result in all objects being affected by all lights.
+                lightGroupMap = new LightGroupMap
+                {
+                    lightGroupCount = k_MaxLightGroups,
+                    lightToWeights = new Dictionary<Component, float[]>(),
+                    defaultWeights = allEnabledWeights,
+                    environmentLightWeights = allEnabledWeights,
+                    environmentReflectionsWeights = allEnabledWeights
+                };
+            }
+
+            // Resize the light group map if it doesn't match the current light group count.
+            int mapSize = lightGroupMap.lightGroupCount * k_LightGroupStride;
+            if (m_lightList.lightGroupWeights.Length != mapSize)
+            {
+                m_lightList.lightGroupWeights = new float[mapSize];
+            }
+
+            return lightGroupMap;
+        }
+
+        void SetLightGroupWeightsForLight(Light light, int destIndex, LightGroupMap lightGroupMap)
+        {
+            float[] weightsForLight;
+            lightGroupMap.lightToWeights.TryGetValue(light, out weightsForLight);
+            if (weightsForLight == null)
+            {
+                weightsForLight = lightGroupMap.defaultWeights;
+            }
+
+            CopyLightGroupWeights(weightsForLight, destIndex, lightGroupMap);
+        }
+
+        void SetLightGroupWeightsForEnvironmentLight(LightGroupMap lightGroupMap)
+        {
+            int destIndex = k_EnvironmentLightLightGroupOffset;
+            float[] weightsForLight = lightGroupMap.environmentLightWeights ?? lightGroupMap.defaultWeights;
+            CopyLightGroupWeights(weightsForLight, destIndex, lightGroupMap);
+        }
+
+        void SetLightGroupWeightsForEnvironmentReflections(LightGroupMap lightGroupMap)
+        {
+            int destIndex = k_EnvironmentReflectionsLightGroupOffset;
+            float[] weightsForLight = lightGroupMap.environmentReflectionsWeights ?? lightGroupMap.defaultWeights;
+            CopyLightGroupWeights(weightsForLight, destIndex, lightGroupMap);
+        }
+
+        void CopyLightGroupWeights(float[] weightsForLight, int destIndex, LightGroupMap lightGroupMap)
+        {
+            float[] destWeights = m_lightList.lightGroupWeights;
+            for (int i = 0, count = lightGroupMap.lightGroupCount; i < count; i++, destIndex += k_LightGroupStride)
+            {
+                destWeights[destIndex] = weightsForLight[i];
+            }
+        }
+
         // Return true if BakedShadowMask are enabled
         public bool PrepareLightsForGPU(CommandBuffer cmd, HDCamera hdCamera, ShadowSettings shadowSettings, CullResults cullResults,
             ReflectionProbeCullResults reflectionProbeCullResults, DensityVolumeList densityVolumes)
@@ -1461,6 +1593,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 m_enableBakeShadowMask = false;
 
                 m_lightList.Clear();
+
+                // Light groups.
+                LightGroupMap lightGroupMap = GetLightGroupMapAndInitWeights();
+                SetLightGroupWeightsForEnvironmentLight(lightGroupMap);
+                SetLightGroupWeightsForEnvironmentReflections(lightGroupMap);
 
                 // We need to properly reset this here otherwise if we go from 1 light to no visible light we would keep the old reference active.
                 m_CurrentSunLight = null;
@@ -1529,9 +1666,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     // 1. Count the number of lights and sort all lights by category, type and volume - This is required for the fptl/cluster shader code
                     // If we reach maximum of lights available on screen, then we discard the light.
                     // Lights are processed in order, so we don't discards light based on their importance but based on their ordering in visible lights list.
-                    int directionalLightcount = 0;
-                    int punctualLightcount = 0;
-                    int areaLightCount = 0;
+                    int preSortDirectionalLightCount = 0;
+                    int preSortPunctualLightCount = 0;
+                    int preSortAreaLightCount = 0;
 
                     int lightCount = Math.Min(cullResults.visibleLights.Count, k_MaxLightsOnScreen);
                     var sortKeys = new uint[lightCount];
@@ -1555,8 +1692,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             switch (light.lightType)
                             {
                                 case LightType.Spot:
-                                    if (punctualLightcount >= k_MaxPunctualLightsOnScreen)
+                                    if (preSortPunctualLightCount >= k_MaxPunctualLightsOnScreen)
                                         continue;
+                                    preSortPunctualLightCount++;
                                     switch (additionalData.spotLightShape)
                                     {
                                         case SpotLightShape.Cone:
@@ -1578,16 +1716,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                                     break;
 
                                 case LightType.Directional:
-                                    if (directionalLightcount >= k_MaxDirectionalLightsOnScreen)
+                                    if (preSortDirectionalLightCount >= k_MaxDirectionalLightsOnScreen)
                                         continue;
+                                    preSortDirectionalLightCount++;
                                     gpuLightType = GPULightType.Directional;
                                     // No need to add volume, always visible
                                     lightVolumeType = LightVolumeType.Count; // Count is none
                                     break;
 
                                 case LightType.Point:
-                                    if (punctualLightcount >= k_MaxPunctualLightsOnScreen)
+                                    if (preSortPunctualLightCount >= k_MaxPunctualLightsOnScreen)
                                         continue;
+                                    preSortPunctualLightCount++;
                                     gpuLightType = GPULightType.Point;
                                     lightVolumeType = LightVolumeType.Sphere;
                                     break;
@@ -1604,15 +1744,17 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             switch (additionalData.lightTypeExtent)
                             {
                                 case LightTypeExtent.Rectangle:
-                                    if (areaLightCount >= k_MaxAreaLightsOnScreen)
+                                    if (preSortAreaLightCount >= k_MaxAreaLightsOnScreen)
                                         continue;
+                                    preSortAreaLightCount++;
                                     gpuLightType = GPULightType.Rectangle;
                                     lightVolumeType = LightVolumeType.Box;
                                     break;
 
                                 case LightTypeExtent.Line:
-                                    if (areaLightCount >= k_MaxAreaLightsOnScreen)
+                                    if (preSortAreaLightCount >= k_MaxAreaLightsOnScreen)
                                         continue;
+                                    preSortAreaLightCount++;
                                     gpuLightType = GPULightType.Line;
                                     lightVolumeType = LightVolumeType.Box;
                                     break;
@@ -1624,11 +1766,16 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         }
 
                         uint shadow = m_ShadowIndices.ContainsKey(lightIndex) ? 1u : 0;
+
                         // 5 bit (0x1F) light category, 5 bit (0x1F) GPULightType, 5 bit (0x1F) lightVolume, 1 bit for shadow casting, 16 bit index
                         sortKeys[sortCount++] = (uint)lightCategory << 27 | (uint)gpuLightType << 22 | (uint)lightVolumeType << 17 | shadow << 16 | (uint)lightIndex;
                     }
 
                     CoreUtils.QuickSort(sortKeys, 0, sortCount - 1); // Call our own quicksort instead of Array.Sort(sortKeys, 0, sortCount) so we don't allocate memory (note the SortCount-1 that is different from original call).
+
+                    int postSortDirectionalLightCount = 0;
+                    int postSortPunctualLightCount = 0;
+                    int postSortAreaLightCount = 0;
 
                     // TODO: Refactor shadow management
                     // The good way of managing shadow:
@@ -1664,7 +1811,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         {
                             if (GetDirectionalLightData(cmd, shadowSettings, gpuLightType, light, additionalLightData, additionalShadowData, lightIndex))
                             {
-                                directionalLightcount++;
+                                // Light groups.
+                                SetLightGroupWeightsForLight(light.light, k_DirectionalLightsLightGroupOffset + postSortDirectionalLightCount, lightGroupMap);
+
+                                postSortDirectionalLightCount++;
 
                                 // We make the light position camera-relative as late as possible in order
                                 // to allow the preceding code to work with the absolute world space coordinates.
@@ -1685,13 +1835,16 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         // Punctual, area, projector lights - the rendering side.
                         if (GetLightData(cmd, shadowSettings, camera, gpuLightType, light, additionalLightData, additionalShadowData, lightIndex, ref lightDimensions))
                         {
+                            int lightDataIndex = m_lightList.lights.Count - 1;
                             switch (lightCategory)
                             {
                                 case LightCategory.Punctual:
-                                    punctualLightcount++;
+                                    // Light groups.
+                                    SetLightGroupWeightsForLight(light.light, k_PunctualLightsLightGroupOffset + lightDataIndex, lightGroupMap);
+                                    postSortPunctualLightCount++;
                                     break;
                                 case LightCategory.Area:
-                                    areaLightCount++;
+                                    postSortAreaLightCount++;
                                     break;
                                 default:
                                     Debug.Assert(false, "TODO: encountered an unknown LightCategory.");
@@ -1717,11 +1870,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     }
 
                     // Sanity check
-                    Debug.Assert(m_lightList.directionalLights.Count == directionalLightcount);
-                    Debug.Assert(m_lightList.lights.Count == areaLightCount + punctualLightcount);
+                    Debug.Assert(postSortDirectionalLightCount <= preSortDirectionalLightCount);
+                    Debug.Assert(postSortPunctualLightCount <= preSortPunctualLightCount);
+                    Debug.Assert(postSortAreaLightCount <= preSortAreaLightCount);
 
-                    m_punctualLightCount = punctualLightcount;
-                    m_areaLightCount = areaLightCount;
+                    Debug.Assert(m_lightList.directionalLights.Count == postSortDirectionalLightCount);
+                    Debug.Assert(m_lightList.lights.Count == postSortAreaLightCount + postSortPunctualLightCount);
+
+                    m_punctualLightCount = postSortPunctualLightCount;
+                    m_areaLightCount = postSortAreaLightCount;
 
                     // Redo everything but this time with envLights
                     int envLightCount = 0;
@@ -2196,6 +2353,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_EnvLightDatas.SetData(m_lightList.envLights);
             m_shadowDatas.SetData(m_lightList.shadows);
             m_DecalDatas.SetData(DecalSystem.m_DecalDatas, 0, 0, Math.Min(DecalSystem.m_DecalDatasCount, k_MaxDecalsOnScreen)); // don't add more than the size of the buffer
+            m_LightGroupData.SetData(m_lightList.lightGroupWeights); // Light groups.
 
             // These two buffers have been set in Rebuild()
             s_ConvexBoundsBuffer.SetData(m_lightList.bounds);
@@ -2250,6 +2408,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 cmd.SetGlobalBuffer(HDShaderIDs._DecalDatas, m_DecalDatas);
                 cmd.SetGlobalInt(HDShaderIDs._DecalCount, DecalSystem.m_DecalDatasCount);
                 cmd.SetGlobalBuffer(HDShaderIDs._ShadowDatas, m_shadowDatas);
+                cmd.SetGlobalBuffer(HDShaderIDs._LightGroupData, m_LightGroupData); // Light groups.
 
                 cmd.SetGlobalInt(HDShaderIDs._NumTileFtplX, GetNumTileFtplX(hdCamera));
                 cmd.SetGlobalInt(HDShaderIDs._NumTileFtplY, GetNumTileFtplY(hdCamera));
@@ -2337,6 +2496,50 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 cmd.DispatchCompute(deferredDirectionalShadowComputeShader, kernel, numTilesX, numTilesY, 1);
 
                 cmd.SetGlobalTexture(HDShaderIDs._DeferredShadowTexture, deferredShadowRT);
+            }
+        }
+
+        public void SetDefaultContactShadows(CommandBuffer cmd)
+        {
+            cmd.SetGlobalTexture(HDShaderIDs._TelltaleContactShadowTexture, RuntimeUtilities.transparentTexture);
+        }
+
+        public void RenderTelltaleContactShadows(HDCamera hdCamera, RTHandle shadowMaskIds, RTHandle contactShadowOutRT, RenderTargetIdentifier depthTexture, CommandBuffer cmd)
+        {
+            TelltaleContactShadowSettings shadowSettings = TelltaleShadowSettings;
+
+            if (shadowSettings == null || !shadowSettings.enable || shadowSettings.length <= 0)
+            {
+                SetDefaultContactShadows(cmd);
+                return;
+            }
+
+            using (new ProfilingSample(cmd, "Telltale Contact Shadows", CustomSamplerId.TPDeferredDirectionalShadow.GetSampler()))
+            {
+                int kernel = s_telltaleContactShadowKernel;
+
+                float contactShadowRange = Mathf.Clamp(shadowSettings.fadeDistance, 0.0f, shadowSettings.maxDistance);
+                float contactShadowFadeEnd = shadowSettings.maxDistance;
+                float contactShadowOneOverFadeRange = 1.0f / (contactShadowRange);
+                Vector4 contactShadowParams = new Vector4(shadowSettings.length, shadowSettings.distanceScaleFactor, contactShadowFadeEnd, contactShadowOneOverFadeRange);
+                cmd.SetComputeVectorParam(telltaleContactShadowComputeShader, HDShaderIDs._DirectionalContactShadowParams, contactShadowParams);
+                cmd.SetComputeIntParam(telltaleContactShadowComputeShader, HDShaderIDs._DirectionalContactShadowSampleCount, shadowSettings.sampleCount);
+
+                cmd.SetComputeBufferParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._TelltaleShadowLights, shadowSettings.lightBuffer);
+                cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._TelltaleShadowMaskIds, shadowMaskIds);
+                cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._DeferredShadowTextureUAV, contactShadowOutRT);
+                cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._MainDepthTexture, depthTexture);
+
+                int deferredShadowTileSize = 16; // Must match TelltaleContactShadow.compute
+                int numTilesX = (hdCamera.actualWidth + (deferredShadowTileSize - 1)) / deferredShadowTileSize;
+                int numTilesY = (hdCamera.actualHeight + (deferredShadowTileSize - 1)) / deferredShadowTileSize;
+
+                hdCamera.SetupComputeShader(telltaleContactShadowComputeShader, cmd);
+
+                // TODO: Update for stereo
+                cmd.DispatchCompute(telltaleContactShadowComputeShader, kernel, numTilesX, numTilesY, 1);
+
+                cmd.SetGlobalTexture(HDShaderIDs._TelltaleContactShadowTexture, contactShadowOutRT);
             }
         }
 

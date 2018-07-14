@@ -20,6 +20,7 @@ namespace UnityEditor.Experimental.Rendering
         public SerializedProperty supportVolumetric;
         public SerializedProperty supportRuntimeDebugDisplay;
         public SerializedProperty supportDitheringCrossFade;
+        public SerializedProperty supportTelltaleContactShadows;
 
         public SerializedGlobalLightLoopSettings lightLoopSettings;
         public SerializedShadowInitParameters shadowInitParams;
@@ -43,6 +44,7 @@ namespace UnityEditor.Experimental.Rendering
             supportVolumetric = root.Find((RenderPipelineSettings s) => s.supportVolumetric);
             supportRuntimeDebugDisplay = root.Find((RenderPipelineSettings s) => s.supportRuntimeDebugDisplay);
             supportDitheringCrossFade = root.Find((RenderPipelineSettings s) => s.supportDitheringCrossFade);
+            supportTelltaleContactShadows = root.Find((RenderPipelineSettings s) => s.supportTelltaleContactShadows);
 
             lightLoopSettings = new SerializedGlobalLightLoopSettings(root.Find((RenderPipelineSettings s) => s.lightLoopSettings));
             shadowInitParams = new SerializedShadowInitParameters(root.Find((RenderPipelineSettings s) => s.shadowInitParams));

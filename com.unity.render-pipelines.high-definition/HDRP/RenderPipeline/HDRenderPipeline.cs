@@ -97,11 +97,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         // 'm_CameraColorBuffer' does not contain diffuse lighting of SSS materials until the SSS pass. It is stored within 'm_CameraSssDiffuseLightingBuffer'.
         RTHandleSystem.RTHandle m_CameraColorBuffer;
+        RTHandleSystem.RTHandle m_CameraPostColorBuffer;
         RTHandleSystem.RTHandle m_CameraSssDiffuseLightingBuffer;
 
         RTHandleSystem.RTHandle m_CameraDepthStencilBuffer;
         RTHandleSystem.RTHandle m_CameraDepthBufferCopy;
         RTHandleSystem.RTHandle m_CameraStencilBufferCopy;
+
+        RTHandleSystem.RTHandle m_telltaleShadowCasterIds;
+        RTHandleSystem.RTHandle m_telltaleContactShadows;
 
         RTHandleSystem.RTHandle m_VelocityBuffer;
         RTHandleSystem.RTHandle m_DeferredShadowBuffer;
@@ -178,6 +182,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         bool                            m_ValidAPI; // False by default mean we render normally, true mean we don't render anything
 
         public Material GetBlitMaterial() { return m_Blit; }
+
+
+        public LightLoop LightLoop => m_LightLoop;
 
         ComputeBuffer m_DebugScreenSpaceTracingData = null;
         ScreenSpaceTracingDebug[] m_DebugScreenSpaceTracingDataArray = new ScreenSpaceTracingDebug[1];
@@ -288,6 +295,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_NormalBufferManager.InitNormalBuffers(m_GbufferManager, m_Asset.renderPipelineSettings);            
 
             m_CameraColorBuffer = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.ARGBHalf, sRGB: false, enableRandomWrite: true, enableMSAA: true, name: "CameraColor");
+            m_CameraPostColorBuffer = RTHandle.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.ARGBHalf, sRGB: false, enableRandomWrite: true, enableMSAA: true, name: "CameraUnlitColor");
             m_CameraSssDiffuseLightingBuffer = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.RGB111110Float, sRGB: false, enableRandomWrite: true, enableMSAA: true, name: "CameraSSSDiffuseLighting");
 
             m_CameraDepthStencilBuffer = RTHandles.Alloc(Vector2.one, depthBufferBits: DepthBits.Depth24, colorFormat: RenderTextureFormat.Depth, filterMode: FilterMode.Point, bindTextureMS: true, enableMSAA: true, name: "CameraDepthStencil");
@@ -303,6 +311,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             if (m_Asset.renderPipelineSettings.supportSSAO)
             {
                 m_AmbientOcclusionBuffer = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Bilinear, colorFormat: RenderTextureFormat.R8, sRGB: false, enableRandomWrite: true, name: "AmbientOcclusion");
+            }
+
+            if (m_Asset.renderPipelineSettings.supportTelltaleContactShadows)
+            {
+                m_telltaleShadowCasterIds = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.R8, sRGB: false, enableRandomWrite: true, name: "TelltaleShadowCasterIds");
+                m_telltaleContactShadows = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.ARGB32, sRGB: false, enableRandomWrite: true, name: "DeferredShadow");
             }
 
             if (m_Asset.renderPipelineSettings.supportMotionVectors)
@@ -329,11 +343,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_BufferPyramid.DestroyBuffers();
 
             RTHandles.Release(m_CameraColorBuffer);
+            RTHandle.Release(m_CameraPostColorBuffer);
             RTHandles.Release(m_CameraSssDiffuseLightingBuffer);
 
             RTHandles.Release(m_CameraDepthStencilBuffer);
             RTHandles.Release(m_CameraDepthBufferCopy);
             RTHandles.Release(m_CameraStencilBufferCopy);
+
+            RTHandle.Release(m_telltaleShadowCasterIds);
+            RTHandle.Release(m_telltaleContactShadows);
 
             RTHandles.Release(m_AmbientOcclusionBuffer);
             RTHandles.Release(m_VelocityBuffer);
@@ -717,6 +735,30 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             bool assetFrameSettingsIsDirty = m_Asset.frameSettingsIsDirty;
             m_Asset.UpdateDirtyFrameSettings();
 
+            //
+            // find if we will need to cache the Post Texture from the main pass for the UI Camera pass
+            // in order to correctly composite an Unlit Camera for UI on top of Post for example.
+            //
+            bool cachePostTexture = false;
+            if (cameras.Length > 1)
+            {
+                for (int i = cameras.Length - 1; i >= 1; --i)
+                {
+                    Camera camera = cameras[i];
+                    if (camera == null)
+                        continue;
+
+                    var additionalCameraData = camera.GetComponent<HDAdditionalCameraData>();
+                    if (additionalCameraData &&
+                        additionalCameraData.renderingPath == HDAdditionalCameraData.RenderingPath.UI)
+                    {
+                        cachePostTexture = true;
+                        break;
+                    }
+                }
+            }
+
+
             foreach (var camera in cameras)
             {
                 if (camera == null)
@@ -915,8 +957,88 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     // We have to bind the material specific global parameters in this mode
                     m_MaterialList.ForEach(material => material.Bind());
 
+                    if (additionalCameraData && additionalCameraData.renderingPath == HDAdditionalCameraData.RenderingPath.UI)
+                    {
+                        // Support UI camera drawing on top after post of the main scene
+                        using (new ProfilingSample(cmd, "ForwardUI", CustomSamplerId.Forward.GetSampler()))
+                        {
+                            ClearFlag clearFlags = 0;
+                            if (hdCamera.clearDepth)
+                            {
+                                clearFlags |= ClearFlag.Depth;
+                            }
+
+                            if (hdCamera.clearColorMode == HDAdditionalCameraData.ClearColorMode.BackgroundColor)
+                            {
+                                clearFlags |= ClearFlag.Color;
+                            }
+
+                            if (!cachePostTexture)
+                            {
+                                clearFlags = ClearFlag.Color | ClearFlag.Depth;
+                            }
+
+                            HDUtils.SetRenderTarget(cmd, hdCamera, m_CameraPostColorBuffer, m_CameraDepthStencilBuffer, clearFlags);
+                            RenderOpaqueRenderList(m_CullResults, camera, renderContext, cmd, m_ForwardAndForwardOnlyPassNames);
+                            RenderTransparentRenderList(m_CullResults, camera, renderContext, cmd, m_AllTransparentPassNames, m_currentRendererConfigurationBakedLighting, HDRenderQueue.k_RenderQueue_Transparent);
+                        }
+
+                        // This Blit will flip the screen on anything other than openGL
+                        HDUtils.BlitCameraTexture(cmd, hdCamera, m_CameraPostColorBuffer, BuiltinRenderTextureType.CameraTarget);
+
+                        renderContext.ExecuteCommandBuffer(cmd);
+                        CommandBufferPool.Release(cmd);
+                        renderContext.Submit();
+                        continue;
+                    }
+					
                     // Frustum cull density volumes on the CPU. Can be performed as soon as the camera is set up.
                     DensityVolumeList densityVolumes = m_VolumetricLightingSystem.PrepareVisibleDensityVolumeList(hdCamera, cmd, m_Time);
+
+
+                        // This Blit will flip the screen on anything other than openGL
+                        HDUtils.BlitCameraTexture(cmd, hdCamera, m_CameraPostColorBuffer, BuiltinRenderTextureType.CameraTarget);
+
+                        renderContext.ExecuteCommandBuffer(cmd);
+                        CommandBufferPool.Release(cmd);
+                        renderContext.Submit();
+                        continue;
+                    }
+
+                    if (additionalCameraData && additionalCameraData.renderingPath == HDAdditionalCameraData.RenderingPath.UI)
+                    {
+                        // Support UI camera drawing on top after post of the main scene
+                        using (new ProfilingSample(cmd, "ForwardUI", CustomSamplerId.Forward.GetSampler()))
+                        {
+                            ClearFlag clearFlags = 0;
+                            if (hdCamera.clearDepth)
+                            {
+                                clearFlags |= ClearFlag.Depth;
+                            }
+
+                            if (hdCamera.clearColorMode == HDAdditionalCameraData.ClearColorMode.BackgroundColor)
+                            {
+                                clearFlags |= ClearFlag.Color;
+                            }
+
+                            if (!cachePostTexture)
+                            {
+                                clearFlags = ClearFlag.Color | ClearFlag.Depth;
+                            }
+
+                            HDUtils.SetRenderTarget(cmd, hdCamera, m_CameraPostColorBuffer, m_CameraDepthStencilBuffer, clearFlags);
+                            RenderOpaqueRenderList(m_CullResults, camera, renderContext, cmd, m_ForwardAndForwardOnlyPassNames);
+                            RenderTransparentRenderList(m_CullResults, camera, renderContext, cmd, m_AllTransparentPassNames, m_currentRendererConfigurationBakedLighting, HDRenderQueue.k_RenderQueue_Transparent);
+                        }
+
+                        // This Blit will flip the screen on anything other than openGL
+                        HDUtils.BlitCameraTexture(cmd, hdCamera, m_CameraPostColorBuffer, BuiltinRenderTextureType.CameraTarget);
+
+                        renderContext.ExecuteCommandBuffer(cmd);
+                        CommandBufferPool.Release(cmd);
+                        renderContext.Submit();
+                        continue;
+                    }
 
                     // Note: Legacy Unity behave like this for ShadowMask
                     // When you select ShadowMask in Lighting panel it recompile shaders on the fly with the SHADOW_MASK keyword.
@@ -937,6 +1059,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                     // TODO: Add stereo occlusion mask
                     RenderDepthPrepass(m_CullResults, hdCamera, renderContext, cmd);
+
+                    RenderObjectsTelltaleShadowCasterIds(m_CullResults, hdCamera, renderContext, cmd);
 
                     // This will bind the depth buffer if needed for DBuffer)
                     RenderDBuffer(hdCamera, cmd, renderContext, m_CullResults);
@@ -1033,6 +1157,26 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             PushFullScreenDebugTexture(hdCamera, cmd, m_DeferredShadowBuffer, FullScreenDebugMode.DeferredShadows);
                         }
 
+                        if (hdCamera.frameSettings.enableTelltaleContactShadows)
+                        {
+                            using (new ProfilingSample(cmd, "Telltale Contact Shadows", CustomSamplerId.TelltaleConctactShadows.GetSampler()))
+                            {
+                                // When debug is enabled we need to clear otherwise we may see non-shadows areas with stale values.
+                                if (m_CurrentDebugDisplaySettings.fullScreenDebugMode == FullScreenDebugMode.TelltaleContactShadows)
+                                {
+                                    HDUtils.SetRenderTarget(cmd, hdCamera, m_telltaleContactShadows, ClearFlag.Color, CoreUtils.clearColorAllBlack);
+                                }
+
+                                m_LightLoop.RenderTelltaleContactShadows(hdCamera, m_telltaleShadowCasterIds, m_telltaleContactShadows, GetDepthTexture(), cmd);
+
+                                PushFullScreenDebugTexture(cmd, m_telltaleContactShadows, hdCamera, FullScreenDebugMode.TelltaleContactShadows);
+                            }
+                        }
+                        else
+                        {
+                            m_LightLoop.SetDefaultContactShadows(cmd);
+                        }
+
                         if (hdCamera.frameSettings.enableAsyncCompute)
                         {
                             m_LightLoop.BuildGPULightListAsyncEnd(hdCamera, cmd, buildGPULightListsCompleteFence);
@@ -1104,14 +1248,22 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         // Final blit
                         if (hdCamera.frameSettings.enablePostprocess)
                         {
-                            RenderPostProcess(hdCamera, cmd, postProcessLayer);
+                            RenderPostProcess(hdCamera, cmd, postProcessLayer, cachePostTexture);
                         }
                         else
                         {
                             using (new ProfilingSample(cmd, "Blit to final RT", CustomSamplerId.BlitToFinalRT.GetSampler()))
                             {
-                                // This Blit will flip the screen on anything other than openGL
-                                HDUtils.BlitCameraTexture(cmd, hdCamera, m_CameraColorBuffer, BuiltinRenderTextureType.CameraTarget);
+                                if (cachePostTexture)
+                                {
+                                    // This Blit will flip the screen on anything other than openGL
+                                    HDUtils.BlitCameraTexture(cmd, hdCamera, m_CameraColorBuffer, m_CameraPostColorBuffer);
+                                }
+                                else
+                                {
+                                    // This Blit will flip the screen on anything other than openGL
+                                    HDUtils.BlitCameraTexture(cmd, hdCamera, m_CameraColorBuffer, BuiltinRenderTextureType.CameraTarget);
+                                }
                             }
                         }
 
@@ -1206,7 +1358,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             var drawSettings = new DrawRendererSettings(hdCamera.camera, HDShaderPassNames.s_EmptyName)
             {
                 rendererConfiguration = rendererConfiguration,
-                sorting = { flags = SortFlags.CommonOpaque }
+                sorting = { flags = SortFlags.OptimizeStateChanges } // TTG_PERF - More aggressive batching for improved perf via less draw calls
             };
 
             for (int i = 0; i < passNames.Length; ++i)
@@ -1662,6 +1814,19 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
         }
 
+        void RenderObjectsTelltaleShadowCasterIds(CullResults cullResults, HDCamera hdCamera, ScriptableRenderContext renderContext, CommandBuffer cmd)
+        {
+            {
+                return;
+            }
+
+            using (new ProfilingSample(cmd, "Telltale Shadow Caster IDs", CustomSamplerId.TelltaleShadowCasterIds.GetSampler()))
+            {
+                HDUtils.SetRenderTarget(cmd, hdCamera, m_telltaleShadowCasterIds, m_CameraDepthStencilBuffer, ClearFlag.Color, CoreUtils.clearColorAllBlack);
+                RenderOpaqueRenderList(cullResults, hdCamera.camera, renderContext, cmd, HDShaderPassNames.s_TelltaleShadowCasterIdsName);
+
+                PushFullScreenDebugTexture(cmd, m_telltaleShadowCasterIds, hdCamera, FullScreenDebugMode.TelltaleShadowCasterIds);
+            }
         void RenderObjectsVelocity(CullResults cullResults, HDCamera hdCamera, ScriptableRenderContext renderContext, CommandBuffer cmd)
         {
             if (!hdCamera.frameSettings.enableMotionVectors || !hdCamera.frameSettings.enableObjectMotionVectors)
@@ -1743,11 +1908,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             PushFullScreenDebugTextureMip(hdCamera, cmd, cameraRT, m_BufferPyramid.GetPyramidLodCount(new Vector2Int(hdCamera.actualWidth, hdCamera.actualHeight)), new Vector4(pyramidScale.x, pyramidScale.y, 0.0f, 0.0f), debugMode);
         }
 
-        void RenderPostProcess(HDCamera hdcamera, CommandBuffer cmd, PostProcessLayer layer)
+        void RenderPostProcess(HDCamera hdcamera, CommandBuffer cmd, PostProcessLayer layer, bool cacheDestinationPost = false)
         {
             using (new ProfilingSample(cmd, "Post-processing", CustomSamplerId.PostProcessing.GetSampler()))
             {
                 RenderTargetIdentifier source = m_CameraColorBuffer;
+                RenderTargetIdentifier postCopy = m_CameraPostColorBuffer;
 
                 // For console we are not allowed to resize the windows, so don't use our hack.
                 bool tempHACK = !IsConsolePlatform();
@@ -1769,6 +1935,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         cmd.GetTemporaryRT(HDShaderIDs._CameraMotionVectorsTexture, hdcamera.actualWidth, hdcamera.actualHeight, 0, FilterMode.Point, m_VelocityBuffer.rt.format);
                         HDUtils.BlitCameraTexture(cmd, hdcamera, m_VelocityBuffer, HDShaderIDs._CameraMotionVectorsTexture);
                     }
+                    if (cacheDestinationPost)
+                    {
+                        cmd.GetTemporaryRT(HDShaderIDs._CameraPostColorTexture, hdcamera.actualWidth, hdcamera.actualHeight, 0, FilterMode.Point, m_CameraPostColorBuffer.rt.format);
+                        HDUtils.BlitCameraTexture(cmd, hdcamera, m_CameraPostColorBuffer, HDShaderIDs._CameraPostColorTexture);
+                        postCopy = HDShaderIDs._CameraPostColorTexture;
+                    }
                     cmd.GetTemporaryRT(HDShaderIDs._CameraColorTexture, hdcamera.actualWidth, hdcamera.actualHeight, 0, FilterMode.Point, m_CameraColorBuffer.rt.format);
                     HDUtils.BlitCameraTexture(cmd, hdcamera, m_CameraColorBuffer, HDShaderIDs._CameraColorTexture);
                     source = HDShaderIDs._CameraColorTexture;
@@ -1784,13 +1956,21 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 var context = hdcamera.postprocessRenderContext;
                 context.Reset();
                 context.source = source;
+                context.destinationCopy = postCopy;
+                context.cacheDestinationCopy = cacheDestinationPost;
                 context.destination = BuiltinRenderTextureType.CameraTarget;
                 context.command = cmd;
                 context.camera = hdcamera.camera;
                 context.sourceFormat = RenderTextureFormat.ARGBHalf;
-                context.flip = hdcamera.camera.targetTexture == null;
+                context.flip = !context.cacheDestinationCopy && hdcamera.camera.targetTexture == null;
 
                 layer.Render(context);
+
+                if (cacheDestinationPost && tempHACK)
+                {
+                    // copy output of post back to color buffer
+                    HDUtils.BlitCameraTexture(cmd, hdcamera, context.destinationCopy, m_CameraPostColorBuffer);
+                }
             }
         }
 
@@ -1901,7 +2081,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     // Everything we have capture is flipped (as it happen before FinalPass/postprocess/Blit. So if we are not in SceneView
                     // (i.e. we have perform a flip, we need to flip the input texture)
                     m_DebugFullScreen.SetFloat(HDShaderIDs._RequireToFlipInputTexture, hdCamera.camera.cameraType != CameraType.SceneView ? 1.0f : 0.0f);
-                    m_DebugFullScreen.SetBuffer(HDShaderIDs._DebugScreenSpaceTracingData, m_DebugScreenSpaceTracingData);
+                    m_DebugFullScreen.SetFloat(HDShaderIDs._TelltaleContactShadowsDebugMode, (float)m_CurrentDebugDisplaySettings.telltaleContactShadowsDebugMode);
                     HDUtils.DrawFullScreen(cmd, hdCamera, m_DebugFullScreen, (RenderTargetIdentifier)BuiltinRenderTextureType.CameraTarget);
 
                     PushColorPickerDebugTexture(hdCamera, cmd, (RenderTargetIdentifier)BuiltinRenderTextureType.CameraTarget);

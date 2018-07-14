@@ -12,6 +12,10 @@ Shader "HDRenderPipeline/Lit"
         _BaseColor("BaseColor", Color) = (1,1,1,1)
         _BaseColorMap("BaseColorMap", 2D) = "white" {}
 
+        _AsperityAmount("Asperity Amount", Range(0,1)) = 0.0
+        _AsperityExponent("Asperity Exponent", Float) = 1.0
+
+
         _Metallic("_Metallic", Range(0.0, 1.0)) = 0
         _Smoothness("Smoothness", Range(0.0, 1.0)) = 1.0
         _MaskMap("MaskMap", 2D) = "white" {}
@@ -119,6 +123,12 @@ Shader "HDRenderPipeline/Lit"
         _ATDistance("Transmittance Absorption Distance", Float) = 1.0
         [ToggleUI] _PreRefractionPass("PreRefractionPass", Float) = 0.0
 
+        // Transmission Probe
+        _TransmissionProbeMap("Transmission Probe", Cube) = "black" {}
+        _TransmissionTint("Transmission Tint", Color) = (1,1,1,1)
+        [Enum(Local, 0, World, 1)]_TransmissionProbeOrientation("Transmission Probe Orientation", Float) = 1.0
+        _FovCorrection("FOV", Float) = 0.0
+
         // Stencil state
         [HideInInspector] _StencilRef("_StencilRef", Int) = 2 // StencilLightingUsage.RegularLighting  (fixed at compile time)
         [HideInInspector] _StencilWriteMask("_StencilWriteMask", Int) = 7 // StencilMask.Lighting  (fixed at compile time)
@@ -153,7 +163,7 @@ Shader "HDRenderPipeline/Lit"
         // Following enum should be material feature flags (i.e bitfield), however due to Gbuffer encoding constrain many combination exclude each other
         // so we use this enum as "material ID" which can be interpreted as preset of bitfield of material feature
         // The only material feature flag that can be added in all cases is clear coat
-        [Enum(Subsurface Scattering, 0, Standard, 1, Anisotropy, 2, Iridescence, 3, Specular Color, 4, Translucent, 5)] _MaterialID("MaterialId", Int) = 1 // MaterialId.Standard
+        [Enum(Subsurface Scattering, 0, Standard, 1, Anisotropy, 2, Iridescence, 3, Specular Color, 4, Translucent, 5, TransmissionProbe, 6)] _MaterialID("MaterialId", Int) = 1 // MaterialId.Standard
         [ToggleUI] _TransmissionEnable("_TransmissionEnable", Float) = 1.0
 
         [Enum(None, 0, Vertex displacement, 1, Pixel displacement, 2)] _DisplacementMode("DisplacementMode", Int) = 0
@@ -203,6 +213,8 @@ Shader "HDRenderPipeline/Lit"
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
         [ToggleUI] _SupportDBuffer("Support DBuffer", Float) = 1.0
+
+        [HideInInspector] _LightGroupIndex("LightGroupIndex", Int) = 0
     }
 
     HLSLINCLUDE
@@ -225,8 +237,8 @@ Shader "HDRenderPipeline/Lit"
     #pragma shader_feature _ _REFRACTION_PLANE _REFRACTION_SPHERE
     #pragma shader_feature _ _REFRACTION_SSRAY_PROXY _REFRACTION_SSRAY_HIZ
 
-    #pragma shader_feature _ _EMISSIVE_MAPPING_PLANAR _EMISSIVE_MAPPING_TRIPLANAR
-    #pragma shader_feature _ _MAPPING_PLANAR _MAPPING_TRIPLANAR
+    //#pragma shader_feature _ _EMISSIVE_MAPPING_PLANAR _EMISSIVE_MAPPING_TRIPLANAR
+    //#pragma shader_feature _ _MAPPING_PLANAR _MAPPING_TRIPLANAR
     #pragma shader_feature _NORMALMAP_TANGENT_SPACE
     #pragma shader_feature _ _REQUIRE_UV2 _REQUIRE_UV3
 
@@ -245,6 +257,7 @@ Shader "HDRenderPipeline/Lit"
     #pragma shader_feature _SPECULARCOLORMAP
     #pragma shader_feature _TRANSMITTANCECOLORMAP
 
+
     #pragma shader_feature _DISABLE_DBUFFER
     #pragma shader_feature _ENABLE_GEOMETRIC_SPECULAR_AA
 
@@ -261,6 +274,8 @@ Shader "HDRenderPipeline/Lit"
     #pragma shader_feature _MATERIAL_FEATURE_CLEAR_COAT
     #pragma shader_feature _MATERIAL_FEATURE_IRIDESCENCE
     #pragma shader_feature _MATERIAL_FEATURE_SPECULAR_COLOR
+    #pragma shader_feature _MATERIAL_FEATURE_TRANSMISSIONPROBE
+    #pragma shader_feature _TRANSMISSION_PROBE_ORIENTATION
 
     // enable dithering LOD crossfade
     #pragma multi_compile _ LOD_FADE_CROSSFADE
@@ -355,8 +370,8 @@ Shader "HDRenderPipeline/Lit"
             #pragma multi_compile _ DEBUG_DISPLAY
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
-            #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            #pragma multi_compile _ SHADOWS_SHADOWMASK
+            //#pragma multi_compile _ DYNAMICLIGHTMAP_ON // TTG_PERF - unused variation, removing to improve shader compile times
+            //#pragma multi_compile _ SHADOWS_SHADOWMASK // TTG_PERF - unused variation, removing to improve shader compile times
 
         #ifdef _ALPHATEST_ON
             // When we have alpha test, we will force a depth prepass so we always bypass the clip instruction in the GBuffer
@@ -548,8 +563,8 @@ Shader "HDRenderPipeline/Lit"
             #pragma multi_compile _ DEBUG_DISPLAY
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
-            #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            #pragma multi_compile _ SHADOWS_SHADOWMASK
+            //#pragma multi_compile _ DYNAMICLIGHTMAP_ON // TTG_PERF - unused variation, removing to improve shader compile times
+            //#pragma multi_compile _ SHADOWS_SHADOWMASK // TTG_PERF - unused variation, removing to improve shader compile times
             // #include "../../Lighting/Forward.hlsl"
             //#pragma multi_compile LIGHTLOOP_SINGLE_PASS LIGHTLOOP_TILE_PASS
             #define LIGHTLOOP_TILE_PASS
@@ -592,8 +607,8 @@ Shader "HDRenderPipeline/Lit"
             #pragma multi_compile _ DEBUG_DISPLAY
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
-            #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            #pragma multi_compile _ SHADOWS_SHADOWMASK
+            //#pragma multi_compile _ DYNAMICLIGHTMAP_ON // TTG_PERF - unused variation, removing to improve shader compile times
+            //#pragma multi_compile _ SHADOWS_SHADOWMASK // TTG_PERF - unused variation, removing to improve shader compile times
             // #include "../../Lighting/Forward.hlsl"
             //#pragma multi_compile LIGHTLOOP_SINGLE_PASS LIGHTLOOP_TILE_PASS
             #define LIGHTLOOP_TILE_PASS

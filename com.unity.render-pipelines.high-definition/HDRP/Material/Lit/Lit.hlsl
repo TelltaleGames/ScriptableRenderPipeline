@@ -1255,7 +1255,7 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
 
     float3 color;
     float attenuation;
-    EvaluateLight_Directional(lightLoopContext, posInput, lightData, bakeLightingData, N, L, color, attenuation);
+    EvaluateLight_Directional(lightLoopContext, posInput, lightData, bakeLightingData, N, L, false, color, attenuation);
 
     float intensity = max(0, attenuation * NdotL); // Warning: attenuation can be greater than 1 due to the inverse square attenuation (when position is close to light)
 
@@ -2107,7 +2107,7 @@ IndirectLighting EvaluateBSDF_Env(  LightLoopContext lightLoopContext,
     {
         // No clear coat support with refraction
 
-        // specular transmisted lighting is the remaining of the reflection (let's use this approx)
+        // specular transmitted lighting is the remaining of the reflection (let's use this approx)
         // With refraction, we don't care about the clear coat value, only about the Fresnel, thus why we use 'envLighting ='
         envLighting = (1.0 - F) * preLD.rgb * preLightData.transparentTransmittance;
     }
@@ -2135,6 +2135,7 @@ IndirectLighting EvaluateBSDF_Env(  LightLoopContext lightLoopContext,
 void PostEvaluateBSDF(  LightLoopContext lightLoopContext,
                         float3 V, PositionInputs posInput,
                         PreLightData preLightData, BSDFData bsdfData, BakeLightingData bakeLightingData, AggregateLighting lighting,
+                        float environmentLightWeight, // Light groups.
                         out float3 diffuseLighting, out float3 specularLighting)
 {
     AmbientOcclusionFactor aoFactor;
@@ -2153,7 +2154,9 @@ void PostEvaluateBSDF(  LightLoopContext lightLoopContext,
 
     // Apply the albedo to the direct diffuse lighting (only once). The indirect (baked)
     // diffuse lighting has already had the albedo applied in GetBakedDiffuseLighting().
-    diffuseLighting = modifiedDiffuseColor * lighting.direct.diffuse + bakeLightingData.bakeDiffuseLighting;
+    // Light groups.
+    // Environment lighting:
+    diffuseLighting = modifiedDiffuseColor * lighting.direct.diffuse + environmentLightWeight * bakeLightingData.bakeDiffuseLighting;
 
     // If refraction is enable we use the transmittanceMask to lerp between current diffuse lighting and refraction value
     // Physically speaking, transmittanceMask should be 1, but for artistic reasons, we let the value vary

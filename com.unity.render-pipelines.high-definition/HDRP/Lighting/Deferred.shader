@@ -120,7 +120,7 @@ Shader "Hidden/HDRenderPipeline/Deferred"
 
                 float3 diffuseLighting;
                 float3 specularLighting;
-                LightLoop(V, posInput, preLightData, bsdfData, bakeLightingData, LIGHT_FEATURE_MASK_FLAGS_OPAQUE, diffuseLighting, specularLighting);
+                LightLoop(V, posInput, preLightData, bsdfData, bakeLightingData, LIGHT_FEATURE_MASK_FLAGS_OPAQUE, 0 /* Hard code light group index for the moment */, diffuseLighting, specularLighting);
 
                 Outputs outputs;
 

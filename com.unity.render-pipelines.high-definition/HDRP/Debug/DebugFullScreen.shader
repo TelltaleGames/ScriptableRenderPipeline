@@ -31,6 +31,7 @@ Shader "Hidden/HDRenderPipeline/DebugFullScreen"
             float _ShowGrid;
             float _ShowDepthPyramidDebug;
             float _ShowSSRaySampledColor;
+            float _TelltaleContactShadowsDebugMode;
             CBUFFER_END
 
             TEXTURE2D(_DebugFullScreenTexture);
@@ -126,6 +127,45 @@ Shader "Hidden/HDRenderPipeline/DebugFullScreen"
                 return velocityNDC;
             }
             // end motion vector utilties
+
+            float4 GetMaskIdColor(int maskId)
+            {
+                float4 color = float4(0, 0, 0, 0);
+
+                switch (maskId)
+                {
+                case 0:
+                    color = float4(0, 0, 0, 0);
+                    break;
+                case 1:
+                    color = float4(1, 0, 0, 0);
+                    break;
+                case 2:
+                    color = float4(0, 1, 0, 0);
+                    break;
+                case 3:
+                    color = float4(0, 0, 1, 0);
+                    break;
+                case 4:
+                    color = float4(1, 1, 0, 0);
+                    break;
+                case 5:
+                    color = float4(0, 1, 1, 0);
+                    break;
+                case 6:
+                    color = float4(1, 0, 1, 0);
+                    break;
+                default:
+                {
+                    uint hash = ((uint)maskId * 251);
+                    float level = (32 + (hash % (255 - 32))) / 255.0f;
+                    color = float4(level, level, level, 0);
+                }
+                break;
+                }
+
+                return color;
+            }
 
             float4 Frag(Varyings input) : SV_Target
             {
@@ -346,7 +386,31 @@ Shader "Hidden/HDRenderPipeline/DebugFullScreen"
                     return col;
                 }
 
-                return float4(0.0, 0.0, 0.0, 0.0);
+                if (_FullScreenDebugMode == FULLSCREENDEBUGMODE_TELLTALE_SHADOW_CASTER_IDS)
+                {
+                    float maskIdFloat = SAMPLE_TEXTURE2D(_DebugFullScreenTexture, s_point_clamp_sampler, input.texcoord).x;
+                    int maskId = (int)(maskIdFloat * 255.0f + 0.5f);
+                    return GetMaskIdColor(maskId);
+                }
+                if (_FullScreenDebugMode == FULLSCREENDEBUGMODE_TELLTALE_CONTACT_SHADOWS)
+                {
+                    float4 color = SAMPLE_TEXTURE2D(_DebugFullScreenTexture, s_point_clamp_sampler, input.texcoord);
+                    if (_TelltaleContactShadowsDebugMode == TELLTALECONTACTSHADOWSDEBUGMODE_LIGHT0)
+                    {
+                        color = color.xxxw;
+                    }
+                    if (_TelltaleContactShadowsDebugMode == TELLTALECONTACTSHADOWSDEBUGMODE_LIGHT1)
+                    {
+                        color = color.yyyw;
+                    }
+                    if (_TelltaleContactShadowsDebugMode == TELLTALECONTACTSHADOWSDEBUGMODE_LIGHT2)
+                    {
+                        color = color.zzzw;
+                    }
+                    return float4(color.rgb, 1.0);
+                }
+
+                return float4(1.0, 0.5, 0.0, 0.0);
             }
 
             ENDHLSL

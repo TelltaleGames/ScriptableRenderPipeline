@@ -19,6 +19,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static readonly string s_MetaStr = "Meta";
         public static readonly string s_ShadowCasterStr = "ShadowCaster";
         public static readonly string s_MeshDecalsStr = "DBufferMesh";
+        public static readonly string s_TelltaleShadowCasterIdsStr = "TelltaleShadowCasterIds";
 
         // ShaderPass name
         public static readonly ShaderPassName s_EmptyName = new ShaderPassName(s_EmptyStr);
@@ -35,6 +36,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static readonly ShaderPassName s_TransparentBackfaceName = new ShaderPassName(s_TransparentBackfaceStr);
         public static readonly ShaderPassName s_TransparentDepthPostpassName = new ShaderPassName(s_TransparentDepthPostpassStr);
         public static readonly ShaderPassName s_MeshDecalsName = new ShaderPassName(s_MeshDecalsStr);
+        public static readonly ShaderPassName s_TelltaleShadowCasterIdsName = new ShaderPassName(s_TelltaleShadowCasterIdsStr);
 
         // Legacy name
         public static readonly ShaderPassName s_AlwaysName = new ShaderPassName("Always");
@@ -119,6 +121,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static readonly int _NumTileClusteredX = Shader.PropertyToID("_NumTileClusteredX");
         public static readonly int _NumTileClusteredY = Shader.PropertyToID("_NumTileClusteredY");
 
+        public static readonly int _LightGroupData = Shader.PropertyToID("_LightGroupData"); // Light groups.
+
+        public static readonly int _TelltaleContactShadowTexture = Shader.PropertyToID("_TelltaleContactShadowTexture");
+
         public static readonly int g_isLogBaseBufferEnabled = Shader.PropertyToID("g_isLogBaseBufferEnabled");
         public static readonly int g_vLayeredOffsetsBuffer = Shader.PropertyToID("g_vLayeredOffsetsBuffer");
 
@@ -182,6 +188,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static readonly int _DirectionalContactShadowSampleCount = Shader.PropertyToID("_SampleCount");
         public static readonly int _DirectionalLightDirection = Shader.PropertyToID("_LightDirection");
 
+        public static readonly int _TelltaleShadowLights = Shader.PropertyToID("_TelltaleShadowLights");
+        public static readonly int _TelltaleShadowMaskIds = Shader.PropertyToID("_TelltaleShadowMaskIds");
+
         public static readonly int _StencilMask = Shader.PropertyToID("_StencilMask");
         public static readonly int _StencilRef = Shader.PropertyToID("_StencilRef");
         public static readonly int _StencilCmp = Shader.PropertyToID("_StencilCmp");
@@ -231,6 +240,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public static readonly int _DepthTexture                   = Shader.PropertyToID("_DepthTexture");
         public static readonly int _CameraColorTexture             = Shader.PropertyToID("_CameraColorTexture");
+        public static readonly int _CameraPostColorTexture = Shader.PropertyToID("_CameraPostColorTexture");
         public static readonly int _CameraSssDiffuseLightingBuffer = Shader.PropertyToID("_CameraSssDiffuseLightingTexture");
         public static readonly int _CameraFilteringBuffer          = Shader.PropertyToID("_CameraFilteringTexture");
         public static readonly int _IrradianceSource               = Shader.PropertyToID("_IrradianceSource");
@@ -330,7 +340,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static readonly int _CameraMotionVectorsSize = Shader.PropertyToID("_CameraMotionVectorsSize");
         public static readonly int _CameraMotionVectorsScale = Shader.PropertyToID("_CameraMotionVectorsScale");
         public static readonly int _FullScreenDebugMode = Shader.PropertyToID("_FullScreenDebugMode");
-
+        public static readonly int _TelltaleContactShadowsDebugMode = Shader.PropertyToID("_TelltaleContactShadowsDebugMode");
+        
         public static readonly int _InputCubemap = Shader.PropertyToID("_InputCubemap");
         public static readonly int _Mipmap = Shader.PropertyToID("_Mipmap");
 

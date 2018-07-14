@@ -19,6 +19,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         DepthPyramid,
         FinalColorPyramid,
         ScreenSpaceTracing,
+        TelltaleShadowCasterIds,
+        TelltaleContactShadows,
         MaxLightingFullScreenDebug,
 
         // Rendering
@@ -26,6 +28,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         MotionVectors,
         NanTracker,
         MaxRenderingFullScreenDebug
+    }
+
+    [GenerateHLSL]
+    public enum TelltaleContactShadowsDebugMode
+    {
+        AllLights,
+        Light0,
+        Light1,
+        Light2
     }
 
     [GenerateHLSL]
@@ -104,6 +115,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public bool showSSRayGrid = false;
         public bool showSSRayDepthPyramid = false;
         public bool showSSSampledColor = false;
+        public TelltaleContactShadowsDebugMode telltaleContactShadowsDebugMode = TelltaleContactShadowsDebugMode.AllLights;
 
         public MaterialDebugSettings materialDebugSettings = new MaterialDebugSettings();
         public LightingDebugSettings lightingDebugSettings = new LightingDebugSettings();
@@ -715,6 +727,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             }
                         }
                     });
+                    break;
+                }
+                case FullScreenDebugMode.TelltaleContactShadows:
+                {
+                    list.Add(new DebugUI.EnumField
+                    {
+                        displayName = "Telltale Contact Shadow Selection",
+                        getter = () => (int)telltaleContactShadowsDebugMode,
+                        setter = value => telltaleContactShadowsDebugMode = (TelltaleContactShadowsDebugMode)value,
+                        autoEnum = typeof(TelltaleContactShadowsDebugMode)
+                    });
+                    fullscreenDebugMip = 0;
                     break;
                 }
                 default:

@@ -175,8 +175,9 @@ float3 ADD_IDX(GetBentNormalTS)(FragInputs input, LayerTexCoord layerTexCoord, f
     return bentNormalTS;
 }
 
+
 // Return opacity
-float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out SurfaceData surfaceData, out float3 normalTS, out float3 bentNormalTS)
+float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out SurfaceData surfaceData, out float3 normalTS, out float3 bentNormalTS, float extDetailMask = 1.0)
 {
     float alpha = SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_BaseColorMap), ADD_ZERO_IDX(sampler_BaseColorMap), ADD_IDX(layerTexCoord.base)).a * ADD_IDX(_BaseColor).a;
 
@@ -194,9 +195,9 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
     float3 detailNormalTS = float3(0.0, 0.0, 0.0);
     float detailMask = 0.0;
 #ifdef _DETAIL_MAP_IDX
-    detailMask = 1.0;
+    detailMask = extDetailMask;
     #ifdef _MASKMAP_IDX
-        detailMask = SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_MaskMap), SAMPLER_MASKMAP_IDX, ADD_IDX(layerTexCoord.base)).b;
+        detailMask = extDetailMask * SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_MaskMap), SAMPLER_MASKMAP_IDX, ADD_IDX(layerTexCoord.base)).b;
     #endif
     float2 detailAlbedoAndSmoothness = SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_DetailMap), SAMPLER_DETAILMAP_IDX, ADD_IDX(layerTexCoord.details)).rb;
     float detailAlbedo = detailAlbedoAndSmoothness.r;
@@ -207,6 +208,7 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
 #endif
 
     surfaceData.baseColor = SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_BaseColorMap), ADD_ZERO_IDX(sampler_BaseColorMap), ADD_IDX(layerTexCoord.base)).rgb * ADD_IDX(_BaseColor).rgb;
+
 #ifdef _DETAIL_MAP_IDX
     // Use overlay blend mode for detail abledo: (base < 0.5 ? (2.0 * base * blend) : (1.0 - 2.0 * (1.0 - base) * (1.0 - blend)))
     float3 baseColorOverlay = (detailAlbedo < 0.5) ?
@@ -288,6 +290,9 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
 #ifdef _MATERIAL_FEATURE_SPECULAR_COLOR
     surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_SPECULAR_COLOR;
 #endif
+#ifdef _MATERIAL_FEATURE_HAIR
+    surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_HAIR;
+#endif
 
 #ifdef _TANGENTMAP
     #ifdef _NORMALMAP_TANGENT_SPACE_IDX // Normal and tangent use same space
@@ -359,6 +364,25 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
 #else
     surfaceData.iridescenceThickness = 0.0;
     surfaceData.iridescenceMask = 0.0;
+#endif
+
+// Using the Character shader, but maybe not hair, so we have to fill in the struct data
+#ifdef UNITY_MATERIAL_CHARACTERLIT
+    surfaceData.hairShiftPrimary = 0.0;
+    surfaceData.hairShiftSecondary = 0.0;
+    surfaceData.hairSmoothnessPrimary = 0.0;
+    surfaceData.hairSmoothnessSecondary = 0.0;
+    surfaceData.specularColor = float3(1,1,1);
+    surfaceData.hairOffset = 0.0;
+    surfaceData.anisotropy = _Anisotropy;
+#endif
+#ifdef _MATERIAL_FEATURE_HAIR
+    surfaceData.hairShiftPrimary = _HairShiftPrimary;
+    surfaceData.hairShiftSecondary = _HairShiftSecondary;
+    surfaceData.hairSmoothnessPrimary = _HairSmoothnessPrimary;
+    surfaceData.hairSmoothnessSecondary = _HairSmoothnessSecondary;
+    surfaceData.specularColor = tex2D(_HairSpecularMap, layerTexCoord.base.uv) * _HairSpecularColor;
+    surfaceData.anisotropy = 0.8; // used for IBL, not direct lighting of hair
 #endif
 
 #else // #if !defined(LAYERED_LIT_SHADER)

@@ -24,10 +24,10 @@ struct AggregateLighting
     IndirectLighting indirect;
 };
 
-void AccumulateDirectLighting(DirectLighting src, inout AggregateLighting dst)
+void AccumulateDirectLighting(DirectLighting src, float weight, inout AggregateLighting dst)
 {
-    dst.direct.diffuse += src.diffuse;
-    dst.direct.specular += src.specular;
+    dst.direct.diffuse += src.diffuse * weight;
+    dst.direct.specular += src.specular * weight;
 }
 
 void AccumulateIndirectLighting(IndirectLighting src, inout AggregateLighting dst)

@@ -97,9 +97,16 @@ SAMPLER(sampler_LayerInfluenceMaskMap);
 
 #endif
 
+// Transmission Probe
+TEXTURECUBE(_TransmissionProbeMap);
+SAMPLER(sampler_TransmissionProbeMap);
+
+
 CBUFFER_START(UnityPerMaterial)
 
 // shared constant between lit and layered lit
+float _AsperityAmount;
+float _AsperityExponent;
 float _AlphaCutoff;
 float _AlphaCutoffPrepass;
 float _AlphaCutoffPostpass;
@@ -126,6 +133,11 @@ float _Ior;
 float _ATDistance;
 float _ThicknessMultiplier;
 
+// Transmission Probe
+float4 _TransmissionTint;
+float _TransmissionProbeOrientation;
+float _FovCorrection;
+
 // Caution: C# code in BaseLitUI.cs call LightmapEmissionFlagsProperty() which assume that there is an existing "_EmissionColor"
 // value that exist to identify if the GI emission need to be enabled.
 // In our case we don't use such a mechanism but need to keep the code quiet. We declare the value and always enable it.
@@ -143,6 +155,9 @@ float _Stiffness;
 float _Drag;
 float _ShiverDrag;
 float _ShiverDirectionality;
+
+// Light groups.
+int _LightGroupIndex;
 
 // Specular AA
 float _EnableGeometricSpecularAA;
@@ -264,6 +279,8 @@ float4 _UVMappingMaskBlendMask;
 PROP_DECL(float4, _UVMappingMask);
 PROP_DECL(float4, _UVDetailsMappingMask);
 PROP_DECL(float, _LinkDetailsWithBase);
+
+PROP_DECL(int, _LightGroupIndex);
 
 #endif // LAYERED_LIT_SHADER
 

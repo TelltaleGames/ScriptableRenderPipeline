@@ -56,8 +56,9 @@ void ApplyDebug(LightLoopContext lightLoopContext, float3 positionWS, inout floa
 #endif
 }
 
+
 // bakeDiffuseLighting is part of the prototype so a user is able to implement a "base pass" with GI and multipass direct light (aka old unity rendering path)
-void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BSDFData bsdfData, BakeLightingData bakeLightingData, uint featureFlags,
+void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BSDFData bsdfData, BakeLightingData bakeLightingData, uint featureFlags, int lightGroupIndex,
                 out float3 diffuseLighting,
                 out float3 specularLighting)
 {
@@ -76,8 +77,13 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
     {
         for (i = 0; i < _DirectionalLightCount; ++i)
         {
-            DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _DirectionalLightDatas[i], bsdfData, bakeLightingData);
-            AccumulateDirectLighting(lighting, aggregateLighting);
+            // Light groups.
+            float lightWeight = FetchDirectionalLightWeight(i, lightGroupIndex);
+            if (lightWeight > 0.0)
+            {
+                DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _DirectionalLightDatas[i], bsdfData, bakeLightingData);
+                AccumulateDirectLighting(lighting, lightWeight, aggregateLighting);
+            }
         }
     }
 
@@ -94,10 +100,19 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
 
         for (i = 0; i < lightCount; i++)
         {
-            LightData lightData = FetchLight(lightStart, i);
-
-            DirectLighting lighting = EvaluateBSDF_Punctual(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
-            AccumulateDirectLighting(lighting, aggregateLighting);
+            // Light groups.
+#ifdef LIGHTLOOP_TILE_PASS
+            int j = FetchIndex(lightStart, i);
+#else
+            int j = lightStart + i;
+#endif
+            float lightWeight = FetchLightWeightWithLightIndex(j, lightGroupIndex);
+            if (lightWeight > 0.0)
+            {
+                LightData lightData = FetchLightWithLightIndex(j);
+                DirectLighting lighting = EvaluateBSDF_Punctual(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
+                AccumulateDirectLighting(lighting, lightWeight, aggregateLighting);
+            }
         }
     }
 
@@ -129,7 +144,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
                 lightData.lightType = GPULIGHTTYPE_LINE; // Enforce constant propagation
 
                 DirectLighting lighting = EvaluateBSDF_Area(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
-                AccumulateDirectLighting(lighting, aggregateLighting);
+                AccumulateDirectLighting(lighting, 1, aggregateLighting);
 
                 lightData = FetchLight(lightStart, min(++i, last));
             }
@@ -139,12 +154,27 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
                 lightData.lightType = GPULIGHTTYPE_RECTANGLE; // Enforce constant propagation
 
                 DirectLighting lighting = EvaluateBSDF_Area(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
-                AccumulateDirectLighting(lighting, aggregateLighting);
+                AccumulateDirectLighting(lighting, 1, aggregateLighting);
 
                 lightData = FetchLight(lightStart, min(++i, last));
             }
         }
     }
+
+#ifdef TELLTALE_CHARACTER_LIGHTING
+    aggregateLighting.direct.diffuse *= _Contribution_Std_Char_Env_Refl.x;
+    aggregateLighting.direct.specular *= _Contribution_Std_Char_Env_Refl.x;
+
+    if (_Contribution_Std_Char_Env_Refl.y > 0)
+    {
+        // Apply per-object directional lights:
+        for (i = 0; i < 3; ++i)
+        {
+            DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _CharacterLights[i], bsdfData, bakeLightingData, true);
+            AccumulateDirectLighting(lighting, _Contribution_Std_Char_Env_Refl.y, aggregateLighting);
+        }
+    }
+#endif
 
     // Define macro for a better understanding of the loop
 #define EVALUATE_BSDF_ENV(envLightData, TYPE, type) \
@@ -246,9 +276,23 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
     }
 #undef EVALUATE_BSDF_ENV
 
+    // Light groups.
+    float environmentReflectionsWeight = FetchEnvironmentReflectionsWeight(lightGroupIndex);
+#ifdef TELLTALE_CHARACTER_LIGHTING
+    environmentReflectionsWeight *= _Contribution_Std_Char_Env_Refl.w;
+#endif
+    aggregateLighting.indirect.specularReflected *= environmentReflectionsWeight;
+    aggregateLighting.indirect.specularTransmitted *= environmentReflectionsWeight;
+
+    // Light groups.
+    float environmentLightWeight = FetchEnvironmentLightWeight(lightGroupIndex);
+#ifdef TELLTALE_CHARACTER_LIGHTING
+    environmentLightWeight *= _Contribution_Std_Char_Env_Refl.z;
+#endif
+
     // Also Apply indiret diffuse (GI)
     // PostEvaluateBSDF will perform any operation wanted by the material and sum everything into diffuseLighting and specularLighting
-    PostEvaluateBSDF(   context, V, posInput, preLightData, bsdfData, bakeLightingData, aggregateLighting,
+    PostEvaluateBSDF(   context, V, posInput, preLightData, bsdfData, bakeLightingData, aggregateLighting, environmentLightWeight,
                         diffuseLighting, specularLighting);
 
     ApplyDebug(context, posInput.positionWS, diffuseLighting, specularLighting);

@@ -22,6 +22,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         VolumeVoxelization,
         VolumetricLighting,
         DbufferProjector,
-        DbufferMesh
+        DbufferMesh,
+        TelltaleShadowCasterId
     }
 }

@@ -42,6 +42,21 @@ StructuredBuffer<LightData>            _LightDatas;
 StructuredBuffer<EnvLightData>         _EnvLightDatas;
 StructuredBuffer<ShadowData>           _ShadowDatas;
 
+// Light groups.
+#define LIGHT_GROUP_STRIDE 64
+#define LIGHT_GROUP_ENVIRONMENT_LIGHT_OFFSET 0
+#define LIGHT_GROUP_ENVIRONMENT_REFLECTIONS_OFFSET 1
+#define LIGHT_GROUP_DIRECTIONAL_OFFSET 2
+#define LIGHT_GROUP_PUNCTUAL_OFFSET 6
+StructuredBuffer<float>                _LightGroupData;
+
+#ifdef TELLTALE_CHARACTER_LIGHTING
+StructuredBuffer<DirectionalLightData> _CharacterLights;
+float4 _Contribution_Std_Char_Env_Refl;
+
+TEXTURE2D(_TelltaleContactShadowTexture);
+#endif
+
 // Used by directional and spot lights
 TEXTURE2D_ARRAY(_CookieTextures);
 
@@ -312,10 +327,35 @@ LightData FetchLight(uint start, uint i)
 
     return _LightDatas[j];
 }
+LightData FetchLightWithLightIndex(uint j)
+{
+    return _LightDatas[j];
+}
 
 EnvLightData FetchEnvLight(uint start, uint i)
 {
     int j = FetchIndex(start, i);
 
     return _EnvLightDatas[j];
+}
+
+// Light groups.
+float FetchEnvironmentLightWeight(uint lightGroupIndex)
+{
+    return _LightGroupData[lightGroupIndex * LIGHT_GROUP_STRIDE + LIGHT_GROUP_ENVIRONMENT_LIGHT_OFFSET];
+}
+
+float FetchEnvironmentReflectionsWeight(uint lightGroupIndex)
+{
+    return _LightGroupData[lightGroupIndex * LIGHT_GROUP_STRIDE + LIGHT_GROUP_ENVIRONMENT_REFLECTIONS_OFFSET];
+}
+
+float FetchDirectionalLightWeight(uint i, uint lightGroupIndex)
+{
+    return _LightGroupData[lightGroupIndex * LIGHT_GROUP_STRIDE + LIGHT_GROUP_DIRECTIONAL_OFFSET + i];
+}
+
+float FetchLightWeightWithLightIndex(uint j, uint lightGroupIndex)
+{
+    return _LightGroupData[lightGroupIndex * LIGHT_GROUP_STRIDE + LIGHT_GROUP_PUNCTUAL_OFFSET + j];
 }

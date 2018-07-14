@@ -1,10 +1,12 @@
 Shader "HDRenderPipeline/Decal"
 {
-    Properties
-    {
+    Properties      
+    { 
+        _AlphaMap("Alpha Map", 2D) = "white" {}
 		_BaseColor("_BaseColor", Color) = (1,1,1,1)
         _BaseColorMap("BaseColorMap", 2D) = "white" {}
         _NormalMap("NormalMap", 2D) = "bump" {}     // Tangent space normal map
+        _NormalMapIntensity("Normal Map Intensity", float) = 1.0    
         _MaskMap("MaskMap", 2D) = "white" {}
         _DecalBlend("_DecalBlend", Range(0.0, 1.0)) = 0.5
 		[ToggleUI] _AlbedoMode("_AlbedoMode", Range(0.0, 1.0)) = 1.0
@@ -19,6 +21,7 @@ Shader "HDRenderPipeline/Decal"
     //-------------------------------------------------------------------------------------
     // Variant
     //-------------------------------------------------------------------------------------
+    #pragma shader_feature _ALPHAMAP
     #pragma shader_feature _COLORMAP
     #pragma shader_feature _NORMALMAP
     #pragma shader_feature _MASKMAP

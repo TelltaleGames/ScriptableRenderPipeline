@@ -136,6 +136,7 @@ namespace UnityEditor.Experimental.Rendering
             EditorGUILayout.PropertyField(p.enableVolumetric, _.GetContent("    Enable Volumetric"));
             EditorGUILayout.PropertyField(p.enableShadow, _.GetContent("Enable Shadow"));
             EditorGUILayout.PropertyField(p.enableContactShadow, _.GetContent("Enable Contact Shadows"));
+            EditorGUILayout.PropertyField(p.enableTelltaleContactShadows, _.GetContent("Enable Telltale Contact Shadows"));
             EditorGUILayout.PropertyField(p.enableShadowMask, _.GetContent("Enable Shadow Masks"));
         }
     }
