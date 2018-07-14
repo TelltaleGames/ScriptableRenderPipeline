@@ -190,7 +190,7 @@ namespace UnityEditor.Experimental.Rendering
 
             if (EditorGUI.EndChangeCheck())
             {
-                m_Asset.VolumeProfileValidateAction?.Invoke();
+                asset.VolumeProfileValidateAction?.Invoke();
             }
         }
 
