@@ -7,6 +7,7 @@ namespace UnityEngine.Experimental.Rendering
     public sealed class VolumeProfile : ScriptableObject
     {
         public List<VolumeComponent> components = new List<VolumeComponent>();
+        public System.Action VolumeProfileValidateAction { get; set; }
 
         // Editor only, doesn't have any use outside of it
         [NonSerialized]

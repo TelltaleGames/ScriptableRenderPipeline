@@ -520,5 +520,51 @@ real ClothLambert(real roughness)
     return INV_PI * ClothLambertNoPI(roughness);
 }
 
+float3 ShiftTangent(float3 T, float3 N, float shift)
+{
+   float3 shiftedT = T + N * shift;
+   return normalize(shiftedT);
+}
+
+float3 KajiyaKaySpecular(float3 T, float3 V, float3 H, float3 L, float3 N, float3 TRTColor, float shiftR, float shiftTRT, float smoothnessR, float smoothnessTRT)
+{
+    float3 T_R   = ShiftTangent(T, N, shiftR);
+    float3 T_TRT = ShiftTangent(T, N, shiftTRT);
+    float TdH_R = dot(T_R,H);
+    float TdH_TRT = dot(T_TRT,H);
+    // We can rewrite specExp from exp2(10 * (1.0 - roughness)) in order
+    // to remove the need to take the square root of sinTH
+    // TTdev - made-up numbers to make the smoothness slider 'feel' right
+    float specExp_R   = exp(10*(smoothnessR-0.35)); // exp((smoothness-0.35)/0.1);
+    float specExp_TRT = exp(10*(smoothnessTRT-0.35)); // exp((smoothness-0.35)/0.1);
+    float sinTHSq_R = (saturate(1.0 - (TdH_R * TdH_R)));
+    float sinTHSq_TRT = (saturate(1.0 - (TdH_TRT * TdH_TRT)));
+
+    // fresnel
+    float VdT_R4 = dot(V,T_R);
+    VdT_R4 = VdT_R4*VdT_R4; // squared
+    VdT_R4 = VdT_R4*VdT_R4; // pow 4
+    float LdT_R4 = dot(L,T_R);
+    LdT_R4 = LdT_R4*LdT_R4; // squared
+    LdT_R4 = LdT_R4*LdT_R4; // pow 4
+    float VdT_TRT4 = dot(V,T_TRT);
+    VdT_TRT4 = VdT_TRT4*VdT_TRT4; // squared
+    VdT_TRT4 = VdT_TRT4*VdT_TRT4; // pow 4
+    float LdT_TRT4 = dot(L,T_TRT);
+    LdT_TRT4 = LdT_TRT4*LdT_TRT4; // squared
+    LdT_TRT4 = LdT_TRT4*LdT_TRT4; // pow 4
+
+    float fV_R = 0.05 + 0.95*VdT_R4;             // view dir fresnel
+    float fL_R = 0.05 + 0.95*LdT_R4;             // light dir fresnel
+    float fV_TRT = 0.05 + 0.95*VdT_TRT4;         // view dir fresnel
+    float fL_TRT = 0.05 + 0.95*LdT_TRT4;         // light dir fresnel
+
+    // reduce specR when viewing T head-on
+    float fT = 0.5 + 0.5*dot(-V,T_R); // 1 when viewing in T dir, 0 when viewing against T dir.  No science.
+
+    float3 specR = float3(1,1,1) * fT * fV_R * fL_R * pow(sinTHSq_R, specExp_R) * log(specExp_R+1.71828); // TTdev - ln() is ad hoc energy conservation
+    float3 specTRT = TRTColor * (1.0-fL_TRT) * pow(sinTHSq_TRT, specExp_TRT) * log(specExp_TRT+1.71828); // TTdev - ln() is ad hoc energy conservation
+    return(specR + specTRT );
+}
 
 #endif // UNITY_BSDF_INCLUDED

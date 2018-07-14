@@ -45,7 +45,12 @@ namespace UnityEngine.Experimental.Rendering
             var res = AllocTextureArray(numTextures);
             m_NumMipLevels = GetNumMips(width, height);
 
+#if UNITY_PS4
+            // hack fix for PS4 having issues with sRGB textures in compute and making lights with cookies look dim.
+            m_Cache = new Texture2DArray(width, height, numTextures, format, isMipMapped, true)
+#else
             m_Cache = new Texture2DArray(width, height, numTextures, format, isMipMapped)
+#endif
             {
                 hideFlags = HideFlags.HideAndDontSave,
                 wrapMode = TextureWrapMode.Clamp,

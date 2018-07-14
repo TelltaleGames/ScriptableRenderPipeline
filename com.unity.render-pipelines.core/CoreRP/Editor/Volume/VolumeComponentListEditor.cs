@@ -135,6 +135,8 @@ namespace UnityEditor.Experimental.Rendering
             if (asset == null)
                 return;
 
+            EditorGUI.BeginChangeCheck();
+
             if (asset.isDirty)
             {
                 RefreshEditors();
@@ -184,6 +186,11 @@ namespace UnityEditor.Experimental.Rendering
                         FilterWindow.Show(pos, new VolumeComponentProvider(asset, this));
                     }
                 }
+            }
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                m_Asset.VolumeProfileValidateAction?.Invoke();
             }
         }
 
