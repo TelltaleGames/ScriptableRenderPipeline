@@ -995,51 +995,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     // Frustum cull density volumes on the CPU. Can be performed as soon as the camera is set up.
                     DensityVolumeList densityVolumes = m_VolumetricLightingSystem.PrepareVisibleDensityVolumeList(hdCamera, cmd, m_Time);
 
-
-                        // This Blit will flip the screen on anything other than openGL
-                        HDUtils.BlitCameraTexture(cmd, hdCamera, m_CameraPostColorBuffer, BuiltinRenderTextureType.CameraTarget);
-
-                        renderContext.ExecuteCommandBuffer(cmd);
-                        CommandBufferPool.Release(cmd);
-                        renderContext.Submit();
-                        continue;
-                    }
-
-                    if (additionalCameraData && additionalCameraData.renderingPath == HDAdditionalCameraData.RenderingPath.UI)
-                    {
-                        // Support UI camera drawing on top after post of the main scene
-                        using (new ProfilingSample(cmd, "ForwardUI", CustomSamplerId.Forward.GetSampler()))
-                        {
-                            ClearFlag clearFlags = 0;
-                            if (hdCamera.clearDepth)
-                            {
-                                clearFlags |= ClearFlag.Depth;
-                            }
-
-                            if (hdCamera.clearColorMode == HDAdditionalCameraData.ClearColorMode.BackgroundColor)
-                            {
-                                clearFlags |= ClearFlag.Color;
-                            }
-
-                            if (!cachePostTexture)
-                            {
-                                clearFlags = ClearFlag.Color | ClearFlag.Depth;
-                            }
-
-                            HDUtils.SetRenderTarget(cmd, hdCamera, m_CameraPostColorBuffer, m_CameraDepthStencilBuffer, clearFlags);
-                            RenderOpaqueRenderList(m_CullResults, camera, renderContext, cmd, m_ForwardAndForwardOnlyPassNames);
-                            RenderTransparentRenderList(m_CullResults, camera, renderContext, cmd, m_AllTransparentPassNames, m_currentRendererConfigurationBakedLighting, HDRenderQueue.k_RenderQueue_Transparent);
-                        }
-
-                        // This Blit will flip the screen on anything other than openGL
-                        HDUtils.BlitCameraTexture(cmd, hdCamera, m_CameraPostColorBuffer, BuiltinRenderTextureType.CameraTarget);
-
-                        renderContext.ExecuteCommandBuffer(cmd);
-                        CommandBufferPool.Release(cmd);
-                        renderContext.Submit();
-                        continue;
-                    }
-
                     // Note: Legacy Unity behave like this for ShadowMask
                     // When you select ShadowMask in Lighting panel it recompile shaders on the fly with the SHADOW_MASK keyword.
                     // However there is no C# function that we can query to know what mode have been select in Lighting Panel and it will be wrong anyway. Lighting Panel setup what will be the next bake mode. But until light is bake, it is wrong.
@@ -1816,6 +1771,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         void RenderObjectsTelltaleShadowCasterIds(CullResults cullResults, HDCamera hdCamera, ScriptableRenderContext renderContext, CommandBuffer cmd)
         {
+            if (!hdCamera.frameSettings.enableTelltaleContactShadows)
             {
                 return;
             }
@@ -1827,6 +1783,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 PushFullScreenDebugTexture(cmd, m_telltaleShadowCasterIds, hdCamera, FullScreenDebugMode.TelltaleShadowCasterIds);
             }
+	    }
+				
         void RenderObjectsVelocity(CullResults cullResults, HDCamera hdCamera, ScriptableRenderContext renderContext, CommandBuffer cmd)
         {
             if (!hdCamera.frameSettings.enableMotionVectors || !hdCamera.frameSettings.enableObjectMotionVectors)
