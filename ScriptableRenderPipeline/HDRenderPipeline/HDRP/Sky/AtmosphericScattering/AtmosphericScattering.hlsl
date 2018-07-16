@@ -23,6 +23,9 @@ float4  _MipFogParameters;
 float4  _LinearFogParameters;
 // Exp fog
 float4  _ExpFogParameters;
+// Gradient fog
+TEXTURE2D(_FogGradientTexture);
+SAMPLER(sampler_FogGradientTexture);
 CBUFFER_END
 
 #define _MipFogNear						_MipFogParameters.x
@@ -75,18 +78,39 @@ float4 EvaluateAtmosphericScattering(PositionInputs posInput)
 	fogFactor = 1 - volFog.a;
 #else
 
-	if (_AtmosphericScatteringType == FOGTYPE_EXPONENTIAL)
-	{
-		fogColor = GetFogColor(posInput);
-		float distance = length(GetWorldSpaceViewDir(posInput.positionWS));
-		float fogHeight = max(0.0, GetAbsolutePositionWS(posInput.positionWS).y - _ExpFogBaseHeight);
-		fogFactor = _FogDensity * TransmittanceHomogeneousMedium(_ExpFogHeightAttenuation, fogHeight) * (1.0f - TransmittanceHomogeneousMedium(1.0f / _ExpFogDistance, distance));
-	}
-	else if (_AtmosphericScatteringType == FOGTYPE_LINEAR)
-	{
-		fogColor = GetFogColor(posInput);
-		fogFactor = _FogDensity * saturate((posInput.linearDepth - _LinearFogStart) * _LinearFogOneOverRange) * saturate((_LinearFogHeightEnd - GetAbsolutePositionWS(posInput.positionWS).y) * _LinearFogHeightOneOverRange);
-	}
+    if (_AtmosphericScatteringType == FOGTYPE_EXPONENTIAL)
+    {
+        float distance = length(GetWorldSpaceViewDir(posInput.positionWS));
+        float fogHeight = max(0.0, GetAbsolutePositionWS(posInput.positionWS).y - _ExpFogBaseHeight);
+
+        if (_FogColorMode == FOGCOLORMODE_GRADIENT_COLOR)
+        {
+            float relativeDistance = saturate(1.0f - TransmittanceHomogeneousMedium(1.0f / _ExpFogDistance, distance));
+            float4 gradientFogColor = SAMPLE_TEXTURE2D(_FogGradientTexture, sampler_FogGradientTexture, float2(relativeDistance, 0.0));
+            fogColor = gradientFogColor.rgb;
+            fogFactor = _FogDensity * TransmittanceHomogeneousMedium(_ExpFogHeightAttenuation, fogHeight) * gradientFogColor.a;
+        }
+        else
+        {
+            fogColor = GetFogColor(posInput);
+            fogFactor = _FogDensity * TransmittanceHomogeneousMedium(_ExpFogHeightAttenuation, fogHeight) * (1.0f - TransmittanceHomogeneousMedium(1.0f / _ExpFogDistance, distance));
+        }
+    }
+    else if (_AtmosphericScatteringType == FOGTYPE_LINEAR)
+    {
+        float relativeDistance = saturate((posInput.linearDepth - _LinearFogStart) * _LinearFogOneOverRange);
+        if (_FogColorMode == FOGCOLORMODE_GRADIENT_COLOR)
+        {
+            float4 gradientFogColor = SAMPLE_TEXTURE2D(_FogGradientTexture, sampler_FogGradientTexture, float2(relativeDistance, 0.0));
+            fogColor = gradientFogColor.rgb;
+            fogFactor = _FogDensity * gradientFogColor.a * saturate((_LinearFogHeightEnd - GetAbsolutePositionWS(posInput.positionWS).y) * _LinearFogHeightOneOverRange);
+        }
+        else
+        {
+            fogFactor = _FogDensity * relativeDistance * saturate((_LinearFogHeightEnd - GetAbsolutePositionWS(posInput.positionWS).y) * _LinearFogHeightOneOverRange);
+            fogColor = GetFogColor(posInput);
+        }
+    }
 	else // NONE
 	{
 	}
