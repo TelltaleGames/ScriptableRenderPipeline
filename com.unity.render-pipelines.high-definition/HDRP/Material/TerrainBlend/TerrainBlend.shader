@@ -2,6 +2,9 @@ Shader "HDRenderPipeline/TerrainBlend"
 {
     Properties
     {
+        // Versioning of material to help for upgrading
+        [HideInInspector] _HdrpVersion("_HdrpVersion", Float) = 1
+
         // Following set of parameters represent the parameters node inside the MaterialGraph.
         // They are use to fill a SurfaceData. With a MaterialGraph this should not exist.
 
@@ -107,7 +110,7 @@ Shader "HDRenderPipeline/TerrainBlend"
 		_HeightOffset1("Height Offset1", Float) = 0
 		_HeightOffset2("Height Offset2", Float) = 0
 		_HeightOffset3("Height Offset3", Float) = 0
-		// MinMax mode
+        // MinMax mode
         _HeightMin0("Height Min0", Float) = -1
         _HeightMin1("Height Min1", Float) = -1
         _HeightMin2("Height Min2", Float) = -1
@@ -117,7 +120,7 @@ Shader "HDRenderPipeline/TerrainBlend"
         _HeightMax2("Height Max2", Float) = 1
         _HeightMax3("Height Max3", Float) = 1
 
-		// Amplitude mode
+        // Amplitude mode
 		_HeightTessAmplitude0("Amplitude0", Float) = 2.0 // in Centimeters
 		_HeightTessAmplitude1("Amplitude1", Float) = 2.0 // in Centimeters
 		_HeightTessAmplitude2("Amplitude2", Float) = 2.0 // in Centimeters
@@ -230,9 +233,8 @@ Shader "HDRenderPipeline/TerrainBlend"
 
         [ToggleUI]  _EnableSpecularOcclusion("Enable specular occlusion", Float) = 0.0
 
-        _EmissiveColor("EmissiveColor", Color) = (1, 1, 1)
+        [HDR] _EmissiveColor("EmissiveColor", Color) = (0, 0, 0)
         _EmissiveColorMap("EmissiveColorMap", 2D) = "white" {}
-        _EmissiveIntensity("EmissiveIntensity", Float) = 0
         [ToggleUI] _AlbedoAffectEmissive("Albedo Affect Emissive", Float) = 0.0
 
         [ToggleUI] _AlphaCutoffEnable("Alpha Cutoff Enable", Float) = 0.0
@@ -271,6 +273,10 @@ Shader "HDRenderPipeline/TerrainBlend"
         [ToggleUI] _DisplacementLockObjectScale("displacement lock object scale", Float) = 1.0
         [ToggleUI] _DisplacementLockTilingScale("displacement lock tiling scale", Float) = 1.0
         [ToggleUI] _DepthOffsetEnable("Depth Offset View space", Float) = 0.0
+
+        [ToggleUI] _EnableGeometricSpecularAA("EnableGeometricSpecularAA", Float) = 0.0
+        _SpecularAAScreenSpaceVariance("SpecularAAScreenSpaceVariance", Range(0.0, 1.0)) = 0.1
+        _SpecularAAThreshold("SpecularAAThreshold", Range(0.0, 1.0)) = 0.2
 
         [ToggleUI] _EnableMotionVectorForVertexAnimation("EnableMotionVectorForVertexAnimation", Float) = 0.0
 
@@ -360,8 +366,11 @@ Shader "HDRenderPipeline/TerrainBlend"
     HLSLINCLUDE
 
     #pragma target 4.5
-    #pragma only_renderers d3d11 ps4 xboxone vulkan metal
+    #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
 
+    //-------------------------------------------------------------------------------------
+    // Variant
+    //-------------------------------------------------------------------------------------
     #pragma shader_feature _ALPHATEST_ON
     #pragma shader_feature _DEPTHOFFSET_ON
     #pragma shader_feature _DOUBLESIDED_ON
@@ -423,6 +432,7 @@ Shader "HDRenderPipeline/TerrainBlend"
     #pragma shader_feature _ _LAYEREDLIT_3_LAYERS _LAYEREDLIT_4_LAYERS
 
     #pragma shader_feature _DISABLE_DBUFFER
+    #pragma shader_feature _ENABLE_GEOMETRIC_SPECULAR_AA
 
     // Keyword for transparent
     #pragma shader_feature _SURFACE_TYPE_TRANSPARENT
@@ -498,6 +508,29 @@ Shader "HDRenderPipeline/TerrainBlend"
         // This tags allow to use the shader replacement features
         Tags{ "RenderPipeline" = "HDRenderPipeline" "RenderType" = "HDLitShader" }
 
+        Pass
+        {
+            Name "SceneSelectionPass" // Name is not used
+            Tags { "LightMode" = "SceneSelectionPass" }
+
+            Cull Off
+
+            HLSLPROGRAM
+
+            // Note: Require _ObjectId and _PassValue variables
+
+            // We reuse depth prepass for the scene selection, allow to handle alpha correctly as well as tessellation and vertex animation
+            #define SHADERPASS SHADERPASS_DEPTH_ONLY
+            #define SCENESELECTIONPASS // This will drive the output of the scene selection shader
+            #include "../../ShaderVariables.hlsl"
+            #include "../../Material/Material.hlsl"
+            #include "../Lit/ShaderPass/LitDepthPass.hlsl"
+            #include "TerrainBlendData.hlsl"
+            #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
+
+            ENDHLSL
+        }
+
         // Caution: The outline selection in the editor use the vertex shader/hull/domain shader of the first pass declare. So it should not bethe  meta pass.
         Pass
         {
@@ -566,6 +599,7 @@ Shader "HDRenderPipeline/TerrainBlend"
             ENDHLSL
         }
 
+
         Pass
         {
             Name "Motion Vectors"
@@ -631,14 +665,22 @@ Shader "HDRenderPipeline/TerrainBlend"
 
             ZWrite On
 
-            ColorMask 0
-
             HLSLPROGRAM
+
+            // In deferred, depth only pass don't output anything.
+            // In forward it output the normal buffer
+            #pragma multi_compile _ WRITE_NORMAL_BUFFER
 
             #define SHADERPASS SHADERPASS_DEPTH_ONLY
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
+	    
+            #ifdef WRITE_NORMAL_BUFFER // If enabled we need all regular interpolator
+            #include "../Lit/ShaderPass/LitSharePass.hlsl"
+            #else
             #include "../Lit/ShaderPass/LitDepthPass.hlsl"
+            #endif
+
             #include "TerrainBlendData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 

@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    internal class TerrainBlendGUI : TerrainBaseGUI
+    public class TerrainBlendGUI : TerrainBaseGUI
     {
 
         public enum VertexColorMode
@@ -565,21 +565,22 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             var surfaceTypeValue = (SurfaceType)surfaceType.floatValue;
             if (surfaceTypeValue == SurfaceType.Transparent
-                && refractionMode != null)
+                && refractionModel != null)
             {
                 EditorGUILayout.Space();
                 EditorGUILayout.LabelField(StylesBaseUnlit.TransparencyInputsText, EditorStyles.boldLabel);
                 ++EditorGUI.indentLevel;
 
                 var isPrepass = material.HasProperty(kPreRefractionPass) && material.GetFloat(kPreRefractionPass) > 0.0;
-                if (refractionMode != null
+                if (refractionModel != null
                     // Refraction is not available for pre-refraction objects
                     && !isPrepass)
                 {
-                    m_MaterialEditor.ShaderProperty(refractionMode, Styles.refractionModeText);
-                    var mode = (Lit.RefractionMode)refractionMode.floatValue;
-                    if (mode != Lit.RefractionMode.None)
+                    m_MaterialEditor.ShaderProperty(refractionModel, Styles.refractionModelText);
+                    var mode = (Lit.RefractionModel)refractionModel.floatValue;
+                    if (mode != Lit.RefractionModel.None)
                     {
+                        m_MaterialEditor.ShaderProperty(ssrefractionProjectionModel, Styles.refractionProjectionModelText);
                         m_MaterialEditor.ShaderProperty(ior, Styles.refractionIorText);
 
                         blendMode.floatValue = (float)BlendMode.Alpha;
@@ -788,9 +789,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             return layerChanged;
         }
 
-        protected override bool ShouldEmissionBeEnabled(Material mat)
+        protected override bool ShouldEmissionBeEnabled(Material material)
         {
-            return mat.GetFloat(kEmissiveIntensity) > 0.0f;
+            return (material.GetColor(kEmissiveColor) != Color.black) || material.GetTexture(kEmissiveColorMap);
         }
 
         protected override void SetupMaterialKeywordsAndPassInternal(Material material)
