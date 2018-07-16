@@ -26,7 +26,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             Default,
             Custom,  // Fine grained
-            FullscreenPassthrough  // Hard coded path
+            FullscreenPassthrough,  // Hard coded path
             UI, // Hard coded path
         };
 

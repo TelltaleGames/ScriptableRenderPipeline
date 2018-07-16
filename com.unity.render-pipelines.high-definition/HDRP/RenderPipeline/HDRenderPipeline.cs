@@ -295,7 +295,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_NormalBufferManager.InitNormalBuffers(m_GbufferManager, m_Asset.renderPipelineSettings);            
 
             m_CameraColorBuffer = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.ARGBHalf, sRGB: false, enableRandomWrite: true, enableMSAA: true, name: "CameraColor");
-            m_CameraPostColorBuffer = RTHandle.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.ARGBHalf, sRGB: false, enableRandomWrite: true, enableMSAA: true, name: "CameraUnlitColor");
+            m_CameraPostColorBuffer = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.ARGBHalf, sRGB: false, enableRandomWrite: true, enableMSAA: true, name: "CameraUnlitColor");
             m_CameraSssDiffuseLightingBuffer = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.RGB111110Float, sRGB: false, enableRandomWrite: true, enableMSAA: true, name: "CameraSSSDiffuseLighting");
 
             m_CameraDepthStencilBuffer = RTHandles.Alloc(Vector2.one, depthBufferBits: DepthBits.Depth24, colorFormat: RenderTextureFormat.Depth, filterMode: FilterMode.Point, bindTextureMS: true, enableMSAA: true, name: "CameraDepthStencil");
@@ -343,15 +343,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_BufferPyramid.DestroyBuffers();
 
             RTHandles.Release(m_CameraColorBuffer);
-            RTHandle.Release(m_CameraPostColorBuffer);
+            RTHandles.Release(m_CameraPostColorBuffer);
             RTHandles.Release(m_CameraSssDiffuseLightingBuffer);
 
             RTHandles.Release(m_CameraDepthStencilBuffer);
             RTHandles.Release(m_CameraDepthBufferCopy);
             RTHandles.Release(m_CameraStencilBufferCopy);
 
-            RTHandle.Release(m_telltaleShadowCasterIds);
-            RTHandle.Release(m_telltaleContactShadows);
+            RTHandles.Release(m_telltaleShadowCasterIds);
+            RTHandles.Release(m_telltaleContactShadows);
 
             RTHandles.Release(m_AmbientOcclusionBuffer);
             RTHandles.Release(m_VelocityBuffer);
@@ -979,8 +979,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             }
 
                             HDUtils.SetRenderTarget(cmd, hdCamera, m_CameraPostColorBuffer, m_CameraDepthStencilBuffer, clearFlags);
-                            RenderOpaqueRenderList(m_CullResults, camera, renderContext, cmd, m_ForwardAndForwardOnlyPassNames);
-                            RenderTransparentRenderList(m_CullResults, camera, renderContext, cmd, m_AllTransparentPassNames, m_currentRendererConfigurationBakedLighting, HDRenderQueue.k_RenderQueue_Transparent);
+                            RenderOpaqueRenderList(m_CullResults, hdCamera, renderContext, cmd, m_ForwardAndForwardOnlyPassNames);
+                            RenderTransparentRenderList(m_CullResults, hdCamera, renderContext, cmd, m_AllTransparentPassNames, m_currentRendererConfigurationBakedLighting, HDRenderQueue.k_RenderQueue_Transparent);
                         }
 
                         // This Blit will flip the screen on anything other than openGL
@@ -1124,7 +1124,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                                 m_LightLoop.RenderTelltaleContactShadows(hdCamera, m_telltaleShadowCasterIds, m_telltaleContactShadows, GetDepthTexture(), cmd);
 
-                                PushFullScreenDebugTexture(cmd, m_telltaleContactShadows, hdCamera, FullScreenDebugMode.TelltaleContactShadows);
+                                PushFullScreenDebugTexture(hdCamera, cmd, m_telltaleContactShadows, FullScreenDebugMode.TelltaleContactShadows);
                             }
                         }
                         else
@@ -1779,9 +1779,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             using (new ProfilingSample(cmd, "Telltale Shadow Caster IDs", CustomSamplerId.TelltaleShadowCasterIds.GetSampler()))
             {
                 HDUtils.SetRenderTarget(cmd, hdCamera, m_telltaleShadowCasterIds, m_CameraDepthStencilBuffer, ClearFlag.Color, CoreUtils.clearColorAllBlack);
-                RenderOpaqueRenderList(cullResults, hdCamera.camera, renderContext, cmd, HDShaderPassNames.s_TelltaleShadowCasterIdsName);
+                RenderOpaqueRenderList(cullResults, hdCamera, renderContext, cmd, HDShaderPassNames.s_TelltaleShadowCasterIdsName);
 
-                PushFullScreenDebugTexture(cmd, m_telltaleShadowCasterIds, hdCamera, FullScreenDebugMode.TelltaleShadowCasterIds);
+                PushFullScreenDebugTexture(hdCamera, cmd, m_telltaleShadowCasterIds, FullScreenDebugMode.TelltaleShadowCasterIds);
             }
 	    }
 				

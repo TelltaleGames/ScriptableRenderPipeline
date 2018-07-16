@@ -2504,7 +2504,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             cmd.SetGlobalTexture(HDShaderIDs._TelltaleContactShadowTexture, RuntimeUtilities.transparentTexture);
         }
 
-        public void RenderTelltaleContactShadows(HDCamera hdCamera, RTHandle shadowMaskIds, RTHandle contactShadowOutRT, RenderTargetIdentifier depthTexture, CommandBuffer cmd)
+        public void RenderTelltaleContactShadows(HDCamera hdCamera, RTHandleSystem.RTHandle shadowMaskIds, RTHandleSystem.RTHandle contactShadowOutRT, RenderTargetIdentifier depthTexture, CommandBuffer cmd)
         {
             TelltaleContactShadowSettings shadowSettings = TelltaleShadowSettings;
 
@@ -2528,13 +2528,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 cmd.SetComputeBufferParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._TelltaleShadowLights, shadowSettings.lightBuffer);
                 cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._TelltaleShadowMaskIds, shadowMaskIds);
                 cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._DeferredShadowTextureUAV, contactShadowOutRT);
-                cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._MainDepthTexture, depthTexture);
+                cmd.SetComputeTextureParam(telltaleContactShadowComputeShader, kernel, HDShaderIDs._CameraDepthTexture, depthTexture);
 
                 int deferredShadowTileSize = 16; // Must match TelltaleContactShadow.compute
                 int numTilesX = (hdCamera.actualWidth + (deferredShadowTileSize - 1)) / deferredShadowTileSize;
                 int numTilesY = (hdCamera.actualHeight + (deferredShadowTileSize - 1)) / deferredShadowTileSize;
-
-                hdCamera.SetupComputeShader(telltaleContactShadowComputeShader, cmd);
 
                 // TODO: Update for stereo
                 cmd.DispatchCompute(telltaleContactShadowComputeShader, kernel, numTilesX, numTilesY, 1);
