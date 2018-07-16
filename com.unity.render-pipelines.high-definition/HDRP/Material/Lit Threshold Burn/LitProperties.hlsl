@@ -127,7 +127,6 @@ float _PPDMinSamples;
 float _PPDLodThreshold;
 
 float3 _EmissiveColor;
-float _EmissiveIntensity;
 float _AlbedoAffectEmissive;
 
 float _EnableSpecularOcclusion;
@@ -157,6 +156,11 @@ float _ShiverDrag;
 float _ShiverDirectionality;
 
 int _LightGroupIndex;
+
+// Specular AA
+float _EnableGeometricSpecularAA;
+float _SpecularAAScreenSpaceVariance;
+float _SpecularAAThreshold;
 
 #ifndef LAYERED_LIT_SHADER
 
@@ -292,5 +296,9 @@ float _TessellationBackFaceCullEpsilon;
 float _TessellationObjectScale;
 float _TessellationTilingScale;
 #endif
+
+// Following two variables are feeded by the C++ Editor for Scene selection
+int _ObjectId;
+int _PassValue;
 
 CBUFFER_END
