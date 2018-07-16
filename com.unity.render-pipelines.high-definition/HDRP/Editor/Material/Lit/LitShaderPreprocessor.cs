@@ -17,7 +17,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_WriteNormalBuffer = new ShaderKeyword("WRITE_NORMAL_BUFFER");
         }
 
-        bool LitShaderStripper(HDRenderPipelineAsset hdrpAsset, Shader shader, ShaderSnippetData snippet, ShaderCompilerData inputData)
+        protected bool LitShaderStripper(HDRenderPipelineAsset hdrpAsset, Shader shader, ShaderSnippetData snippet, ShaderCompilerData inputData)
         {
             if (CommonShaderStripper(hdrpAsset, shader, snippet, inputData))
                 return true;

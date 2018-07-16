@@ -104,7 +104,7 @@ void GenerateLayerTexCoordBasisTB(FragInputs input, inout LayerTexCoord layerTex
 #define SAMPLER_MASKMAP_IDX sampler_MaskMap
 #define SAMPLER_HEIGHTMAP_IDX sampler_HeightMap
 
-#define SAMPLER_SUBSURFACE_MASKMAP_IDX sampler_SubsurfaceMaskMap
+#define SAMPLER_SUBSURFACE_MASK_MAP_IDX sampler_SubsurfaceMaskMap
 #define SAMPLER_THICKNESSMAP_IDX sampler_ThicknessMap
 
 // include LitDataIndividualLayer to define GetSurfaceData
@@ -187,7 +187,7 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     float depthOffset = ApplyPerPixelDisplacement(input, V, layerTexCoord);
 
 #ifdef _DEPTHOFFSET_ON
-    ApplyDepthOffsetPositionInput(V, depthOffset, GetWorldToHClipMatrix(), posInput);
+    ApplyDepthOffsetPositionInput(V, depthOffset, GetViewForwardDir(), GetWorldToHClipMatrix(), posInput);
 #endif
 
     // Grab the decal channels masks early so we can mask out the detail in decal areas.
@@ -312,7 +312,7 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
 #endif
 
 //#ifndef _DISABLE_DBUFFER
-//    AddDecalContribution(posInput, surfaceData);
+//    AddDecalContribution(posInput, surfaceData, alpha);
 //#endif
 
 #if defined(DEBUG_DISPLAY)
@@ -325,6 +325,11 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
 
     asperityMix *= pow( 1.0 - saturate(dot(surfaceData.normalWS, V)), _AsperityExponent );
     surfaceData.baseColor.rgb = lerp(surfaceData.baseColor.rgb, float3(1.0,1.0,1.0), asperityMix);
+
+#ifdef _ENABLE_GEOMETRIC_SPECULAR_AA
+    // Specular AA
+    surfaceData.perceptualSmoothness = GeometricNormalFiltering(surfaceData.perceptualSmoothness, input.worldToTangent[2], _SpecularAAScreenSpaceVariance, _SpecularAAThreshold);
+#endif
 
     // Caution: surfaceData must be fully initialize before calling GetBuiltinData
     GetBuiltinData(input, surfaceData, alpha, bentNormalWS, depthOffset, builtinData);
