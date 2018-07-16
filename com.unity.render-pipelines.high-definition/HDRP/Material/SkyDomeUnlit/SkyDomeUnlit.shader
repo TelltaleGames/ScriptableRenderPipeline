@@ -2,6 +2,9 @@ Shader "HDRenderPipeline/SkyDomeUnlit"
 {
     Properties
     {
+        // Versioning of material to help for upgrading
+        [HideInInspector] _HdrpVersion("_HdrpVersion", Float) = 1
+
         // Main Sky Texture Gradient
         _SkyGradHorizonColor("Horizon Color", Color) = (1, 1, 1, 1)
         _SkyGradZenithColor("Zenith Color", Color) = (0.1, 0.2, 1.0, 1)
@@ -91,7 +94,7 @@ Shader "HDRenderPipeline/SkyDomeUnlit"
     HLSLINCLUDE
 
     #pragma target 4.5
-    #pragma only_renderers d3d11 ps4 xboxone vulkan metal
+    #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
 
     //-------------------------------------------------------------------------------------
     // Variants
@@ -145,12 +148,37 @@ Shader "HDRenderPipeline/SkyDomeUnlit"
 
         Pass
         {
+            Name "SceneSelectionPass"
+            Tags{ "LightMode" = "SceneSelectionPass" }
+
+            Cull[_CullMode]
+
+            ZWrite On
+
+            HLSLPROGRAM
+
+            // Note: Require _ObjectId and _PassValue variables
+
+            #define SHADERPASS SHADERPASS_DEPTH_ONLY
+            #define SCENESELECTIONPASS // This will drive the output of the scene selection shader
+            #include "../../Material/Material.hlsl"
+            #include "../Unlit/ShaderPass/UnlitDepthPass.hlsl"
+            #include "SkyDomeUnlitData.hlsl"
+            #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
+
+            ENDHLSL
+        }
+
+        Pass
+        {
             Name "Depth prepass"
             Tags{ "LightMode" = "DepthForwardOnly" }
 
             Cull[_CullMode]
 
             ZWrite On
+
+            ColorMask 0 // We don't have WRITE_NORMAL_BUFFER for unlit, but as we bind a buffer we shouldn't write into it.
 
             HLSLPROGRAM
 

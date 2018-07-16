@@ -9,7 +9,6 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     // Builtin Data - a bunch of stuff that skyDome doesn't need to set
     builtinData.opacity = 1.0;
     builtinData.bakeDiffuseLighting = float3(0.0, 0.0, 0.0);
-    builtinData.emissiveIntensity = 0.0;
     builtinData.emissiveColor = float3(0.0, 0.0, 0.0);
     builtinData.velocity = float2(0.0, 0.0);
     builtinData.shadowMask0 = 0.0;
