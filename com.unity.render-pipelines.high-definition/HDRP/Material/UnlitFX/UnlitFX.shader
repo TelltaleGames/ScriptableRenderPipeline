@@ -140,7 +140,7 @@ Shader "HDRenderPipeline/FX/FX Unlit"
 
             #define SHADERPASS SHADERPASS_DEPTH_ONLY
             #include "../../Material/Material.hlsl"
-            #include "ShaderPass/UnlitFXDepthPass.hlsl"
+            #include "../Unlit/ShaderPass/UnlitDepthPass.hlsl"
             #include "UnlitFXData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
@@ -213,7 +213,7 @@ Shader "HDRenderPipeline/FX/FX Unlit"
 
             #define SHADERPASS SHADERPASS_DISTORTION
             #include "../../Material/Material.hlsl"
-            #include "ShaderPass/UnlitFXDistortionPass.hlsl"
+            #include "../Unlit/ShaderPass/UnlitDistortionPass.hlsl"
             #include "UnlitFXData.hlsl"
             #include "../../ShaderPass/ShaderPassDistortion.hlsl"
 
