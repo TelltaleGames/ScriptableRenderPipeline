@@ -2,13 +2,15 @@ Shader "HDRenderPipeline/FX/FX Unlit"
 {
     Properties
     {
+        // Versioning of material to help for upgrading
+        [HideInInspector] _HdrpVersion("_HdrpVersion", Float) = 1
+
         // Be careful, do not change the name here to _Color. It will conflict with the "fake" parameters (see end of properties) required for GI.
         _UnlitColor("Color", Color) = (1,1,1,1)
         _UnlitColorMap("ColorMap", 2D) = "white" {}
 
-        _EmissiveColor("EmissiveColor", Color) = (1, 1, 1)
+        [HDR] _EmissiveColor("EmissiveColor", Color) = (0, 0, 0)
         _EmissiveColorMap("EmissiveColorMap", 2D) = "white" {}
-        _EmissiveIntensity("EmissiveIntensity", Float) = 0
 
         _DistortionVectorMap("DistortionVectorMap", 2D) = "black" {}
         [ToggleUI] _DistortionEnable("Enable Distortion", Float) = 0.0
@@ -69,7 +71,7 @@ Shader "HDRenderPipeline/FX/FX Unlit"
     HLSLINCLUDE
 
     #pragma target 4.5
-    #pragma only_renderers d3d11 ps4 xboxone vulkan metal
+    #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
 
     //-------------------------------------------------------------------------------------
     // Variant
@@ -129,12 +131,37 @@ Shader "HDRenderPipeline/FX/FX Unlit"
 
         Pass
         {
+            Name "SceneSelectionPass"
+            Tags{ "LightMode" = "SceneSelectionPass" }
+
+            Cull[_CullMode]
+
+            ZWrite On
+
+            HLSLPROGRAM
+
+            // Note: Require _ObjectId and _PassValue variables
+
+            #define SHADERPASS SHADERPASS_DEPTH_ONLY
+            #define SCENESELECTIONPASS // This will drive the output of the scene selection shader
+            #include "../../Material/Material.hlsl"
+            #include "../Unlit/ShaderPass/UnlitDepthPass.hlsl"
+            #include "UnlitFXData.hlsl"
+            #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
+
+            ENDHLSL
+        }
+
+        Pass
+        {
             Name "Depth prepass"
             Tags{ "LightMode" = "DepthForwardOnly" }
 
             Cull[_CullMode]
 
             ZWrite On
+
+            ColorMask 0 // We don't have WRITE_NORMAL_BUFFER for unlit, but as we bind a buffer we shouldn't write into it.
 
             HLSLPROGRAM
 
