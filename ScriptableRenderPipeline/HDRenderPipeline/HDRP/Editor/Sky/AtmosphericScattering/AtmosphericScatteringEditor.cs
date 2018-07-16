@@ -12,10 +12,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         SerializedDataParameter m_Density;
         SerializedDataParameter m_ColorMode;
         SerializedDataParameter m_Color;
-        SerializedDataParameter m_Gradient;
         SerializedDataParameter m_MipFogNear;
         SerializedDataParameter m_MipFogFar;
         SerializedDataParameter m_MipFogMaxMip;
+
+        SerializedDataParameter m_GradientColorArray;
+        SerializedProperty m_Gradient;
 
         public override void OnEnable()
         {
@@ -26,10 +28,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             // Fog Color
             m_ColorMode = Unpack(o.Find(x => x.colorMode));
             m_Color = Unpack(o.Find(x => x.color));
-            m_Gradient = Unpack(o.Find(x => x.gradient));
             m_MipFogNear = Unpack(o.Find(x => x.mipFogNear));
             m_MipFogFar = Unpack(o.Find(x => x.mipFogFar));
             m_MipFogMaxMip = Unpack(o.Find(x => x.mipFogMaxMip));
+
+            m_GradientColorArray = Unpack(o.Find(x => x.gradientColorArray));
+            m_Gradient = o.Find(x => x.gradient);
         }
 
         public override void OnInspectorGUI()
@@ -41,9 +45,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             {
                 PropertyField(m_Color);
             }
-            else if (!m_ColorMode.value.hasMultipleDifferentValues && (FogColorMode)m_ColorMode.value.intValue == FogColorMode.Gradient)
+            else if (!m_ColorMode.value.hasMultipleDifferentValues && (FogColorMode)m_ColorMode.value.intValue == FogColorMode.GradientColor)
             {
-                PropertyField(m_Gradient);
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    DrawOverrideCheckbox(m_GradientColorArray);
+                    using (new EditorGUI.DisabledScope(!m_GradientColorArray.overrideState.boolValue))
+                    {
+                        EditorGUILayout.PropertyField(m_Gradient);
+                    }
+                }
             }
             else
             {
