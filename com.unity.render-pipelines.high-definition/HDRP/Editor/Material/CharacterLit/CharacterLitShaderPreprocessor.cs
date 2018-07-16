@@ -22,7 +22,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 return true;
             }
 
-            // Add any CharacterLit specific stripping here.
+            // Add any specific stripping here.
 
             return false;
         }
