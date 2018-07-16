@@ -1,16 +1,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel TelltaleContactShadow                    CONTACT_SHADOW=TelltaleContactShadow
-#pragma kernel TelltaleContactShadow_Normals            CONTACT_SHADOW=TelltaleContactShadow_Normals	        ENABLE_NORMALS
 
 #define OUTPUT_MASK_IDS 0
-
-#ifdef ENABLE_NORMALS
-#   define LIGHTLOOP_TILE_PASS 1
-#   define USE_FPTL_LIGHTLIST  1 // deferred opaque always use FPTL
-#   define UNITY_MATERIAL_LIT
-#else
-#   define SHADOW_USE_ONLY_VIEW_BASED_BIASING 1   // Enable only light view vector based biasing. If undefined, biasing will be based on the normal and calling code must provide a valid normal.
-#endif
 
 #ifdef SHADER_API_PSSL
 #   pragma argument( scheduler=minpressure ) // instruct the shader compiler to prefer minimizing vgpr usage
@@ -18,9 +9,10 @@
 
 #include "CoreRP/ShaderLibrary/Common.hlsl"
 #include "../ShaderVariables.hlsl"
-#include "Lighting.hlsl" 
+#include "../Material/NormalBuffer.hlsl"
+#include "Lighting.hlsl"
 
-#pragma only_renderers d3d11 ps4 xboxone vulkan metal
+#pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
 
 //#pragma enable_d3d11_debug_symbols
 
@@ -45,72 +37,72 @@ CBUFFER_END
 float ScreenSpaceShadowRayCast(float3 positionWS, float3 rayDirection, float rayLength)
 {
 	uint3 hashInput = uint3(abs(GetAbsolutePositionWS(positionWS)) * 100000);
-	// Dither pattern is shifted by 0.5 because we want to jitter the ray starting position backward and forward (so we need values between -0.5 and 0.5)
-	float ditherBias = 0.5;
-	float dither = GenerateHashedRandomFloat(hashInput) - ditherBias;
+    // Dither pattern is shifted by 0.5 because we want to jitter the ray starting position backward and forward (so we need values between -0.5 and 0.5)
+    float ditherBias = 0.5;
+    float dither = GenerateHashedRandomFloat(hashInput) - ditherBias;
 
-	float3 rayStartWS = positionWS;
-	float3 rayEndWS = rayStartWS + rayDirection * rayLength;
+    float3 rayStartWS = positionWS;
+    float3 rayEndWS = rayStartWS + rayDirection * rayLength;
 
-	float4 rayStartCS = TransformWorldToHClip(rayStartWS);
-	float4 rayEndCS = TransformWorldToHClip(rayEndWS);
+    float4 rayStartCS = TransformWorldToHClip(rayStartWS);
+    float4 rayEndCS = TransformWorldToHClip(rayEndWS);
 
-	// Here we compute a ray perpendicular to view space. This is the ray we use to compute the threshold for rejecting samples.
-	// This is done this way so that the threshold is less dependent of ray slope.
-	float4 rayOrthoViewSpace = rayStartCS + mul(GetViewToHClipMatrix(), float4(0, 0, rayLength, 0));
-	rayOrthoViewSpace = rayOrthoViewSpace / rayOrthoViewSpace.w;
+    // Here we compute a ray perpendicular to view space. This is the ray we use to compute the threshold for rejecting samples.
+    // This is done this way so that the threshold is less dependent of ray slope.
+    float4 rayOrthoViewSpace = rayStartCS + mul(GetViewToHClipMatrix(), float4(0, 0, rayLength, 0));
+    rayOrthoViewSpace = rayOrthoViewSpace / rayOrthoViewSpace.w;
 
-	rayStartCS.xyz = rayStartCS.xyz / rayStartCS.w;
-	rayEndCS.xyz = rayEndCS.xyz / rayEndCS.w;
+    rayStartCS.xyz = rayStartCS.xyz / rayStartCS.w;
+    rayEndCS.xyz = rayEndCS.xyz / rayEndCS.w;
 
-	// Pixel to light ray in clip space.
-	float3 rayCS = rayEndCS.xyz - rayStartCS.xyz;
+    // Pixel to light ray in clip space.
+    float3 rayCS = rayEndCS.xyz - rayStartCS.xyz;
 
-	// Depth at the start of the ray
-	float startDepth = rayStartCS.z;
-	// Depth range of the ray
-	float rayDepth = rayCS.z;
+    // Depth at the start of the ray
+    float startDepth = rayStartCS.z;
+    // Depth range of the ray
+    float rayDepth = rayCS.z;
 
-	// Starting UV of the sampling loop
-	float2 startUV = rayStartCS.xy * 0.5f + 0.5f;
-	startUV.y = 1.0 - startUV.y;
+    // Starting UV of the sampling loop
+    float2 startUV = rayStartCS.xy * 0.5f + 0.5f;
+    startUV.y = 1.0 - startUV.y;
 
-	// Pixel to light ray in 
-	float2 rayUV = rayCS.xy * 0.5f;
-	rayUV.y = -rayUV.y;
+    // Pixel to light ray in
+    float2 rayUV = rayCS.xy * 0.5f;
+    rayUV.y = -rayUV.y;
 
-	float step = 1.0 / _SampleCount;
-	float compareThreshold = abs(rayOrthoViewSpace.z - rayStartCS.z) * step;
+    float step = 1.0 / _SampleCount;
+    float compareThreshold = abs(rayOrthoViewSpace.z - rayStartCS.z) * step;
 
-	float occluded = 0.0f;
+    float occluded = 0.0f;
 
-	for (int i = 0; i < _SampleCount; i++)
-	{
-		// Step for this sample
-		float sampleStep = ((i + 1) * step + step * dither);
+    for (int i = 0; i < _SampleCount; i++)
+    {
+        // Step for this sample
+        float sampleStep = ((i + 1) * step + step * dither);
 
-		// UVs for the current sample
-		float2 sampleUV = (startUV + rayUV * sampleStep) * _ScreenToTargetScale.xy;
-		// Ray depth for this sample
-		float raySampleDepth = startDepth + rayDepth * sampleStep;
+        // UVs for the current sample
+        float2 sampleUV = (startUV + rayUV * sampleStep) * _ScreenToTargetScale.xy;
+        // Ray depth for this sample
+        float raySampleDepth = startDepth + rayDepth * sampleStep;
 
-		// Depth buffer depth for this sample
-		float sampleDepth = SAMPLE_TEXTURE2D_LOD(_CameraDepthTexture, sampler_CameraDepthTexture, sampleUV, 0.0).x;
+        // Depth buffer depth for this sample
+        float sampleDepth = SAMPLE_TEXTURE2D_LOD(_CameraDepthTexture, s_point_clamp_sampler, sampleUV, 0.0).x;
 
-		bool Hit = false;
-		float depthDiff = sampleDepth - raySampleDepth;
-		Hit = depthDiff < compareThreshold && depthDiff > 0.0;// 1e-4;
+        bool Hit = false;
+        float depthDiff = sampleDepth - raySampleDepth;
+        Hit = depthDiff < compareThreshold && depthDiff > 0.0;// 1e-4;
 
-		if (Hit)
-			occluded = 1.0f;
-	}
+        if (Hit)
+            occluded = 1.0f;
+    }
 
-	// Off screen masking
-	// We remove the occlusion if the ray is occluded and only if direction steps out of the screen
-	float2 vignette = max(6.0 * abs(rayStartCS.xy + rayCS.xy * occluded * 0.5) - 5.0, 0.0);
-	occluded *= saturate( 1.0 - dot(vignette, vignette) );
+    // Off screen masking
+    // We remove the occlusion if the ray is occluded and only if direction steps out of the screen
+    float2 vignette = max(6.0 * abs(rayStartCS.xy + rayCS.xy * occluded * 0.5) - 5.0, 0.0);
+    occluded *= saturate( 1.0 - dot(vignette, vignette) );
 
-	return occluded;
+    return occluded;
 }
 
 float EvaluateShadowForLight(int lightIndex, int maskId, float maskIdFloat, PositionInputs posInput)
@@ -163,8 +155,8 @@ float4 GetMaskIdColor(int maskId)
 [numthreads(DEFERRED_SHADOW_TILE_SIZE, DEFERRED_SHADOW_TILE_SIZE, 1)]
 void CONTACT_SHADOW(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
 {
-	uint2 pixelCoord = groupId * DEFERRED_SHADOW_TILE_SIZE + groupThreadId;
-	uint2 tileCoord = groupId;
+    uint2 pixelCoord = groupId * DEFERRED_SHADOW_TILE_SIZE + groupThreadId;
+    uint2 tileCoord = groupId;
 
 	float depth = LOAD_TEXTURE2D(_CameraDepthTexture, pixelCoord.xy).x;
 
@@ -186,6 +178,10 @@ void CONTACT_SHADOW(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_G
     }
 
     PositionInputs posInput = GetPositionInput(pixelCoord.xy, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, UNITY_MATRIX_VP, tileCoord);
+
+    NormalData normalData;
+    DecodeFromNormalBuffer(posInput.positionSS, normalData);
+    float3 normalWS = normalData.normalWS;
 
     float shadow0 = EvaluateShadowForLight(0, maskId, maskIdFloat, posInput);
     float shadow1 = EvaluateShadowForLight(1, maskId, maskIdFloat, posInput);
