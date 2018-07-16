@@ -82,32 +82,32 @@ float4 EvaluateAtmosphericScattering(PositionInputs posInput)
     {
         float distance = length(GetWorldSpaceViewDir(posInput.positionWS));
         float fogHeight = max(0.0, GetAbsolutePositionWS(posInput.positionWS).y - _ExpFogBaseHeight);
-        fogFactor = _FogDensity * TransmittanceHomogeneousMedium(_ExpFogHeightAttenuation, fogHeight) * (1.0f - TransmittanceHomogeneousMedium(1.0f / _ExpFogDistance, distance));
 
         if (_FogColorMode == FOGCOLORMODE_GRADIENT_COLOR)
         {
-            float relativeDistance = saturate(distance / _ExpFogDistance);
+            float relativeDistance = saturate(1.0f - TransmittanceHomogeneousMedium(1.0f / _ExpFogDistance, distance));
             float4 gradientFogColor = SAMPLE_TEXTURE2D(_FogGradientTexture, sampler_FogGradientTexture, float2(relativeDistance, 0.0));
             fogColor = gradientFogColor.rgb;
-            fogFactor *= gradientFogColor.a;
+            fogFactor = _FogDensity * TransmittanceHomogeneousMedium(_ExpFogHeightAttenuation, fogHeight) * gradientFogColor.a;
         }
         else
         {
             fogColor = GetFogColor(posInput);
+            fogFactor = _FogDensity * TransmittanceHomogeneousMedium(_ExpFogHeightAttenuation, fogHeight) * (1.0f - TransmittanceHomogeneousMedium(1.0f / _ExpFogDistance, distance));
         }
     }
     else if (_AtmosphericScatteringType == FOGTYPE_LINEAR)
     {
         float relativeDistance = saturate((posInput.linearDepth - _LinearFogStart) * _LinearFogOneOverRange);
-        fogFactor = _FogDensity * relativeDistance * saturate((_LinearFogHeightEnd - GetAbsolutePositionWS(posInput.positionWS).y) * _LinearFogHeightOneOverRange);
         if (_FogColorMode == FOGCOLORMODE_GRADIENT_COLOR)
         {
             float4 gradientFogColor = SAMPLE_TEXTURE2D(_FogGradientTexture, sampler_FogGradientTexture, float2(relativeDistance, 0.0));
             fogColor = gradientFogColor.rgb;
-            fogFactor *= gradientFogColor.a;
+            fogFactor = _FogDensity * gradientFogColor.a * saturate((_LinearFogHeightEnd - GetAbsolutePositionWS(posInput.positionWS).y) * _LinearFogHeightOneOverRange);
         }
         else
         {
+            fogFactor = _FogDensity * relativeDistance * saturate((_LinearFogHeightEnd - GetAbsolutePositionWS(posInput.positionWS).y) * _LinearFogHeightOneOverRange);
             fogColor = GetFogColor(posInput);
         }
     }
