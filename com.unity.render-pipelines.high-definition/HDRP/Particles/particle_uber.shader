@@ -270,7 +270,7 @@ Shader "HDRenderPipeline/Particle Uber"
             #define SHADERPASS SHADERPASS_DEPTH_ONLY
             #define SCENESELECTIONPASS // This will drive the output of the scene selection shader
             #include "../../Material/Material.hlsl"
-            #include "particle_UnlitDepthPass.hlsl"
+            #include "../Material/Unlit/UnlitDepthPass.hlsl"
             #include "particle_uberData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
@@ -292,7 +292,7 @@ Shader "HDRenderPipeline/Particle Uber"
 
             #define SHADERPASS SHADERPASS_DEPTH_ONLY
             #include "../Material/Material.hlsl"
-            #include "particle_UnlitDepthPass.hlsl"
+            #include "../Material/Unlit/UnlitDepthPass.hlsl"
             #include "particle_uberData.hlsl"
             #include "../ShaderPass/ShaderPassDepthOnly.hlsl"
 
@@ -831,7 +831,7 @@ Shader "HDRenderPipeline/Particle Uber"
 
             #define SHADERPASS SHADERPASS_FORWARD_UNLIT
             #include "../Material/Material.hlsl"
-            #include "particle_UnlitSharePass.hlsl"
+            #include "../Material/Unlit/UnlitSharePass.hlsl"
             #include "particle_uberData.hlsl"
             #include "../ShaderPass/ShaderPassForwardUnlit.hlsl"
 
@@ -857,7 +857,7 @@ Shader "HDRenderPipeline/Particle Uber"
 
             #define SHADERPASS SHADERPASS_LIGHT_TRANSPORT
             #include "../Material/Material.hlsl"
-            #include "particle_UnlitSharePass.hlsl"
+            #include "../Material/Unlit/UnlitSharePass.hlsl"
             #include "particle_uberData.hlsl"
             #include "../ShaderPass/ShaderPassLightTransport.hlsl"
 
@@ -881,7 +881,7 @@ Shader "HDRenderPipeline/Particle Uber"
 
             #define SHADERPASS SHADERPASS_DISTORTION
             #include "../Material/Material.hlsl"
-            #include "particle_UnlitDistortionPass.hlsl" 
+            #include "../Material/Unlit/UnlitDistortionPass.hlsl" 
             #include "../Material/Unlit/UnlitData.hlsl"
             #include "../ShaderPass/ShaderPassDistortion.hlsl"
 
