@@ -220,8 +220,13 @@ Shader "HDRenderPipeline/Particle Uber"
     // Include
     //-------------------------------------------------------------------------------------
 
-    //#include "UnityCG.cginc"
     #include "UnityCG.cginc"
+
+    // Common.hlsl is going to redefine these and generate a compiler warning.
+    #undef SAMPLE_DEPTH_TEXTURE
+    #undef SAMPLE_DEPTH_TEXTURE_LOD
+    #undef TRANSFORM_TEX
+
     #include "CoreRP/ShaderLibrary/Common.hlsl"
     #include "../ShaderVariables.hlsl"
     #include "../ShaderPass/FragInputs.hlsl"
