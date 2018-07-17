@@ -24,9 +24,9 @@
 
 //#pragma enable_d3d11_debug_symbols
 
-RWStructuredBuffer<float> _TelltaleShadowLights;
-RWTexture2D<float> _TelltaleShadowMaskIds;
-RWTexture2D<float4> _DeferredShadowTextureUAV;
+StructuredBuffer<TelltaleLightShadowData> _TelltaleShadowLights;
+Texture2D<float> _TelltaleShadowMaskIds;
+RWTexture2D<float4> _DeferredShadowTextureUAV; 
 
 CBUFFER_START(DeferredShadowParameters)
 float4  _ScreenSpaceShadowsParameters;
@@ -113,11 +113,9 @@ float ScreenSpaceShadowRayCast(float3 positionWS, float3 rayDirection, float ray
 	return occluded;
 }
 
-float EvaluateShadowForLight(int lightIndex, int maskId, float maskIdFloat, PositionInputs posInput)
+float EvaluateShadowForLight(float3 lightDirection, float shadowWeight, PositionInputs posInput)
 {
-    int arrayIndex = (maskId * SHADOW_LIGHT_STRIDE + lightIndex) * 3;
-    float3 lightDirection = float3(_TelltaleShadowLights[arrayIndex], _TelltaleShadowLights[arrayIndex + 1], _TelltaleShadowLights[arrayIndex + 2]);
-    float occluded = ScreenSpaceShadowRayCast(posInput.positionWS, lightDirection, _ContactShadowLength * max(0.5, posInput.linearDepth * _ContactShadowDistanceScaleFactor));
+    float occluded = shadowWeight * ScreenSpaceShadowRayCast(posInput.positionWS, lightDirection, _ContactShadowLength * max(0.5, posInput.linearDepth * _ContactShadowDistanceScaleFactor));
     return 1.0 - occluded * saturate((_ContactShadowFadeEnd - posInput.linearDepth) * _ContactShadowFadeOneOverRange);
 }
 
@@ -187,9 +185,9 @@ void CONTACT_SHADOW(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_G
 
     PositionInputs posInput = GetPositionInput(pixelCoord.xy, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, UNITY_MATRIX_VP, tileCoord);
 
-    float shadow0 = EvaluateShadowForLight(0, maskId, maskIdFloat, posInput);
-    float shadow1 = EvaluateShadowForLight(1, maskId, maskIdFloat, posInput);
-    float shadow2 = EvaluateShadowForLight(2, maskId, maskIdFloat, posInput);
+    float shadow0 = EvaluateShadowForLight(_TelltaleShadowLights[maskId].direction0, _TelltaleShadowLights[maskId].weight0, posInput);
+    float shadow1 = EvaluateShadowForLight(_TelltaleShadowLights[maskId].direction1, _TelltaleShadowLights[maskId].weight1, posInput);
+    float shadow2 = EvaluateShadowForLight(_TelltaleShadowLights[maskId].direction2, _TelltaleShadowLights[maskId].weight2, posInput);
 
     _DeferredShadowTextureUAV[pixelCoord] = float4(shadow0, shadow1, shadow2, 1.0); // 1.0f in alpha indicates shadow set.
 #else // !OUTPUT_MASK_IDS

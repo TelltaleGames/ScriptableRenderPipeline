@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
@@ -88,6 +88,16 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public float minRoughness;  // This is use to give a small "area" to punctual light, as if we have a light with a radius.
     };
 
+    [GenerateHLSL]
+    public struct TelltaleLightShadowData
+    {
+        public Vector3 direction0;
+        public float weight0;
+        public Vector3 direction1;
+        public float weight1;
+        public Vector3 direction2;
+        public float weight2;
+    }
 
     [GenerateHLSL]
     public enum EnvShapeType

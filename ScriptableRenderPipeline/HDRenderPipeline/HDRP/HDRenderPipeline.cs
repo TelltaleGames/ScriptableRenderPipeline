@@ -294,7 +294,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             if (m_Asset.renderPipelineSettings.supportTelltaleContactShadows)
             {
-                m_telltaleShadowCasterIds = RTHandle.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.R8, sRGB: false, enableRandomWrite: true, name: "TelltaleShadowCasterIds");
+                m_telltaleShadowCasterIds = RTHandle.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.R8, sRGB: false, name: "TelltaleShadowCasterIds");
                 m_telltaleContactShadows = RTHandle.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.ARGB32, sRGB: false, enableRandomWrite: true, name: "DeferredShadow");
             }
 

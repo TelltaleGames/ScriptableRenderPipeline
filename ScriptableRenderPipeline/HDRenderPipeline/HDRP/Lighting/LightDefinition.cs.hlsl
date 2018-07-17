@@ -91,6 +91,18 @@ struct LightData
     float minRoughness;
 };
 
+// Generated from UnityEngine.Experimental.Rendering.HDPipeline.TelltaleLightShadowData
+// PackingRules = Exact
+struct TelltaleLightShadowData
+{
+    float3 direction0;
+    float weight0;
+    float3 direction1;
+    float weight1;
+    float3 direction2;
+    float weight2;
+};
+
 // Generated from UnityEngine.Experimental.Rendering.HDPipeline.EnvLightData
 // PackingRules = Exact
 struct EnvLightData
@@ -255,6 +267,34 @@ int GetLightType(LightData value)
 float GetMinRoughness(LightData value)
 {
 	return value.minRoughness;
+}
+
+//
+// Accessors for UnityEngine.Experimental.Rendering.HDPipeline.TelltaleLightShadowData
+//
+float3 GetDirection0(TelltaleLightShadowData value)
+{
+	return value.direction0;
+}
+float GetWeight0(TelltaleLightShadowData value)
+{
+	return value.weight0;
+}
+float3 GetDirection1(TelltaleLightShadowData value)
+{
+	return value.direction1;
+}
+float GetWeight1(TelltaleLightShadowData value)
+{
+	return value.weight1;
+}
+float3 GetDirection2(TelltaleLightShadowData value)
+{
+	return value.direction2;
+}
+float GetWeight2(TelltaleLightShadowData value)
+{
+	return value.weight2;
 }
 
 //
