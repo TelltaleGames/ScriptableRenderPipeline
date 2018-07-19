@@ -17,7 +17,22 @@
 #define MATERIALFEATUREFLAGS_LIT_HAIR (128)
 
 //
-// UnityEngine.Experimental.Rendering.HDPipeline.CharacterLit+SurfaceData:  static fields
+// UnityEngine.Experimental.Rendering.HDPipeline.Lit+ProjectionModel:  static fields
+//
+#define PROJECTIONMODEL_NONE (0)
+#define PROJECTIONMODEL_PROXY (1)
+#define PROJECTIONMODEL_HI_Z (2)
+#define PROJECTIONMODEL_LINEAR (3)
+
+//
+// UnityEngine.Experimental.Rendering.HDPipeline.Lit+HiZIntersectionKind:  static fields
+//
+#define HIZINTERSECTIONKIND_NONE (0)
+#define HIZINTERSECTIONKIND_CELL (1)
+#define HIZINTERSECTIONKIND_DEPTH (2)
+
+//
+// UnityEngine.Experimental.Rendering.HDPipeline.Lit+SurfaceData:  static fields
 //
 #define DEBUGVIEW_CHARACTERLIT_SURFACEDATA_MATERIAL_FEATURES (1000)
 #define DEBUGVIEW_CHARACTERLIT_SURFACEDATA_BASE_COLOR (1001)

@@ -385,8 +385,8 @@ Shader "HDRenderPipeline/CharacterLit"
             #define SCENESELECTIONPASS // This will drive the output of the scene selection shader
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
-            #include "ShaderPass/LitDepthPass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/ShaderPass/LitDepthPass.hlsl"
+            #include "CharacterLitData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL

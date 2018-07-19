@@ -22,6 +22,22 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             LitHair                 = 1 << 7    // Only used in CharacterLit shader
         };
 
+        [GenerateHLSL]
+        new public enum ProjectionModel
+        {
+            None = 0,
+            Proxy = 1,
+            HiZ = 2,
+            Linear = 3
+        };
+
+        [GenerateHLSL]
+        new public enum HiZIntersectionKind
+        {
+            None,
+            Cell,
+            Depth
+        }
 
         //-----------------------------------------------------------------------------
         // SurfaceData
