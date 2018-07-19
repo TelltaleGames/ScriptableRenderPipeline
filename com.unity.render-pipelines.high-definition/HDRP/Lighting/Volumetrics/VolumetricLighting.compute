@@ -140,7 +140,7 @@ VoxelLighting EvaluateVoxelLighting(LightLoopContext context, uint featureFlags,
             float3 L = -light.forward; // Lights point backwards in Unity
 
             float3 color; float attenuation;
-            EvaluateLight_Directional(context, posInput, light, unused, 0, L,
+            EvaluateLight_Directional(context, posInput, light, unused, 0, L, false,
                                       color, attenuation);
 
             // Important:
