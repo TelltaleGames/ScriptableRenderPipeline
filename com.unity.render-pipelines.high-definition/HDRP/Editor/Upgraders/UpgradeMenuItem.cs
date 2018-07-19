@@ -279,8 +279,17 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                         mat.shader.name == "HDRenderPipeline/LayeredLit" ||
                         mat.shader.name == "HDRenderPipeline/LayeredLitTessellation" ||
                         mat.shader.name == "HDRenderPipeline/StackLit" ||
-                        mat.shader.name == "HDRenderPipeline/Unlit"
-                         )
+                        mat.shader.name == "HDRenderPipeline/Unlit" ||
+                        /* Start Telltale shaders */
+                        mat.shader.name == "HDRenderPipeline/CharacterLit" ||
+                        mat.shader.name == "HDRenderPipeline/FX/LitBurn" ||
+                        mat.shader.name == "HDRenderPipeline/SkyDomeUnlit" ||
+                        mat.shader.name == "HDRenderPipeline/TerrainBlend" ||
+                        mat.shader.name == "HDRenderPipeline/TerrainBlendPaint" ||
+                        mat.shader.name == "HDRenderPipeline/FX/FX Unlit" ||
+                        mat.shader.name == "HDRenderPipeline/Particle Uber"
+                        /* End Telltale shaders */
+                       )
                     {
                         // Need to be processed in order - All function here should be re-entrant (i.e after upgrade it can be recall)
                         bool dirty = updateMaterial(path, mat);
