@@ -46,6 +46,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             if (stripperFunc == null)
                 return;
 
+            if (inputData.Count == 0)
+            {
+                return;
+            }
+
             int inputShaderVariantCount = inputData.Count;
 
             ShaderCompilerData workaround = inputData[0];
