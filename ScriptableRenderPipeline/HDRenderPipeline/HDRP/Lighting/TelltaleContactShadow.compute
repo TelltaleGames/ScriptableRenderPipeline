@@ -41,10 +41,15 @@ CBUFFER_END
 #define DEFERRED_SHADOW_TILE_SIZE 16
 #define SHADOW_LIGHT_STRIDE 3
 
+float inScreen(float2 v) {
+    float2 s = step(float2(0, 0), v) - step(float2(1, 1), v);
+    return s.x * s.y;
+}
+
 // Return 1.0 if occluded 0.0 if not
-float ScreenSpaceShadowRayCast(float3 positionWS, float3 rayDirection, float rayLength)
+float ScreenSpaceShadowRayCast(float3 positionWS, float3 rayDirection, float rayLength, float linearDepth, int maskId)
 {
-	uint3 hashInput = uint3(abs(GetAbsolutePositionWS(positionWS)) * 100000);
+	uint3 hashInput = uint3(abs(GetAbsolutePositionWS(positionWS)) * 100000 * _Time.x);
 	// Dither pattern is shifted by 0.5 because we want to jitter the ray starting position backward and forward (so we need values between -0.5 and 0.5)
 	float ditherBias = 0.5;
 	float dither = GenerateHashedRandomFloat(hashInput) - ditherBias;
@@ -80,43 +85,77 @@ float ScreenSpaceShadowRayCast(float3 positionWS, float3 rayDirection, float ray
 	rayUV.y = -rayUV.y;
 
 	float step = 1.0 / _SampleCount;
-	float compareThreshold = abs(rayOrthoViewSpace.z - rayStartCS.z) * step;
 
 	float occluded = 0.0f;
+    float compareDist = abs(rayOrthoViewSpace.z - rayStartCS.z);
+
+    // remap .025 -> .1 to 0 -> 1
+    //float ClipplaneRemap = saturate((_ContactShadowNearClipPlane - 0.025) * (1.0 / (.1 - 0.025)));
+    //float bias = lerp(0.0001, 0.001, ClipplaneRemap);
+
+    // remap linear depth to 1 -> 10
+    //float remapLinDepth = saturate((linearDepth - 1.0) * (1.0 / (2.0 - 1.0)));
+    //bias = lerp(bias, 0.001, remapLinDepth);
+
+    float remapLinDepth = saturate(linearDepth);
+    float bias = lerp(0.002, 0.00015, remapLinDepth);
+    
 
 	for (int i = 0; i < _SampleCount; i++)
 	{
 		// Step for this sample
-		float sampleStep = ((i + 1) * step + step * dither);
+        float lerpStep = (i + 1) * step;
+        lerpStep *= lerpStep;
+        float compareThreshold = compareDist * lerpStep;
+
+        float sampleStep = (lerpStep + step * dither);
 
 		// UVs for the current sample
 		float2 sampleUV = (startUV + rayUV * sampleStep) * _ScreenToTargetScale.xy;
-		// Ray depth for this sample
-		float raySampleDepth = startDepth + rayDepth * sampleStep;
+        if (inScreen(sampleUV) <= 0.0)
+        {
+            break;
+        }
 
-		// Depth buffer depth for this sample
-		float sampleDepth = SAMPLE_TEXTURE2D_LOD(_MainDepthTexture, sampler_MainDepthTexture, sampleUV, 0.0).x;
+        uint2 maskIdCoord = sampleUV * _ScreenParams;
+        float sampleMaskIdFloat = _TelltaleShadowMaskIds[maskIdCoord];
+        int sampleMaskId = (int)(sampleMaskIdFloat * 255.0f + 0.5f);
+        if (sampleMaskId == maskId)
+        {
+            // Ray depth for this sample
+            float raySampleDepth = startDepth + rayDepth * (sampleStep);
 
-		bool Hit = false;
-		float depthDiff = sampleDepth - raySampleDepth;
-		Hit = depthDiff < compareThreshold && depthDiff > 0.0;// 1e-4;
+            // Depth buffer depth for this sample
+            float sampleDepth = SAMPLE_TEXTURE2D_LOD(_MainDepthTexture, sampler_MainDepthTexture, sampleUV, 0.0).x;
 
-		if (Hit)
-			occluded = 1.0f;
+            bool Hit = false;
+            float depthDiff = sampleDepth - raySampleDepth;
+            Hit = depthDiff < compareThreshold && depthDiff > bias;// 1e-4;
+
+            if (Hit)
+            {
+                occluded = 1.0f;
+                break;
+            }
+        }
 	}
 
 	// Off screen masking
 	// We remove the occlusion if the ray is occluded and only if direction steps out of the screen
-	float2 vignette = max(6.0 * abs(rayStartCS.xy + rayCS.xy * occluded * 0.5) - 5.0, 0.0);
-	occluded *= saturate( 1.0 - dot(vignette, vignette) );
+	//float2 vignette = max(6.0 * abs(rayStartCS.xy + rayCS.xy * occluded * 0.5) - 5.0, 0.0);
+	//occluded *= saturate( 1.0 - dot(vignette, vignette) );
 
 	return occluded;
 }
 
-float EvaluateShadowForLight(float3 lightDirection, float shadowWeight, PositionInputs posInput)
+
+float EvaluateShadowForLight(float3 lightDirection, float shadowWeight, int maskId, PositionInputs posInput)
 {
-    float occluded = shadowWeight * ScreenSpaceShadowRayCast(posInput.positionWS, lightDirection, _ContactShadowLength * max(0.5, posInput.linearDepth * _ContactShadowDistanceScaleFactor));
-    return 1.0 - occluded * saturate((_ContactShadowFadeEnd - posInput.linearDepth) * _ContactShadowFadeOneOverRange);
+    float occluded = shadowWeight * ScreenSpaceShadowRayCast(posInput.positionWS, lightDirection, .15, posInput.linearDepth, maskId);
+
+    float distFade = saturate((4 - posInput.linearDepth) * 1);
+    distFade = 1.0 - saturate(1.0 / (posInput.linearDepth * 5.0));
+    return 1.0 - occluded * distFade;
 }
 
 float4 GetMaskIdColor(int maskId)
@@ -162,27 +201,22 @@ float4 GetMaskIdColor(int maskId)
 void CONTACT_SHADOW(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
 {
 	uint2 pixelCoord = groupId * DEFERRED_SHADOW_TILE_SIZE + groupThreadId;
-	uint2 tileCoord = groupId;
-
-	float depth = LOAD_TEXTURE2D(_MainDepthTexture, pixelCoord.xy).x;
-
-#if !OUTPUT_MASK_IDS
-    if (depth == UNITY_RAW_FAR_CLIP_VALUE)
-    {
-        return;
-    }
-#endif
-
     float maskIdFloat = _TelltaleShadowMaskIds[pixelCoord];
-    int maskId = (int)(maskIdFloat * 255.0f + 0.5f);
 
 #if !OUTPUT_MASK_IDS
-
+    int maskId = (int)(maskIdFloat * 255.0f + 0.5f);
     if (maskId == 0)
     {
         return;
     }
 
+    float depth = LOAD_TEXTURE2D(_MainDepthTexture, pixelCoord.xy).x;
+    if (depth == UNITY_RAW_FAR_CLIP_VALUE)
+    {
+        return;
+    }
+
+    uint2 tileCoord = groupId;
     PositionInputs posInput = GetPositionInput(pixelCoord.xy, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, UNITY_MATRIX_VP, tileCoord);
 
     float shadow0 = EvaluateShadowForLight(_TelltaleShadowLights[maskId].direction0, _TelltaleShadowLights[maskId].weight0, posInput);

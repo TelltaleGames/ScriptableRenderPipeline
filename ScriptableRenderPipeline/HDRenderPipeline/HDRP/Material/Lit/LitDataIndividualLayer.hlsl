@@ -200,8 +200,12 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
         detailMask = extDetailMask * SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_MaskMap), SAMPLER_MASKMAP_IDX, ADD_IDX(layerTexCoord.base)).b;
     #endif
     float2 detailAlbedoAndSmoothness = SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_DetailMap), SAMPLER_DETAILMAP_IDX, ADD_IDX(layerTexCoord.details)).rb;
-    float detailAlbedo = detailAlbedoAndSmoothness.r;
-    float detailSmoothness = detailAlbedoAndSmoothness.g;
+    // TT Mod - Old code commented out.  New version includes the offset and scaling, to avoid repeating the same math several times below.
+    // This only works with the newer overlay functions below, not with the originals.
+    //float detailAlbedo = detailAlbedoAndSmoothness.r;
+    //float detailSmoothness = detailAlbedoAndSmoothness.g;
+    float detailAlbedo = _DetailAlbedoScale * (detailAlbedoAndSmoothness.r - 0.5);
+    float detailSmoothness = _DetailSmoothnessScale * (detailAlbedoAndSmoothness.g - 0.5);
     // Resample the detail map but this time for the normal map. This call should be optimize by the compiler
     // We split both call due to trilinear mapping
     detailNormalTS = SAMPLE_UVMAPPING_NORMALMAP_AG(ADD_IDX(_DetailMap), SAMPLER_DETAILMAP_IDX, ADD_IDX(layerTexCoord.details), ADD_IDX(_DetailNormalScale));
@@ -211,9 +215,15 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
 
 #ifdef _DETAIL_MAP_IDX
     // Use overlay blend mode for detail abledo: (base < 0.5 ? (2.0 * base * blend) : (1.0 - 2.0 * (1.0 - base) * (1.0 - blend)))
-    float3 baseColorOverlay = (detailAlbedo < 0.5) ?
-                                surfaceData.baseColor * PositivePow(2.0 * detailAlbedo, ADD_IDX(_DetailAlbedoScale)) :
-                                1.0 - (1.0 - surfaceData.baseColor) * PositivePow(2.0 * (1.0 - detailAlbedo), ADD_IDX(_DetailAlbedoScale));
+    // float3 baseColorOverlay = (detailAlbedo < 0.5) ?
+    //                            surfaceData.baseColor * PositivePow(2.0 * detailAlbedo, ADD_IDX(_DetailAlbedoScale)) :
+    //                            1.0 - (1.0 - surfaceData.baseColor) * PositivePow(2.0 * (1.0 - detailAlbedo), ADD_IDX(_DetailAlbedoScale));
+    // TT Mod - This is much improved, linear in response, and has no problems with black or white signal in the detail maps.
+    float3 baseColorOverlay = (detailAlbedo < 0.0) ?
+                                    surfaceData.baseColor + surfaceData.baseColor*detailAlbedo :
+                                    surfaceData.baseColor + (1.0-surfaceData.baseColor)*detailAlbedo;
+
+
     // Lerp with details mask
     surfaceData.baseColor = lerp(surfaceData.baseColor, saturate(baseColorOverlay), detailMask);
 #endif
@@ -234,9 +244,13 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
 
 #ifdef _DETAIL_MAP_IDX
     // Use overlay blend mode for detail abledo: (base < 0.5 ? (2.0 * base * blend) : (1.0 - 2.0 * (1.0 - base) * (1.0 - blend)))
-    float smoothnessOverlay = (detailSmoothness < 0.5) ?
-                                surfaceData.perceptualSmoothness * PositivePow(2.0 * detailSmoothness, ADD_IDX(_DetailSmoothnessScale)) :
-                                1.0 - (1.0 - surfaceData.perceptualSmoothness) * PositivePow(2.0 * (1.0 - detailSmoothness), ADD_IDX(_DetailSmoothnessScale));
+    //float smoothnessOverlay = (detailSmoothness < 0.5) ?
+    //                            surfaceData.perceptualSmoothness * PositivePow(2.0 * detailSmoothness, ADD_IDX(_DetailSmoothnessScale)) :
+    //                            1.0 - (1.0 - surfaceData.perceptualSmoothness) * PositivePow(2.0 * (1.0 - detailSmoothness), ADD_IDX(_DetailSmoothnessScale));
+    // TT Mod - This is much improved, linear in response, and has no problems with black or white signal in the detail maps.
+    float smoothnessOverlay = (detailSmoothness < 0.0) ?
+                                    surfaceData.perceptualSmoothness + surfaceData.perceptualSmoothness*detailSmoothness :
+                                    surfaceData.perceptualSmoothness + (1.0-surfaceData.perceptualSmoothness)*detailSmoothness;
     // Lerp with details mask
     surfaceData.perceptualSmoothness = lerp(surfaceData.perceptualSmoothness, saturate(smoothnessOverlay), detailMask);
 #endif
@@ -381,7 +395,7 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
     surfaceData.hairShiftSecondary = _HairShiftSecondary;
     surfaceData.hairSmoothnessPrimary = _HairSmoothnessPrimary;
     surfaceData.hairSmoothnessSecondary = _HairSmoothnessSecondary;
-    surfaceData.specularColor = tex2D(_HairSpecularMap, layerTexCoord.base.uv) * _HairSpecularColor;
+    surfaceData.specularColor = tex2D(_HairSpecularMap, layerTexCoord.base.uv).rgb * _HairSpecularColor;
     surfaceData.anisotropy = 0.8; // used for IBL, not direct lighting of hair
 #endif
 

@@ -237,9 +237,9 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     // Caution: surfaceData must be fully initialize before calling GetBuiltinData
     GetBuiltinData(input, surfaceData, alpha, bentNormalWS, depthOffset, builtinData);
 
-#ifdef _MATERIAL_FEATURE_TRANSMISSIONPROBE
     float VdotN = 1.0 - dot(surfaceData.normalWS, V);
     float VdotN2 = VdotN*VdotN;
+#ifdef _MATERIAL_FEATURE_TRANSMISSIONPROBE
     float simpleFresnel = 1.0 - VdotN2*VdotN2;
     #if defined(_TRANSMISSION_PROBE_ORIENTATION)
         float3 probeV = normalize( float3( dot(-V,surfaceData.normalWS), dot(-V,cross(surfaceData.tangentWS,surfaceData.normalWS)), -dot(-V,surfaceData.tangentWS) ) );
@@ -255,6 +255,10 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
 
     surfaceData.baseColor *= builtinData.opacity;
 #endif
+
+    // This change fixes sparkles, but makes things glow in our bakes... Neds more investigation before enabling.
+    //float _EdgeRough = 0.5;
+    //surfaceData.perceptualSmoothness = lerp(surfaceData.perceptualSmoothness, 0.0, _EdgeRough * VdotN2 * VdotN2);
 
 }
 
