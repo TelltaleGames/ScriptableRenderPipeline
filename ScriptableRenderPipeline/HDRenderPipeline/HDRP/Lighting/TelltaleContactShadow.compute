@@ -117,7 +117,7 @@ float ScreenSpaceShadowRayCast(float3 positionWS, float3 rayDirection, float ray
             break;
         }
 
-        uint2 maskIdCoord = sampleUV * _ScreenParams;
+        uint2 maskIdCoord = sampleUV * _ScreenParams.xy;
         float sampleMaskIdFloat = _TelltaleShadowMaskIds[maskIdCoord];
         int sampleMaskId = (int)(sampleMaskIdFloat * 255.0f + 0.5f);
         if (sampleMaskId == maskId)
@@ -219,9 +219,9 @@ void CONTACT_SHADOW(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_G
     uint2 tileCoord = groupId;
     PositionInputs posInput = GetPositionInput(pixelCoord.xy, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, UNITY_MATRIX_VP, tileCoord);
 
-    float shadow0 = EvaluateShadowForLight(_TelltaleShadowLights[maskId].direction0, _TelltaleShadowLights[maskId].weight0, posInput);
-    float shadow1 = EvaluateShadowForLight(_TelltaleShadowLights[maskId].direction1, _TelltaleShadowLights[maskId].weight1, posInput);
-    float shadow2 = EvaluateShadowForLight(_TelltaleShadowLights[maskId].direction2, _TelltaleShadowLights[maskId].weight2, posInput);
+    float shadow0 = EvaluateShadowForLight(_TelltaleShadowLights[maskId].direction0, _TelltaleShadowLights[maskId].weight0, maskId, posInput);
+    float shadow1 = EvaluateShadowForLight(_TelltaleShadowLights[maskId].direction1, _TelltaleShadowLights[maskId].weight1, maskId, posInput);
+    float shadow2 = EvaluateShadowForLight(_TelltaleShadowLights[maskId].direction2, _TelltaleShadowLights[maskId].weight2, maskId, posInput);
 
     _DeferredShadowTextureUAV[pixelCoord] = float4(shadow0, shadow1, shadow2, 1.0); // 1.0f in alpha indicates shadow set.
 #else // !OUTPUT_MASK_IDS
