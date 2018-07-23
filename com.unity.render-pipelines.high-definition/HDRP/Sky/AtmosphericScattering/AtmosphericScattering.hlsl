@@ -101,8 +101,8 @@ float4 EvaluateAtmosphericScattering(PositionInputs posInput)
             {
                 fogColor = GetFogColor(posInput);
                 fogFactor = _FogDensity * TransmittanceHomogeneousMedium(_ExpFogHeightAttenuation, fogHeight) * (1.0f - TransmittanceHomogeneousMedium(1.0f / _ExpFogDistance, distance));
-                break;
             }
+            break;
         }
         case FOGTYPE_VOLUMETRIC:
         {
