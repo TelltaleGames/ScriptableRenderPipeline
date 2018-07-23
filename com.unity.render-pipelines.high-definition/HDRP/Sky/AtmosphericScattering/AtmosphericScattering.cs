@@ -83,7 +83,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 cachedGradientTexture = new Texture2D(colors.Length, 1, TextureFormat.ARGB32, false, true);
                 cachedGradientTexture.wrapMode = TextureWrapMode.Clamp;
-                cachedGradientTexture.alphaIsTransparency = true;
             }
 
             cachedGradientTexture.SetPixels(colors);
