@@ -17,11 +17,16 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     #if _USE_FRESNEL
         float3 normalWS = input.worldToTangent[2];
         float VdotN = saturate(dot(normalWS, V));
-        float intensityFresnelModifier = pow(VdotN, abs(_FresnelExponent));
 
         #if _ONE_MINUS_FRESNEL
-            intensityFresnelModifier = 1-intensityFresnelModifier;
+            VdotN = 1-VdotN;
         #endif
+
+        float intensityFresnelModifier = pow(VdotN, abs(_FresnelExponent));
+
+       // #if _ONE_MINUS_FRESNEL
+       //     intensityFresnelModifier = 1-intensityFresnelModifier;
+       // #endif
 
         alpha *= intensityFresnelModifier;
     #endif

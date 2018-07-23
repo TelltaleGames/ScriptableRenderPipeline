@@ -456,9 +456,10 @@ float3 KajiyaKaySpecular(float3 T, float3 V, float3 H, float3 L, float3 N, float
     float fL_TRT = 0.05 + 0.95*LdT_TRT4;         // light dir fresnel
 
     // reduce specR when viewing T head-on
-    float fT = 0.5 + 0.5*dot(-V,T_R); // 1 when viewing in T dir, 0 when viewing against T dir.  No science.
-
-    float3 specR = float3(1,1,1) * fT * fV_R * fL_R * pow(sinTHSq_R, specExp_R) * log(specExp_R+1.71828); // TTdev - ln() is ad hoc energy conservation
+    //float fT = 0.5 + 0.5*dot(-V,T_R); // 1 when viewing in T dir, 0 when viewing against T dir.  No science.
+    float fT = 1.0 - abs(dot(-V,T_R));
+    float dirAtten = smoothstep(-1.0, 0.0, TdH_R);
+    float3 specR = /* 1.0/pi */ 0.318 * float3(1,1,1) * dirAtten * fT * fV_R * fL_R * pow(sinTHSq_R, specExp_R) * log(specExp_R+1.71828); // TTdev - ln() is ad hoc energy conservation
     float3 specTRT = TRTColor * (1.0-fL_TRT) * pow(sinTHSq_TRT, specExp_TRT) * log(specExp_TRT+1.71828); // TTdev - ln() is ad hoc energy conservation
     return(specR + specTRT );
 }
