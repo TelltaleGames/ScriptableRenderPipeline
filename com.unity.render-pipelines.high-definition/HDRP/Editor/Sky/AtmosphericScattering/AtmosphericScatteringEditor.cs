@@ -16,6 +16,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         SerializedDataParameter m_MipFogFar;
         SerializedDataParameter m_MipFogMaxMip;
 
+        SerializedDataParameter m_GradientColorArray;
+        SerializedProperty m_Gradient;
+
         public override void OnEnable()
         {
             var o = new PropertyFetcher<AtmosphericScattering>(serializedObject);
@@ -28,6 +31,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_MipFogNear = Unpack(o.Find(x => x.mipFogNear));
             m_MipFogFar = Unpack(o.Find(x => x.mipFogFar));
             m_MipFogMaxMip = Unpack(o.Find(x => x.mipFogMaxMip));
+
+            m_GradientColorArray = Unpack(o.Find(x => x.gradientColorArray));
+            m_Gradient = o.Find(x => x.gradient);
         }
 
         public override void OnInspectorGUI()
@@ -38,6 +44,17 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             if (!m_ColorMode.value.hasMultipleDifferentValues && (FogColorMode)m_ColorMode.value.intValue == FogColorMode.ConstantColor)
             {
                 PropertyField(m_Color);
+            }
+            else if (!m_ColorMode.value.hasMultipleDifferentValues && (FogColorMode)m_ColorMode.value.intValue == FogColorMode.GradientColor)
+            {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    DrawOverrideCheckbox(m_GradientColorArray);
+                    using (new EditorGUI.DisabledScope(!m_GradientColorArray.overrideState.boolValue))
+                    {
+                        EditorGUILayout.PropertyField(m_Gradient);
+                    }
+                }
             }
             else
             {

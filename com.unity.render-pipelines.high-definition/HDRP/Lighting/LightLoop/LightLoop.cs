@@ -20,10 +20,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     {
         public bool enable = true;
         public float length = 0.15f;
-        public float distanceScaleFactor = 0.5f;
-        public float maxDistance = 50.0f;
-        public float fadeDistance = 5.0f;
-        public int sampleCount = 8;
+        public float distanceScaleFactor = 1.0f;
+        public float maxDistance = 5.0f;
+        public float fadeDistance = 1.0f;
+        public int sampleCount = 32;
 
         public ComputeBuffer lightBuffer;
     }

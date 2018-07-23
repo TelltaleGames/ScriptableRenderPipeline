@@ -89,6 +89,16 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public float volumetricDimmer; // TODO: improve the cache locality
     };
 
+    [GenerateHLSL]
+    public struct TelltaleLightShadowData
+    {
+        public Vector3 direction0;
+        public float weight0;
+        public Vector3 direction1;
+        public float weight1;
+        public Vector3 direction2;
+        public float weight2;
+    }
 
     [GenerateHLSL]
     public enum EnvShapeType

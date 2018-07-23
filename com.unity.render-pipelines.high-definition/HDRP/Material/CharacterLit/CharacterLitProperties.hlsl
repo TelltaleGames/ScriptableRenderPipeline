@@ -109,6 +109,8 @@ float _HairShiftPrimary;
 float _HairShiftSecondary;
 float4 _UVMappingMaskHair;
 
+float _AODirectLighting;
+
 int _ShadowMaskId;
 
 //=================================================================

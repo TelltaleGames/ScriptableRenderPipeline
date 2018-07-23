@@ -22,6 +22,7 @@ Shader "HDRenderPipeline/CharacterLit"
         _SmoothnessRemapMax("SmoothnessRemapMax", Float) = 1.0
         _AORemapMin("AORemapMin", Float) = 0.0
         _AORemapMax("AORemapMax", Float) = 1.0
+        _AODirectLighting("AODirectLighting", Range(0,1)) = 0.0
 
         _NormalMap("NormalMap", 2D) = "bump" {}     // Tangent space normal map
         _NormalMapOS("NormalMapOS", 2D) = "white" {} // Object space normal map - no good default value

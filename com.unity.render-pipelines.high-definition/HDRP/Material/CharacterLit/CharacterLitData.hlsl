@@ -303,7 +303,7 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
 
     UVMapping hairNoiseMapMapping = layerTexCoord.base;
 
-    float4 hairNoise = _HairNoiseIntensity * (SAMPLE_UVMAPPING_TEXTURE2D(_HairNoiseMap, sampler_HairNoiseMap, hairNoiseMapMapping).r * 2.0 - 1.0);
+    float hairNoise = _HairNoiseIntensity * (SAMPLE_UVMAPPING_TEXTURE2D(_HairNoiseMap, sampler_HairNoiseMap, hairNoiseMapMapping).r * 2.0 - 1.0);
     surfaceData.hairOffset = hairNoise;
 
 #else
@@ -315,6 +315,13 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
 //    AddDecalContribution(posInput, surfaceData, alpha);
 //#endif
 
+//  This hacks the smoothness to be lowered at extreme glancing angles to
+//  get rid of the sparkling that's happening in the specular response everywhere.
+    float VdotN = 1.0 - dot(surfaceData.normalWS, V);
+    float VdotN2 = VdotN*VdotN;
+    float _EdgeRough = 0.5; // should we make this a material parameter?
+    surfaceData.perceptualSmoothness = lerp(surfaceData.perceptualSmoothness, 0.0, _EdgeRough * VdotN2 * VdotN2);
+
 #if defined(DEBUG_DISPLAY)
     if (_DebugMipMapMode != DEBUGMIPMAPMODE_NONE)
     {
@@ -325,6 +332,7 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
 
     asperityMix *= pow( 1.0 - saturate(dot(surfaceData.normalWS, V)), _AsperityExponent );
     surfaceData.baseColor.rgb = lerp(surfaceData.baseColor.rgb, float3(1.0,1.0,1.0), asperityMix);
+    surfaceData.baseColor.rgb = lerp(surfaceData.baseColor.rgb, surfaceData.baseColor.rgb * surfaceData.ambientOcclusion, _AODirectLighting);//_DirectLightingAO);
 
 #ifdef _ENABLE_GEOMETRIC_SPECULAR_AA
     // Specular AA

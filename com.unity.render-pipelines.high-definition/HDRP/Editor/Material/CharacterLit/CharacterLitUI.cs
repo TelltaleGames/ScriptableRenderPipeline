@@ -59,6 +59,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent smoothnessText = new GUIContent("Smoothness", "Smoothness scale factor");
             public static GUIContent smoothnessRemappingText = new GUIContent("Smoothness Remapping", "Smoothness remapping");
             public static GUIContent aoRemappingText = new GUIContent("AmbientOcclusion Remapping", "AmbientOcclusion remapping");
+            public static GUIContent aoDirectLightingText = new GUIContent("AO for Direct Lighting", "AO for Direct Lighting");
             public static GUIContent maskMapSText = new GUIContent("Mask Map - M(R), AO(G), D(B), S(A)", "Mask map");
             public static GUIContent maskMapSpecularText = new GUIContent("Mask Map - AO(G), D(B), S(A)", "Mask map");
 
@@ -290,6 +291,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected const string kDetailNormalScale = "_DetailNormalScale";
         protected MaterialProperty[] detailSmoothnessScale = new MaterialProperty[kMaxLayerCount];
         protected const string kDetailSmoothnessScale = "_DetailSmoothnessScale";
+
+        protected MaterialProperty aoDirectLighting = null;
+        protected const string kAODirectLighting = "_AODirectLighting";
 
         protected MaterialProperty decalEnable = null;
         protected const string kDecalEnabled = "_EnableDecals";
@@ -601,6 +605,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             asperityAmount = FindProperty(kAsperityAmount, props);
             asperityExponent = FindProperty(kAsperityExponent, props);
 
+            // AO affects Direct Lighting
+            aoDirectLighting = FindProperty(kAODirectLighting, props);
+
             // Anisotropy
             tangentMap = FindProperty(kTangentMap, props);
             tangentMapOS = FindProperty(kTangentMapOS, props);
@@ -872,6 +879,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     aoRemapMin[layerIndex].floatValue = aoMin;
                     aoRemapMax[layerIndex].floatValue = aoMax;
                 }
+                m_MaterialEditor.ShaderProperty(aoDirectLighting, Styles.aoDirectLightingText);
             }
 
             m_MaterialEditor.TexturePropertySingleLine(((BaseCharacterLitGUI.MaterialId)materialID.floatValue == BaseCharacterLitGUI.MaterialId.LitSpecular) ? Styles.maskMapSpecularText : Styles.maskMapSText, maskMap[layerIndex]);
