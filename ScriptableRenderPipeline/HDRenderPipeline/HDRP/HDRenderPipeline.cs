@@ -978,7 +978,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                         if (m_FrameSettings.enableTelltaleContactShadows)
                         {
-                            using (new ProfilingSample(cmd, "Telltale Contact Shadows", CustomSamplerId.TelltaleConctactShadows.GetSampler()))
+                            using (new ProfilingSample(cmd, "Telltale Contact Shadows", CustomSamplerId.TelltaleContactShadows.GetSampler()))
                             {
                                 // When debug is enabled we need to clear otherwise we may see non-shadows areas with stale values.
                                 if (m_CurrentDebugDisplaySettings.fullScreenDebugMode == FullScreenDebugMode.TelltaleContactShadows)

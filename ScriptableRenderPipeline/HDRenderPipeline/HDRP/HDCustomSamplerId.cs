@@ -63,7 +63,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         // Telltale.
         TelltaleShadowCasterIds,
-        TelltaleConctactShadows,
+        TelltaleContactShadows,
 
         Max
     }
