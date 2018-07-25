@@ -23,7 +23,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public float distanceScaleFactor = 1.0f;
         public float maxDistance = 5.0f;
         public float fadeDistance = 1.0f;
-        public int sampleCount = 32;
+        public int sampleCount = 4;
 
         public ComputeBuffer lightBuffer;
     }
@@ -487,6 +487,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         IShadowManager          m_ShadowMgr;
         List<int>               m_ShadowRequests = new List<int>();
         Dictionary<int, int>    m_ShadowIndices = new Dictionary<int, int>();
+        private Material contactShadowBlurMaterial;
 
         void InitShadowSystem(HDRenderPipelineAsset hdAsset, ShadowSettings shadowSettings)
         {
@@ -2463,6 +2464,22 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 // TODO: Update for stereo
                 cmd.DispatchCompute(telltaleContactShadowComputeShader, kernel, numTilesX, numTilesY, 1);
+                
+                // Blur buffer
+                var rtBlur = HDShaderIDs._TelltaleContactShadowBlurTexture;
+                cmd.GetTemporaryRT(rtBlur, contactShadowOutRT.rt.descriptor);
+
+                cmd.SetRenderTarget(rtBlur);
+
+                if(contactShadowBlurMaterial == null)
+                {
+                    contactShadowBlurMaterial = new Material(Shader.Find("Hidden/TelltaleSeparableBlur")) { hideFlags = HideFlags.HideAndDontSave };
+                }
+
+                cmd.Blit(contactShadowOutRT, rtBlur, contactShadowBlurMaterial, 0); // 0 - Separable blur (horizontal pass) 
+                cmd.Blit(rtBlur, contactShadowOutRT, contactShadowBlurMaterial, 1); // 1 - Separable blur (vertical pass) 
+
+                cmd.ReleaseTemporaryRT(rtBlur);
 
                 cmd.SetGlobalTexture(HDShaderIDs._TelltaleContactShadowTexture, contactShadowOutRT);
             }
