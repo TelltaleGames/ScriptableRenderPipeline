@@ -251,10 +251,10 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
 #ifdef _ENABLEGRIME
     float4 grimeChannels = float4(_GrimeAIntensity, _GrimeBIntensity, _GrimeCIntensity, _GrimeDIntensity) * tex2D(_GrimeMaskMap, input.texCoord0.xy);
 
-    surfaceData.baseColor.rgb = lerp( surfaceData.baseColor.rgb, _GrimeAColor, grimeChannels.r );
-    surfaceData.baseColor.rgb = lerp( surfaceData.baseColor.rgb, _GrimeBColor, grimeChannels.g );
-    surfaceData.baseColor.rgb = lerp( surfaceData.baseColor.rgb, _GrimeCColor, grimeChannels.b );
-    surfaceData.baseColor.rgb = lerp( surfaceData.baseColor.rgb, _GrimeDColor, grimeChannels.a );
+    surfaceData.baseColor.rgb = lerp( surfaceData.baseColor.rgb, _GrimeAColor.rgb, grimeChannels.r );
+    surfaceData.baseColor.rgb = lerp( surfaceData.baseColor.rgb, _GrimeBColor.rgb, grimeChannels.g );
+    surfaceData.baseColor.rgb = lerp( surfaceData.baseColor.rgb, _GrimeCColor.rgb, grimeChannels.b );
+    surfaceData.baseColor.rgb = lerp( surfaceData.baseColor.rgb, _GrimeDColor.rgb, grimeChannels.a );
     surfaceData.perceptualSmoothness = lerp(surfaceData.perceptualSmoothness, _GrimeASmoothness, grimeChannels.r);
     surfaceData.perceptualSmoothness = lerp(surfaceData.perceptualSmoothness, _GrimeBSmoothness, grimeChannels.g);
     surfaceData.perceptualSmoothness = lerp(surfaceData.perceptualSmoothness, _GrimeCSmoothness, grimeChannels.b);
