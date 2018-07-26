@@ -256,7 +256,6 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
         float3 coords = normalize(probeV);
     #endif
     builtinData.emissiveColor = SAMPLE_TEXTURECUBE(_TransmissionProbeMap, sampler_TransmissionProbeMap, coords).rgb * simpleFresnel * _TransmissionTint.rgb * _TransmissionTint.a * (1.0 - builtinData.opacity);
-    builtinData.emissiveIntensity = 1.0;
 
     surfaceData.baseColor *= builtinData.opacity;
 #endif
