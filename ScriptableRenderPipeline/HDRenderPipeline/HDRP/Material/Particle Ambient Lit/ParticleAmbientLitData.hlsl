@@ -9,54 +9,27 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     surfaceData.color = SAMPLE_TEXTURE2D(_UnlitColorMap, sampler_UnlitColorMap, unlitColorMapUv).rgb * _UnlitColor.rgb;
     float alpha = SAMPLE_TEXTURE2D(_UnlitColorMap, sampler_UnlitColorMap, unlitColorMapUv).a * _UnlitColor.a;
 
-    if(_UseVertexColor)
-    {
-        surfaceData.color *= input.color.rgb;
+    surfaceData.color *= input.color.rgb;
+    alpha             *= input.color.a;
 
-        #if _SURFACE_TYPE_TRANSPARENT
-            alpha             *= input.color.a;
-        #endif
-    }
+    float sceneDepth = LinearEyeDepth(LOAD_TEXTURE2D(_MainDepthTexture, input.positionSS.xy).x,_ZBufferParams);    
+    float diff = abs(sceneDepth - input.positionSS.w) / _SoftDepthFactor;
 
-    if (_SoftDepthEnable) alpha *= applySoftDepth(input, _SoftDepthFactor);
-
-    if (_NoiseMapEnable)
-    {
-        float2 noiseMapUv = TRANSFORM_TEX(input.texCoord0, _NoiseMap);
-        float3 noise = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, noiseMapUv).rgb;
-
-        alpha = lerp(alpha, alpha*noise, _NoiseIntensity);
-    }
+    alpha *= saturate(diff);
 
 #ifdef _ALPHATEST_ON
     DoAlphaTest(alpha, _AlphaCutoff);
 #endif
 
-    // Modify opacity by the facing ratio
-    #if defined(_SURFACE_TYPE_TRANSPARENT) && (_USE_FRESNEL)
-        float3 normalWS = input.worldToTangent[2];
-        float VdotN = dot(normalWS, V);
-
-        if(_DoubleSidedEnable)
-        {
-            VdotN = abs(VdotN);
-        }
-
-        VdotN = saturate(VdotN);
-
-        #if _ONE_MINUS_FRESNEL
-            VdotN = 1-VdotN;
-        #endif
-
-        float intensityFresnelModifier = pow(VdotN, abs(_FresnelExponent));
-
-        alpha *= intensityFresnelModifier;
-    #endif
-    
     // Builtin Data
     builtinData.opacity = alpha;
 
+    // Need to figure out why this doesn't work
+    //builtinData.bakeDiffuseLighting = SampleBakedGI(input.positionWS, input.worldToTangent[2], input.texCoord1, input.texCoord2);
     builtinData.bakeDiffuseLighting = float3(0.0, 0.0, 0.0);
+
+    float3 bakedGI = SampleBakedGI(input.positionWS, input.worldToTangent[2], input.texCoord1, input.texCoord2);
+    surfaceData.color = lerp(surfaceData.color, surfaceData.color * bakedGI, _LightingContribution);
 
     // Emissive Intensity is only use here, but is part of BuiltinData to enforce UI parameters as we want the users to fill one color and one intensity
     builtinData.emissiveIntensity = _EmissiveIntensity;
@@ -64,6 +37,7 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
 #ifdef _EMISSIVE_COLOR_MAP
     builtinData.emissiveColor = SAMPLE_TEXTURE2D(_EmissiveColorMap, sampler_EmissiveColorMap, TRANSFORM_TEX(input.texCoord0, _EmissiveColorMap)).rgb * _EmissiveColor * builtinData.emissiveIntensity;
 #else
+
     builtinData.emissiveColor = _EmissiveColor * builtinData.emissiveIntensity;
 #endif
 
