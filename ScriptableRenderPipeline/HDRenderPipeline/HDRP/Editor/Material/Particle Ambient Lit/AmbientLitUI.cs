@@ -4,7 +4,7 @@ using UnityEngine.Experimental.Rendering;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    class UnlitFXGUI : BaseUnlitFXGUI
+    class AmbientLitGUI : BaseAmbientLitGUI
     {
         protected static class Styles
         {
@@ -54,8 +54,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 EditorGUILayout.Space();
                 EditorGUILayout.LabelField(StylesBaseUnlit.TransparencyInputsText, EditorStyles.boldLabel);
                 ++EditorGUI.indentLevel;
-                
-                DoNoiseInputsGUI();
+
                 DoDistortionInputsGUI();
 
                 --EditorGUI.indentLevel;

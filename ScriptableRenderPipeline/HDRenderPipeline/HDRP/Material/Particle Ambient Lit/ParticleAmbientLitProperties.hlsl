@@ -7,9 +7,6 @@ SAMPLER(sampler_UnlitColorMap);
 TEXTURE2D(_EmissiveColorMap);
 SAMPLER(sampler_EmissiveColorMap);
 
-TEXTURE2D(_NoiseMap);
-SAMPLER(sampler_NoiseMap);
-
 CBUFFER_START(UnityPerMaterial)
 
 float4  _UnlitColor;
@@ -22,8 +19,6 @@ float4 _EmissiveColorMap_ST;
 
 float _EmissiveIntensity;
 
-float4 _NoiseMap_ST;
-
 float _AlphaCutoff;
 float _DistortionScale;
 float _DistortionVectorScale;
@@ -31,13 +26,8 @@ float _DistortionVectorBias;
 float _DistortionBlurScale;
 float _DistortionBlurRemapMin;
 float _DistortionBlurRemapMax;
-float _FresnelExponent;
-int   _UseVertexColor;
-float _DoubleSidedEnable;
-int   _SoftDepthEnable;
 float _SoftDepthFactor;
-int   _NoiseMapEnable;
-float _NoiseIntensity;
+float _LightingContribution;
 
 // Caution: C# code in BaseLitUI.cs call LightmapEmissionFlagsProperty() which assume that there is an existing "_EmissionColor"
 // value that exist to identify if the GI emission need to be enabled.
