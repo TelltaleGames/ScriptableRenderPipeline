@@ -1,4 +1,3 @@
-﻿#include "UnityCG.cginc"
 #include "CoreRP/ShaderLibrary/Common.hlsl"
 
 struct appdata
