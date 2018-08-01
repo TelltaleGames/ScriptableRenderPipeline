@@ -29,10 +29,10 @@ SAMPLER(sampler_MainDepthTexture);
 
 sampler2D _SecondTex;
 float _Blend;
+int _SampleRadius;
 
 // ApplyFilter
 // Based on Telltale's FullScreenShadowFilter:
-#define kSampleRadius 3
 half4 ApplyFilter(float2 texelPosition, float2 direction)
 {
     half4 baseShadow = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, texelPosition);
@@ -45,7 +45,7 @@ half4 ApplyFilter(float2 texelPosition, float2 direction)
     {
         float2 passDirection = (passIndex == 0) ? direction : -direction;
 
-        [unroll] for (int sampleIndex = 1; sampleIndex <= kSampleRadius; ++sampleIndex)
+        [unroll(5)] for (int sampleIndex = 1; sampleIndex <= _SampleRadius; ++sampleIndex)
         {
             float2 samplePosition = texelPosition + sampleIndex * passDirection;
 
@@ -67,7 +67,7 @@ half4 ApplyFilter(float2 texelPosition, float2 direction)
 
 fixed4 frag (v2f i) : SV_Target
 {                
-    const float blurWidth = 2.0;
+    const float blurWidth = 1.0;
 
     #if defined(BLUR_HORIZONTAL)
         float2 delta = float2(_MainTex_TexelSize.x * blurWidth, 0.0);

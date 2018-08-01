@@ -2069,12 +2069,14 @@ void PostEvaluateBSDF(  LightLoopContext lightLoopContext,
 #else
     lighting.indirect.specularReflected *= lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), min(bsdfData.specularOcclusion, specularOcclusion));
 #endif
-
-    lighting.direct.diffuse *=
-#if GTAO_MULTIBOUNCE_APPROX
-                                GTAOMultiBounce(directAmbientOcclusion, bsdfData.diffuseColor);
-#else
-                                lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), directAmbientOcclusion);
+    
+#ifndef TELLTALE_CHARACTER_LIGHTING
+    lighting.direct.diffuse *= 
+    #if GTAO_MULTIBOUNCE_APPROX
+                                    GTAOMultiBounce(directAmbientOcclusion, bsdfData.diffuseColor);
+    #else
+                                    lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), directAmbientOcclusion);
+    #endif
 #endif
 
     uint   texturingMode        = (bsdfData.materialFeatures >> MATERIAL_FEATURE_FLAGS_SSS_TEXTURING_MODE_OFFSET) & 3;

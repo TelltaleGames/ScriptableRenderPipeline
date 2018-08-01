@@ -24,6 +24,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public float maxDistance = 5.0f;
         public float fadeDistance = 1.0f;
         public int sampleCount = 4;
+        public int blurSampleRadius = 2; // Max of 5 (higher values ignored) - 3 matches legacy setting in T3, but even 1 looks pretty good with TXAA
 
         public ComputeBuffer lightBuffer;
     }
@@ -391,8 +392,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         private ComputeShader deferredComputeShader { get { return m_Resources.deferredComputeShader; } }
         private ComputeShader deferredDirectionalShadowComputeShader { get { return m_Resources.deferredDirectionalShadowComputeShader; } }
         private ComputeShader telltaleContactShadowComputeShader { get { return m_Resources.telltaleContactShadowComputeShader; } }
+        private Shader telltaleSeparableBlurShader { get { return m_Resources.telltaleSeparableBlurShader; } }
 
-
+        
         static int s_GenAABBKernel;
         static int s_GenListPerTileKernel;
         static int s_GenListPerVoxelKernel;
@@ -487,7 +489,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         IShadowManager          m_ShadowMgr;
         List<int>               m_ShadowRequests = new List<int>();
         Dictionary<int, int>    m_ShadowIndices = new Dictionary<int, int>();
-        private Material contactShadowBlurMaterial;
+        private Material m_TelltaleContactShadowBlurMaterial;
 
         void InitShadowSystem(HDRenderPipelineAsset hdAsset, ShadowSettings shadowSettings)
         {
@@ -667,7 +669,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             DeinitShadowSystem();
 
             CoreUtils.Destroy(m_DefaultTexture2DArray);
-            CoreUtils.Destroy(m_DefaultTextureCube);
+            CoreUtils.Destroy(m_DefaultTextureCube);            
+            CoreUtils.Destroy(m_TelltaleContactShadowBlurMaterial);
 
             CoreUtils.SafeRelease(m_DirectionalLightDatas);
             CoreUtils.SafeRelease(m_LightDatas);
@@ -2464,23 +2467,34 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 // TODO: Update for stereo
                 cmd.DispatchCompute(telltaleContactShadowComputeShader, kernel, numTilesX, numTilesY, 1);
-                
-                // Blur buffer
-                var rtBlur = HDShaderIDs._TelltaleContactShadowBlurTexture;
-                cmd.GetTemporaryRT(rtBlur, contactShadowOutRT.rt.descriptor);
 
-                cmd.SetRenderTarget(rtBlur);
 
-                if(contactShadowBlurMaterial == null)
+                if (m_TelltaleContactShadowBlurMaterial == null)
                 {
-                    contactShadowBlurMaterial = new Material(Shader.Find("Hidden/TelltaleSeparableBlur")) { hideFlags = HideFlags.HideAndDontSave };
+                    if (telltaleSeparableBlurShader == null)
+                    {
+                        // Debug.LogWarning("Telltale separable blur shader not set in Render Pipeline Resources. Contact shadows will NOT be blurred.");
+                    }
+                    else
+                    {
+                        m_TelltaleContactShadowBlurMaterial = new Material(telltaleSeparableBlurShader) { hideFlags = HideFlags.HideAndDontSave };
+                        m_TelltaleContactShadowBlurMaterial.SetInt("_SampleRadius", Mathf.Clamp(shadowSettings.blurSampleRadius, 0, 5));
+                    }
                 }
 
-                cmd.Blit(contactShadowOutRT, rtBlur, contactShadowBlurMaterial, 0); // 0 - Separable blur (horizontal pass) 
-                cmd.Blit(rtBlur, contactShadowOutRT, contactShadowBlurMaterial, 1); // 1 - Separable blur (vertical pass) 
+                if (m_TelltaleContactShadowBlurMaterial != null)
+                {
+                    // Blur buffer
+                    var rtBlur = HDShaderIDs._TelltaleContactShadowBlurTexture;
+                    cmd.GetTemporaryRT(rtBlur, contactShadowOutRT.rt.descriptor);
 
-                cmd.ReleaseTemporaryRT(rtBlur);
+                    cmd.SetRenderTarget(rtBlur);
 
+                    cmd.Blit(contactShadowOutRT, rtBlur, m_TelltaleContactShadowBlurMaterial, 0); // 0 - Separable blur (horizontal pass) 
+                    cmd.Blit(rtBlur, contactShadowOutRT, m_TelltaleContactShadowBlurMaterial, 1); // 1 - Separable blur (vertical pass) 
+                    cmd.ReleaseTemporaryRT(rtBlur);
+                }
+                
                 cmd.SetGlobalTexture(HDShaderIDs._TelltaleContactShadowTexture, contactShadowOutRT);
             }
         }

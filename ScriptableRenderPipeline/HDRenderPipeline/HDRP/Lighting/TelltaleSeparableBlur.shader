@@ -1,8 +1,9 @@
-﻿Shader "Hidden/TelltaleSeparableBlur"
+Shader "Hidden/TelltaleSeparableBlur"
 {
 	Properties
 	{
-		_MainTex ("Texture", 2D) = "white" {}
+        _MainTex("Texture", 2D) = "white" {}
+		_SampleRadius("Sample Radius", Int) = 3
 	}
 	SubShader
 	{
