@@ -40,6 +40,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public ComputeShader volumeVoxelizationCS;
         public ComputeShader volumetricLightingCS;
         public ComputeShader telltaleContactShadowComputeShader;
+        public Shader telltaleSeparableBlurShader;
 
         public ComputeShader subsurfaceScatteringCS; // Disney SSS
         public Shader subsurfaceScattering; // Jimenez SSS

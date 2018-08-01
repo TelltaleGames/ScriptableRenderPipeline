@@ -124,6 +124,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static readonly int _LightGroupData = Shader.PropertyToID("_LightGroupData"); // Light groups.
 
         public static readonly int _TelltaleContactShadowTexture = Shader.PropertyToID("_TelltaleContactShadowTexture");
+        public static readonly int _TelltaleContactShadowBlurTexture = Shader.PropertyToID("_TelltaleContactShadowBlurTexture");
 
         public static readonly int g_isLogBaseBufferEnabled = Shader.PropertyToID("g_isLogBaseBufferEnabled");
         public static readonly int g_vLayeredOffsetsBuffer = Shader.PropertyToID("g_vLayeredOffsetsBuffer");

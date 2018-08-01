@@ -7,6 +7,7 @@ namespace UnityEngine.Experimental.Rendering
     {
         // Holds the state of _all_ component types you can possibly add on volumes
         public Dictionary<Type, VolumeComponent> components;
+        public Transform lastTrigger;
 
         internal VolumeStack()
         {

@@ -66,6 +66,21 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
     context.sampleReflection = 0;
     context.shadowContext = InitShadowContext();
 
+
+    // TTG_MOD - Moved out from PostEvaluateBSDF in order to work with character light rigs
+#ifdef TELLTALE_CHARACTER_LIGHTING
+        // Ambient occlusion use for indirect lighting (reflection probe, baked diffuse lighting)
+    #ifndef _SURFACE_TYPE_TRANSPARENT
+        float indirectAmbientOcclusion = 1.0 - LOAD_TEXTURE2D(_AmbientOcclusionTexture, posInput.positionSS).x;
+        // Ambient occlusion use for direct lighting (directional, punctual, area)
+        float directAmbientOcclusion = lerp(1.0, indirectAmbientOcclusion, _AmbientOcclusionParam.w);
+    #else
+        float indirectAmbientOcclusion = 1.0;
+        float directAmbientOcclusion = 1.0;
+    #endif
+#endif
+
+
     // This struct is define in the material. the Lightloop must not access it
     // PostEvaluateBSDF call at the end will convert Lighting to diffuse and specular lighting
     AggregateLighting aggregateLighting;
@@ -162,6 +177,13 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
     }
 
 #ifdef TELLTALE_CHARACTER_LIGHTING
+    // Important to do this after all standard Unity diffuse lighting has been accumulated, but before Character Lights are added
+    aggregateLighting.direct.diffuse *=
+    #if GTAO_MULTIBOUNCE_APPROX
+            GTAOMultiBounce(directAmbientOcclusion, bsdfData.diffuseColor);
+    #else
+            lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), directAmbientOcclusion);
+    #endif
     aggregateLighting.direct.diffuse *= _Contribution_Std_Char_Env_Refl.x;
     aggregateLighting.direct.specular *= _Contribution_Std_Char_Env_Refl.x;
 
@@ -170,7 +192,15 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         // Apply per-object directional lights:
         for (i = 0; i < 3; ++i)
         {
+            float directAmbientOcclusionCL = lerp(1.0, indirectAmbientOcclusion, 1.0 - _CharacterLights[i].shadowMaskSelector.w);
+
             DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _CharacterLights[i], bsdfData, bakeLightingData, true);
+            lighting.diffuse *=
+        #if GTAO_MULTIBOUNCE_APPROX
+                    GTAOMultiBounce(directAmbientOcclusionCL, bsdfData.diffuseColor);
+        #else
+                    lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), directAmbientOcclusionCL);
+        #endif
             AccumulateDirectLighting(lighting, _Contribution_Std_Char_Env_Refl.y, aggregateLighting);
         }
     }

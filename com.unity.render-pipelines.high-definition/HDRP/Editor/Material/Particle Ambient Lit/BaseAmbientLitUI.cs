@@ -9,7 +9,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
     // Such a Material will share some properties between it various variant (shader graph variant or hand authored variant).
     // This is the purpose of BaseLitGUI. It contain all properties that are common to all Material based on Lit template.
     // For the default hand written Lit material see LitUI.cs that contain specific properties for our default implementation.
-    public abstract class BaseUnlitFXGUI : ShaderGUI
+    public abstract class BaseAmbientLitGUI : ShaderGUI
     {
         protected static class StylesBaseUnlit
         {
@@ -36,14 +36,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent enableBlendModePreserveSpecularLightingText = new GUIContent("Blend preserve specular lighting", "Blend mode will only affect diffuse lighting, allowing correct specular lighting (reflection) on transparent object");
 
             public static GUIContent doubleSidedEnableText = new GUIContent("Double Sided", "This will render the two face of the objects (disable backface culling) and flip/mirror normal");
-            public static GUIContent softDepthEnableText = new GUIContent("Soft Depth Test", "Toggling this will fade the mesh at intersection points");
-            public static GUIContent softDepthFactorText = new GUIContent("Soft Depth Factor", "How agressivly to fade the material at intersection points");
-            public static GUIContent useVertexColorText = new GUIContent("Use Vertex Color", "Set this if you want the color and emissive channels to be multiplied by vertex rgba");
-            public static GUIContent noiseMapEnableText = new GUIContent("Use Noise Map", "Multiply the alpha by a noise map");
-            public static GUIContent noiseMapText = new GUIContent("Noise Map+Intensity", "The noise map to multiply against the alpha");
-            public static GUIContent noiseIntensityText = new GUIContent("Noise Intensity", "Drives a lerp between no noise and full noise mult");
-            public static GUIContent fresnelEnableText = new GUIContent("Use Fresnel Term", "Modify the opacity of the object by the facing ratio with camera");
-            public static GUIContent fresnelExponentText = new GUIContent("Fresnel Exponent", "Control over how much the object has to face camera to be fully opaque");
+            public static GUIContent softDepthText = new GUIContent("Soft Depth", "Controls how much to fade the particles as they approach a solid surface");
+            public static GUIContent lightingContributionText = new GUIContent("Lighting Contribution", "How much light from the light probes should be applied to the particles");
             public static GUIContent distortionEnableText = new GUIContent("Distortion", "Enable distortion on this shader");
             public static GUIContent distortionOnlyText = new GUIContent("Distortion Only", "This shader will only be use to render distortion");
             public static GUIContent distortionDepthTestText = new GUIContent("Distortion Depth Test", "Enable the depth test for distortion");
@@ -99,22 +93,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected const string kTransparentSortPriority = "_TransparentSortPriority";
         protected MaterialProperty doubleSidedEnable = null;
         protected const string kDoubleSidedEnable = "_DoubleSidedEnable";
-        protected MaterialProperty softDepthEnable = null;
-        protected const string kSoftDepthEnable = "_SoftDepthEnable";
-        protected MaterialProperty softDepthFactor = null;
-        protected const string kSoftDepthFactor = "_SoftDepthFactor";
-        protected MaterialProperty useVertexColor = null;
-        protected const string kUseVertexColor = "_UseVertexColor";
-        protected MaterialProperty fresnelEnable = null;
-        protected const string kFresnelEnable = "_FresnelEnable";
-        protected MaterialProperty fresnelExponent = null;
-        protected const string kFresnelExponent = "_FresnelExponent";
-        protected MaterialProperty noiseMapEnable = null;
-        protected const string kNoiseMapEnable = "_NoiseMapEnable";
-        protected MaterialProperty noiseMap = null;
-        protected const string kNoiseMap = "_NoiseMap";
-        protected MaterialProperty noiseIntensity = null;
-        protected const string kNoiseIntensity = "_NoiseIntensity";
+        protected MaterialProperty softDepthProp = null;
+        protected const string kSoftDepthProp = "_SoftDepthFactor";
+        protected MaterialProperty lightContrib = null;
+        protected const string kLightContrib = "_LightingContribution";
         protected MaterialProperty blendMode = null;
         protected const string kBlendMode = "_BlendMode";
         protected MaterialProperty distortionEnable = null;
@@ -186,16 +168,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             transparentSortPriority = FindProperty(kTransparentSortPriority, props, false);
 
             doubleSidedEnable = FindProperty(kDoubleSidedEnable, props, false);
-            softDepthEnable   = FindProperty(kSoftDepthEnable, props, false);
-            softDepthFactor   = FindProperty(kSoftDepthFactor, props, false);
-            useVertexColor    = FindProperty(kUseVertexColor, props, false);
-            fresnelEnable     = FindProperty(kFresnelEnable, props, false);
-            fresnelExponent   = FindProperty(kFresnelExponent, props, false);
-            noiseMapEnable    = FindProperty(kNoiseMapEnable, props, false);
-            noiseMap          = FindProperty(kNoiseMap, props, false);
-            noiseIntensity    = FindProperty(kNoiseIntensity, props, false);
-
             blendMode = FindProperty(kBlendMode, props, false);
+
+            softDepthProp = FindProperty(kSoftDepthProp, props, false);
+            lightContrib = FindProperty(kLightContrib, props, false);
 
             // Distortion is optional
             distortionEnable = FindProperty(kDistortionEnable, props, false);
@@ -268,8 +244,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     m_MaterialEditor.ShaderProperty(enableFogOnTransparent, StylesBaseUnlit.enableTransparentFogText);
                 if (preRefractionPass != null)
                     m_MaterialEditor.ShaderProperty(preRefractionPass, StylesBaseUnlit.transparentPrepassText);
+                if (softDepthProp != null)
+                    m_MaterialEditor.ShaderProperty(softDepthProp, StylesBaseUnlit.softDepthText);
                 EditorGUI.indentLevel--;
             }
+
+            if (lightContrib != null)
+                m_MaterialEditor.ShaderProperty(lightContrib, StylesBaseUnlit.lightingContributionText);
 
             if (alphaCutoffEnable != null)
                 m_MaterialEditor.ShaderProperty(alphaCutoffEnable, StylesBaseUnlit.alphaCutoffEnableText);
@@ -326,58 +307,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 }
             }
 
-            if (useVertexColor != null)
-            {
-                m_MaterialEditor.ShaderProperty(useVertexColor, StylesBaseUnlit.useVertexColorText);
-            }
-
-            if (softDepthEnable != null && ((SurfaceType)surfaceType.floatValue == SurfaceType.Transparent))
-            {
-                m_MaterialEditor.ShaderProperty(softDepthEnable, StylesBaseUnlit.softDepthEnableText);
-
-                if(softDepthEnable.floatValue == 1.0f)
-                {
-                    EditorGUI.indentLevel++;
-                    m_MaterialEditor.ShaderProperty(softDepthFactor, StylesBaseUnlit.softDepthFactorText);
-                    EditorGUI.indentLevel--;
-                }
-            }
             // This function must finish with double sided option (see LitUI.cs)
             if (doubleSidedEnable != null)
             {
                 m_MaterialEditor.ShaderProperty(doubleSidedEnable, StylesBaseUnlit.doubleSidedEnableText);
             }
 
-            if (fresnelEnable != null && ((SurfaceType)surfaceType.floatValue == SurfaceType.Transparent))
-            {
-                m_MaterialEditor.ShaderProperty(fresnelEnable, StylesBaseUnlit.fresnelEnableText);
-
-                if (fresnelEnable.floatValue == 1.0f)
-                {
-                    EditorGUI.indentLevel++;
-                    m_MaterialEditor.ShaderProperty(fresnelExponent, StylesBaseUnlit.fresnelExponentText);
-                    EditorGUI.indentLevel--;
-                }
-            }
-
             EditorGUI.indentLevel--;
-        }
-
-        protected void DoNoiseInputsGUI()
-        {
-            if (noiseMapEnable != null && ((SurfaceType)surfaceType.floatValue == SurfaceType.Transparent))
-            {
-                m_MaterialEditor.ShaderProperty(noiseMapEnable, StylesBaseUnlit.noiseMapEnableText);
-            }
-
-            if (noiseMapEnable.floatValue == 1.0f)
-            {
-                EditorGUI.indentLevel++;
-                m_MaterialEditor.TexturePropertySingleLine(StylesBaseUnlit.noiseMapText, noiseMap, noiseIntensity);
-                m_MaterialEditor.TextureScaleOffsetProperty(noiseMap);
-
-                EditorGUI.indentLevel--;
-            }
         }
 
         protected void DoDistortionInputsGUI()
@@ -422,12 +358,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             bool alphaTestEnable = material.HasProperty(kAlphaCutoffEnabled) && material.GetFloat(kAlphaCutoffEnabled) > 0.0f;
             CoreUtils.SetKeyword(material, "_ALPHATEST_ON", alphaTestEnable);
-
-            bool fresnelEnable = material.HasProperty(kFresnelEnable) && material.GetFloat(kFresnelEnable) > 0.0f;
-            CoreUtils.SetKeyword(material, "_USE_FRESNEL", fresnelEnable);
-            
-            bool oneMinusFresnel = material.HasProperty(kFresnelExponent) && material.GetFloat(kFresnelExponent) < 0.0f;
-            CoreUtils.SetKeyword(material, "_ONE_MINUS_FRESNEL", oneMinusFresnel);
 
             SurfaceType surfaceType = (SurfaceType)material.GetFloat(kSurfaceType);
             CoreUtils.SetKeyword(material, "_SURFACE_TYPE_TRANSPARENT", surfaceType == SurfaceType.Transparent);
@@ -541,7 +471,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                         material.SetInt("_DistortionBlurSrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
                         material.SetInt("_DistortionBlurDstBlend", (int)UnityEngine.Rendering.BlendMode.One);
                         material.SetInt("_DistortionBlurBlendOp", (int)UnityEngine.Rendering.BlendOp.Max);
-                        break;
+                            break;
 
                     case 1: // Multiply
                         material.SetInt("_DistortionSrcBlend", (int)UnityEngine.Rendering.BlendMode.DstColor);
@@ -575,9 +505,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             // A material's GI flag internally keeps track of whether emission is enabled at all, it's enabled but has no effect
             // or is enabled and may be modified at runtime. This state depends on the values of the current flag and emissive color.
             // The fixup routine makes sure that the material is in the correct state if/when changes are made to the mode or color.
-            if (material.HasProperty(kEmissionColor))
-                material.SetColor(kEmissionColor, Color.white); // kEmissionColor must always be white to allow our own material to control the GI (this allow to fallback from builtin unity to our system).
-                                                                // as it happen with old material that it isn't the case, we force it.
             MaterialEditor.FixupEmissiveFlag(material);
 
             // Commented out for now because unfortunately we used the hard coded property names used by the GI system for our own parameters

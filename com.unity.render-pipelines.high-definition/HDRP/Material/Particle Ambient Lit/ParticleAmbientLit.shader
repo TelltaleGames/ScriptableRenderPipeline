@@ -1,17 +1,14 @@
-Shader "HDRenderPipeline/FX/FX Unlit"
+Shader "HDRenderPipeline/FX/Particle Ambient Lit"
 {
     Properties
     {
-        // Versioning of material to help for upgrading
-        [HideInInspector] _HdrpVersion("_HdrpVersion", Float) = 1
-
         // Be careful, do not change the name here to _Color. It will conflict with the "fake" parameters (see end of properties) required for GI.
         _UnlitColor("Color", Color) = (1,1,1,1)
         _UnlitColorMap("ColorMap", 2D) = "white" {}
 
-        [HDR] _EmissiveColor("EmissiveColor", Color) = (0, 0, 0)
+        _EmissiveColor("EmissiveColor", Color) = (1, 1, 1)
         _EmissiveColorMap("EmissiveColorMap", 2D) = "white" {}
-
+        _EmissiveIntensity("EmissiveIntensity", Float) = 0
 
         _DistortionVectorMap("DistortionVectorMap", 2D) = "black" {}
         [ToggleUI] _DistortionEnable("Enable Distortion", Float) = 0.0
@@ -48,17 +45,8 @@ Shader "HDRenderPipeline/FX/FX Unlit"
 
         [ToggleUI] _EnableFogOnTransparent("Enable Fog", Float) = 0.0
         [ToggleUI] _DoubleSidedEnable("Double sided enable", Float) = 0.0
-
-        [ToggleUI] _SoftDepthEnable("Soft Depth Enable", Int) = 0.0
         _SoftDepthFactor("Soft Depth Factor", Range(0.0,1.0)) = 0.5
-
-        [ToggleUI] _UseVertexColor("Use Vertex Color", Int) = 1
-        [ToggleUI] _FresnelEnable("Fresnel enable", Int) = 1
-        _FresnelExponent("Fresnel Exponent", Range(-10.0,10.0)) = 0.0
-
-        [ToggleUI] _NoiseMapEnable("Noise Map enable", Int) = 1
-        _NoiseMap("ColorMap", 2D) = "white" {}
-        _NoiseIntensity("Noise Intensity", Range(0.0,1.0)) = 1.0
+        _LightingContribution("Lighting Contribution",Range(0.0,1.0)) = 1.0
 
         // Stencil state
         [HideInInspector] _StencilRef("_StencilRef", Int) = 2 // StencilLightingUsage.RegularLighting  (fixed at compile time)
@@ -81,16 +69,12 @@ Shader "HDRenderPipeline/FX/FX Unlit"
     HLSLINCLUDE
 
     #pragma target 4.5
-    #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
+    #pragma only_renderers d3d11 ps4 xboxone vulkan metal
 
     //-------------------------------------------------------------------------------------
     // Variant
     //-------------------------------------------------------------------------------------
 
-
-    // Enable Fresnel
-    #pragma shader_feature _USE_FRESNEL
-    #pragma shader_feature _ONE_MINUS_FRESNEL
 
     #pragma shader_feature _ALPHATEST_ON
     // #pragma shader_feature _DOUBLESIDED_ON - We have no lighting, so no need to have this combination for shader, the option will just disable backface culling
@@ -103,7 +87,8 @@ Shader "HDRenderPipeline/FX/FX Unlit"
     #pragma shader_feature _ENABLE_FOG_ON_TRANSPARENT
 
     //enable GPU instancing support
-    #pragma multi_compile_instancing
+    #pragma multi_compile_particles
+    //#pragma multi_compile_instancing
 
     //-------------------------------------------------------------------------------------
     // Define
@@ -124,7 +109,7 @@ Shader "HDRenderPipeline/FX/FX Unlit"
     // variable declaration
     //-------------------------------------------------------------------------------------
 
-    #include "../../Material/UnlitFX/UnlitFXProperties.hlsl"
+    #include "ParticleAmbientLitProperties.hlsl"
 
     // All our shaders use same name for entry point
     #pragma vertex Vert
@@ -139,29 +124,8 @@ Shader "HDRenderPipeline/FX/FX Unlit"
 
         // Caution: The outline selection in the editor use the vertex shader/hull/domain shader of the first pass declare. So it should not be the meta pass.
 
-        Pass
-        {
-            Name "SceneSelectionPass"
-            Tags{ "LightMode" = "SceneSelectionPass" }
-
-            Cull[_CullMode]
-
-            ZWrite On
-
-            HLSLPROGRAM
-
-            // Note: Require _ObjectId and _PassValue variables
-
-            #define SHADERPASS SHADERPASS_DEPTH_ONLY
-            #define SCENESELECTIONPASS // This will drive the output of the scene selection shader
-            #include "../../Material/Material.hlsl"
-            #include "../Unlit/ShaderPass/UnlitDepthPass.hlsl"
-            #include "UnlitFXData.hlsl"
-            #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
-
-            ENDHLSL
-        }
-
+        // TODO: add toggle for opaque particles to render to depth buffer
+/*
         Pass
         {
             Name "Depth prepass"
@@ -171,19 +135,17 @@ Shader "HDRenderPipeline/FX/FX Unlit"
 
             ZWrite On
 
-            ColorMask 0 // We don't have WRITE_NORMAL_BUFFER for unlit, but as we bind a buffer we shouldn't write into it.
-
             HLSLPROGRAM
 
             #define SHADERPASS SHADERPASS_DEPTH_ONLY
             #include "../../Material/Material.hlsl"
-            #include "../Unlit/ShaderPass/UnlitDepthPass.hlsl"
-            #include "UnlitFXData.hlsl"
+            #include "../UnlitFX/ShaderPass/UnlitFXDepthPass.hlsl"
+            #include "ParticleAmbientLitData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
         }
-
+*/
         // Unlit shader always render in forward
         Pass
         {
@@ -204,8 +166,8 @@ Shader "HDRenderPipeline/FX/FX Unlit"
 
             #define SHADERPASS SHADERPASS_FORWARD_UNLIT
             #include "../../Material/Material.hlsl"
-            #include "ShaderPass/UnlitFXSharePass.hlsl"
-            #include "UnlitFXData.hlsl"
+            #include "ShaderPass/ParticleAmbientLitSharePass.hlsl"
+            #include "ParticleAmbientLitData.hlsl"
             #include "../../ShaderPass/ShaderPassForwardUnlit.hlsl"
 
             ENDHLSL
@@ -228,8 +190,8 @@ Shader "HDRenderPipeline/FX/FX Unlit"
 
             #define SHADERPASS SHADERPASS_LIGHT_TRANSPORT
             #include "../../Material/Material.hlsl"
-            #include "ShaderPass/UnlitFXSharePass.hlsl"
-            #include "UnlitFXData.hlsl"
+            #include "ShaderPass/ParticleAmbientLitSharePass.hlsl"
+            #include "ParticleAmbientLitData.hlsl"
             #include "../../ShaderPass/ShaderPassLightTransport.hlsl"
 
             ENDHLSL
@@ -250,13 +212,13 @@ Shader "HDRenderPipeline/FX/FX Unlit"
 
             #define SHADERPASS SHADERPASS_DISTORTION
             #include "../../Material/Material.hlsl"
-            #include "../Unlit/ShaderPass/UnlitDistortionPass.hlsl"
-            #include "UnlitFXData.hlsl"
+            #include "../UnlitFX/ShaderPass/UnlitFXDistortionPass.hlsl"
+            #include "ParticleAmbientLitData.hlsl"
             #include "../../ShaderPass/ShaderPassDistortion.hlsl"
 
             ENDHLSL
         }
     }
 
-    CustomEditor "Experimental.Rendering.HDPipeline.UnlitFXGUI"
+    CustomEditor "Experimental.Rendering.HDPipeline.AmbientLitGUI"
 }

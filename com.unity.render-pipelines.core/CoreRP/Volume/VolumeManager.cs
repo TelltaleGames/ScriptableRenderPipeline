@@ -227,6 +227,8 @@ namespace UnityEngine.Experimental.Rendering
             CheckBaseTypes();
             CheckStack(stack);
 
+            stack.lastTrigger = trigger;
+
             // Start by resetting the global state to default values
             ReplaceData(stack, m_ComponentsDefaultState);
 
