@@ -81,6 +81,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 newAsset.volumetricLightingCS = Load<ComputeShader>(HDRenderPipelinePath + "Lighting/Volumetrics/Resources/VolumetricLighting.compute");
 
                 newAsset.telltaleContactShadowComputeShader = Load<ComputeShader>(HDRenderPipelinePath + "Lighting/TelltaleContactShadow.compute");
+                newAsset.telltaleSeparableBlurShader = Load<Shader>(HDRenderPipelinePath + "RenderPipelineResources/TelltaleSeparableBlur.shader");
 
                 newAsset.subsurfaceScatteringCS = Load<ComputeShader>(HDRenderPipelinePath + "Material/SubsurfaceScattering/SubsurfaceScattering.compute");
                 newAsset.subsurfaceScattering = Load<Shader>(HDRenderPipelinePath + "Material/SubsurfaceScattering/SubsurfaceScattering.shader");
