@@ -2471,11 +2471,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 if (m_TelltaleContactShadowBlurMaterial == null)
                 {
-                    if (telltaleSeparableBlurShader == null)
-                    {
-                        // Debug.LogWarning("Telltale separable blur shader not set in Render Pipeline Resources. Contact shadows will NOT be blurred.");
-                    }
-                    else
+                    if (telltaleSeparableBlurShader != null)
                     {
                         m_TelltaleContactShadowBlurMaterial = new Material(telltaleSeparableBlurShader) { hideFlags = HideFlags.HideAndDontSave };
                         m_TelltaleContactShadowBlurMaterial.SetInt("_SampleRadius", Mathf.Clamp(shadowSettings.blurSampleRadius, 0, 5));
