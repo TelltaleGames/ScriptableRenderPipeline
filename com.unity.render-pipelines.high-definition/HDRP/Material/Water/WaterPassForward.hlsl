@@ -51,14 +51,17 @@ void Frag(PackedVaryingsToPS packedInput,
     SurfaceData surfaceData;
     BuiltinData builtinData;
     GetSurfaceAndBuiltinData(input, V, posInput, surfaceData, builtinData);
-    float presence = builtinData.emissiveIntensity;
-    builtinData.emissiveIntensity = 0.0;
+
+    // TODO Brandon: builtinData no longer has emissiveIntensity, need another way to pass in presence.
+    // float presence = builtinData.emissiveIntensity;
+    // builtinData.emissiveIntensity = 0.0;
+    float presence = 0.5f;
 
 #ifdef DEBUG_DISPLAY
     ApplyDebugToSurfaceData(input.worldToTangent, surfaceData);
 #endif
 
-    BSDFData bsdfData = ConvertSurfaceDataToBSDFData(surfaceData);
+    BSDFData bsdfData = ConvertSurfaceDataToBSDFData(input.positionSS.xy, surfaceData);
 
     PreLightData preLightData = GetPreLightData(V, posInput, bsdfData);
 
