@@ -7,6 +7,7 @@ using UnityEngine.Experimental.Rendering.HDPipeline;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
+    // Telltale folks: Don't cut and past this preprocessor. Instead, cut and paste one from another shader based on Unlit. SkyDomeUnlitShaderPreprocessor.cs for example.
     public class UnlitShaderPreprocessor : BaseShaderPreprocessor
     {
         bool UnlitShaderStripper(HDRenderPipelineAsset hdrpAsset, Shader shader, ShaderSnippetData snippet, ShaderCompilerData inputData)

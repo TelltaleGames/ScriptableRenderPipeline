@@ -10,11 +10,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
     public class LitThresholdBurnShaderPreprocessor : LitShaderPreprocessor
     {
-        public LitThresholdBurnShaderPreprocessor()
-        {
-            m_WriteNormalBuffer = new ShaderKeyword("WRITE_NORMAL_BUFFER");
-        }
-
         bool LitThresholdBurnShaderStripper(HDRenderPipelineAsset hdrpAsset, Shader shader, ShaderSnippetData snippet, ShaderCompilerData inputData)
         {
             if (LitShaderStripper(hdrpAsset, shader, snippet, inputData))

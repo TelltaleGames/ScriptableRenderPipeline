@@ -8,6 +8,7 @@ using UnityEngine.Experimental.Rendering.HDPipeline;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
+    // Telltale folks: Don't cut and past this preprocessor. Instead, cut and paste one from another shader based on Lit. CharacterLitShaderPreprocessor.cs for example.
     public class LitShaderPreprocessor : BaseShaderPreprocessor
     {
         protected ShaderKeyword m_WriteNormalBuffer;

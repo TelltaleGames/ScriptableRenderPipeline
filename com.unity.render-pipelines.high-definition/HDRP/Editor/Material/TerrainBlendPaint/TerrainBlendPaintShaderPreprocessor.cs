@@ -8,9 +8,9 @@ using UnityEngine.Experimental.Rendering.HDPipeline;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    public class CharacterLitShaderPreprocessor : LitShaderPreprocessor
+    public class TerrainBlendPaintShaderPreprocessor : LitShaderPreprocessor
     {
-        protected bool CharacterLitShaderStripper(HDRenderPipelineAsset hdrpAsset, Shader shader, ShaderSnippetData snippet, ShaderCompilerData inputData)
+        protected bool TerrainBlendPaintShaderStripper(HDRenderPipelineAsset hdrpAsset, Shader shader, ShaderSnippetData snippet, ShaderCompilerData inputData)
         {
             if (LitShaderStripper(hdrpAsset, shader, snippet, inputData))
             {
@@ -25,7 +25,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public override void AddStripperFuncs(Dictionary<string, VariantStrippingFunc> stripperFuncs)
         {
             // Add name of the shader and corresponding delegate to call to strip variant
-            stripperFuncs.Add("HDRenderPipeline/CharacterLit", CharacterLitShaderStripper);
+            stripperFuncs.Add("HDRenderPipeline/TerrainBlendPaint", TerrainBlendPaintShaderStripper);
         }
     }
 }
