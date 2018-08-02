@@ -201,9 +201,9 @@ void CONTACT_SHADOW(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_G
 {
 	uint2 pixelCoord = groupId * DEFERRED_SHADOW_TILE_SIZE + groupThreadId;
     float maskIdFloat = _TelltaleShadowMaskIds[pixelCoord];
+    int maskId = (int)(maskIdFloat * 255.0f + 0.5f);
 
 #if !OUTPUT_MASK_IDS
-    int maskId = (int)(maskIdFloat * 255.0f + 0.5f);
     if (maskId == 0)
     {
         return;
@@ -216,7 +216,7 @@ void CONTACT_SHADOW(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_G
     }
 
     uint2 tileCoord = groupId;
-    PositionInputs posInput = GetPositionInput(pixelCoord.xy, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, UNITY_MATRIX_VP, tileCoord);
+    PositionInputs posInput = GetPositionInput(pixelCoord.xy, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, UNITY_MATRIX_V, tileCoord);
 
     NormalData normalData;
     DecodeFromNormalBuffer(posInput.positionSS, normalData);
