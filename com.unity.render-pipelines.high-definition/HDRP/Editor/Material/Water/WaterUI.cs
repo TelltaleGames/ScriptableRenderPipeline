@@ -943,7 +943,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             //CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_TRANSMISSIONPROBE", materialId == BaseLitGUI.MaterialId.LitTransmissionProbe);
             //BaseLitGUI.TransmissionProbeOrientation probeOrientation = (BaseLitGUI.TransmissionProbeOrientation)material.GetFloat(kTransmissionProbeOrientation);
-            var probeOrientation = (BaseLitGUI.TransmissionProbeOrientation)material.GetFloat(kTransmissionProbeOrientation);
+            //var probeOrientation = (BaseLitGUI.TransmissionProbeOrientation)material.GetFloat(kTransmissionProbeOrientation);
             //CoreUtils.SetKeyword(material, "_TRANSMISSION_PROBE_ORIENTATION", probeOrientation == BaseLitGUI.TransmissionProbeOrientation.Local);
 
             // No material Id for clear coat, just test the attribute
