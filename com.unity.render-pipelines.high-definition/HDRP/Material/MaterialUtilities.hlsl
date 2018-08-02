@@ -147,7 +147,7 @@ void GetNormalWS(FragInputs input, float3 V, float3 normalTS, out float3 normalW
 
 float applySoftDepth(FragInputs input, float softDepthFactor)
 {
-    float sceneDepth = LinearEyeDepth(LOAD_TEXTURE2D(_MainDepthTexture, input.positionSS.xy).x,_ZBufferParams);    
+    float sceneDepth = LinearEyeDepth(LOAD_TEXTURE2D(_CameraDepthTexture, input.positionSS.xy).x,_ZBufferParams);
     float diff = abs(sceneDepth - input.positionSS.w) / softDepthFactor;
 
     return saturate(diff);
