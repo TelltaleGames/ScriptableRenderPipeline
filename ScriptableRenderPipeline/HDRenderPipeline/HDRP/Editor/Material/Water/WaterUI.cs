@@ -23,10 +23,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent maskMapSText = new GUIContent("Mask Map - M(R), AO(G), D(B), S(A)", "Mask map");
             public static GUIContent maskMapSpecularText = new GUIContent("Mask Map - AO(G), D(B), S(A)", "Mask map");
 
-            public static GUIContent shorelineMapText = new GUIContent("Shoreline", "Gradient (R) and Strength(A) for shoreline waves");
             public static GUIContent normalMapText = new GUIContent("Wave Normal Map", "Normal Map (BC7/BC5/DXT5(nm))");
             public static GUIContent normalMapScrollText = new GUIContent("Wave Scrolling", "Direction (x,z) and Speed (w)");
             public static GUIContent normalFrequencyText = new GUIContent("Frequency", "Repetition over uv space");
+
+            public static GUIContent shorelineMapText = new GUIContent("Shoreline Map", "Gradient (R) and Strength(A) for shoreline waves");
+            public static GUIContent shorelineWaveHeightText = new GUIContent("Wave Height", "Normal Intensity");
+            public static GUIContent shorelineWaveFrequencyText = new GUIContent("Wave Frequency", "Frequency of shoreline wave sin() function");
+            public static GUIContent shorelineWaveSpeedText = new GUIContent("Wave Speed", "Speed of shorline waves");
+            public static GUIContent shorelineWaveDistanceText = new GUIContent("Wave Distance", "Maximum distance at which shoreline waves fade away");
+            public static GUIContent foamMapText = new GUIContent("Foam Map", "Foam texture for shoreline & wave peaks");
 
             //public static GUIContent bentNormalMapText = new GUIContent("Bent normal map", "Use only with indirect diffuse lighting (Lightmap/lightprobe) - Cosine weighted Bent Normal Map (average unoccluded direction) (BC7/BC5/DXT5(nm))");
 
@@ -160,8 +166,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected MaterialProperty[] maskMap = new MaterialProperty[kMaxLayerCount];
         protected const string kMaskMap = "_MaskMap";
 
-        protected MaterialProperty shorelineMap = null;
-        protected const string kShorelineMap = "_ShorelineMap";
         protected MaterialProperty normalScale1 = null;
         protected const string kNormalScale1 = "_NormalScale1";
         protected MaterialProperty normalScale2 = null;
@@ -176,8 +180,20 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected const string kNormalMap2 = "_NormalMap2";
         protected MaterialProperty normalMap2Vec = null;
         protected const string kNormalMap2Vec = "_NormalMap2Vec";
-        //protected MaterialProperty[] bentNormalMap = new MaterialProperty[kMaxLayerCount];
-        //protected const string kBentNormalMap = "_BentNormalMap";
+
+        protected MaterialProperty shorelineMap = null;
+        protected const string kShorelineMap = "_ShorelineMap";
+        protected MaterialProperty shorelineWaveHeight = null;
+        protected const string kShorelineWaveHeight = "_ShorelineWaveHeight";
+        protected MaterialProperty shorelineWaveFrequency = null;
+        protected const string kShorelineWaveFrequency = "_ShorelineWaveFrequency";
+        protected MaterialProperty shorelineWaveSpeed = null;
+        protected const string kShorelineWaveSpeed = "_ShorelineWaveSpeed";
+        protected MaterialProperty shorelineWaveDistance = null;
+        protected const string kShorelineWaveDistance = "_ShorelineWaveDistance";
+        protected MaterialProperty foamMap = null;
+        protected const string kFoamMap = "_FoamMap";
+
 
         protected MaterialProperty[] heightMap = new MaterialProperty[kMaxLayerCount];
         protected const string kHeightMap = "_HeightMap";
@@ -375,10 +391,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             normalScale1 = FindProperty(kNormalScale1, props);
             normalScale2 = FindProperty(kNormalScale2, props);
             normalFrequency = FindProperty(kNormalFrequency, props);
-            shorelineMap = FindProperty(kShorelineMap, props);
-
             murkDensity = FindProperty(kMurkDensity, props);
             softDepth = FindProperty(kSoftDepth, props);
+
+            shorelineMap = FindProperty(kShorelineMap, props);
+            shorelineWaveHeight = FindProperty(kShorelineWaveHeight, props);
+            shorelineWaveFrequency = FindProperty(kShorelineWaveFrequency, props);
+            shorelineWaveSpeed = FindProperty(kShorelineWaveSpeed, props);
+            shorelineWaveDistance = FindProperty(kShorelineWaveDistance, props);
+            foamMap = FindProperty(kFoamMap, props);
 
             // Flow
             tangentFlowMap = FindProperty(kTangentFlowMap, props);
@@ -720,7 +741,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     InvTilingScale[layerIndex].floatValue = InvTilingScale[layerIndex].floatValue / TexWorldScale[layerIndex].floatValue;
                 }
             }
-
             EditorGUI.indentLevel--;
             EditorGUILayout.Space();
 
@@ -731,12 +751,26 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_MaterialEditor.TexturePropertySingleLine(Styles.normalMapText, normalMap2, normalScale2);
             m_MaterialEditor.ShaderProperty(normalMap2Vec, Styles.normalMapScrollText);
             m_MaterialEditor.ShaderProperty(normalFrequency, Styles.normalFrequencyText);
-            m_MaterialEditor.TexturePropertySingleLine(Styles.shorelineMapText, shorelineMap);
-
             EditorGUI.indentLevel--;
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField(Styles.detailText, EditorStyles.boldLabel);
 
+            EditorGUILayout.LabelField("Shoreline Waves", EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+            m_MaterialEditor.TexturePropertySingleLine(Styles.shorelineMapText, shorelineMap);
+            m_MaterialEditor.ShaderProperty(shorelineWaveHeight, Styles.shorelineWaveHeightText);
+            m_MaterialEditor.ShaderProperty(shorelineWaveFrequency, Styles.shorelineWaveFrequencyText);
+            m_MaterialEditor.ShaderProperty(shorelineWaveSpeed, Styles.shorelineWaveSpeedText);
+            m_MaterialEditor.ShaderProperty(shorelineWaveDistance, Styles.shorelineWaveDistanceText);
+            EditorGUI.indentLevel--;
+            EditorGUILayout.Space();
+
+            EditorGUILayout.LabelField("Foam", EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+            m_MaterialEditor.TexturePropertySingleLine(Styles.foamMapText, foamMap);
+            EditorGUI.indentLevel--;
+            EditorGUILayout.Space();
+
+            EditorGUILayout.LabelField(Styles.detailText, EditorStyles.boldLabel);
             EditorGUI.indentLevel++;
             m_MaterialEditor.TexturePropertySingleLine(Styles.detailMapNormalText, detailMap[layerIndex]);
 

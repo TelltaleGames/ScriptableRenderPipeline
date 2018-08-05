@@ -211,7 +211,7 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
 
     // Caution: surfaceData must be fully initialize before calling GetBuiltinData
     GetBuiltinData(input, surfaceData, alpha, bentNormalWS, depthOffset, builtinData);
-    builtinData.emissiveIntensity = presence;
+    surfaceData.metallic = presence;
 
 }
 

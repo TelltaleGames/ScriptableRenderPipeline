@@ -49,9 +49,9 @@ float inScreen(float2 v) {
 // Return 1.0 if occluded 0.0 if not
 float ScreenSpaceShadowRayCast(float3 positionWS, float3 rayDirection, float rayLength, float linearDepth, int maskId)
 {
-	uint3 hashInput = uint3(abs(GetAbsolutePositionWS(positionWS)) * 100000 * _Time.x);
+	uint3 hashInput = uint3(abs(GetAbsolutePositionWS(positionWS)) * 10000);
 	// Dither pattern is shifted by 0.5 because we want to jitter the ray starting position backward and forward (so we need values between -0.5 and 0.5)
-	float ditherBias = 0.5;
+	float ditherBias = 0.0;
 	float dither = GenerateHashedRandomFloat(hashInput) - ditherBias;
 
 	float3 rayStartWS = positionWS;
@@ -98,7 +98,7 @@ float ScreenSpaceShadowRayCast(float3 positionWS, float3 rayDirection, float ray
     //bias = lerp(bias, 0.001, remapLinDepth);
 
     float remapLinDepth = saturate(linearDepth);
-    float bias = lerp(0.002, 0.00015, remapLinDepth);
+    float bias = lerp(0.001, 0.0001, remapLinDepth);
     
 
 	for (int i = 0; i < _SampleCount; i++)
@@ -130,7 +130,7 @@ float ScreenSpaceShadowRayCast(float3 positionWS, float3 rayDirection, float ray
 
             bool Hit = false;
             float depthDiff = sampleDepth - raySampleDepth;
-            Hit = depthDiff < compareThreshold && depthDiff > bias;// 1e-4;
+            Hit = depthDiff > bias;// 1e-4;
 
             if (Hit)
             {
@@ -151,13 +151,13 @@ float ScreenSpaceShadowRayCast(float3 positionWS, float3 rayDirection, float ray
 // Returns a value representing brightness: 0 = occluded, 1 = lit
 float EvaluateShadowForLight(float3 lightDirection, float shadowWeight, int maskId, PositionInputs posInput)
 {
-    if (shadowWeight != 0)
+    if (shadowWeight > 0)
     {
     	float occluded = shadowWeight * ScreenSpaceShadowRayCast(posInput.positionWS, lightDirection, .15, posInput.linearDepth, maskId);
 
-        float distFade = saturate((4 - posInput.linearDepth) * 1);
-        distFade = 1.0 - saturate(1.0 / (posInput.linearDepth * 5.0));
-        return 1.0 - occluded * distFade;
+        //float distFade = saturate((4 - posInput.linearDepth) * 1);
+        //distFade = 1.0 - saturate(1.0 / (posInput.linearDepth * 5.0));
+        return 1.0 - occluded;// *distFade;
     }
     else
     {

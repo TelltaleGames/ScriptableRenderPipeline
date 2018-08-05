@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine.Experimental.Rendering.HDPipeline.Internal;
 using UnityEngine.Rendering;
@@ -23,8 +23,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public float distanceScaleFactor = 1.0f;
         public float maxDistance = 5.0f;
         public float fadeDistance = 1.0f;
-        public int sampleCount = 4;
-        public int blurSampleRadius = 2; // Max of 5 (higher values ignored) - 3 matches legacy setting in T3, but even 1 looks pretty good with TXAA
+        public int sampleCount = 6;
+        public int blurSampleRadius = 3; // Max of 5 (higher values ignored) - 3 matches legacy setting in T3, but even 1 looks pretty good with TXAA
 
         public ComputeBuffer lightBuffer;
     }

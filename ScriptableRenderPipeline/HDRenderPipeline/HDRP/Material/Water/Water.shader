@@ -19,7 +19,6 @@ Shader "HDRenderPipeline/Water"
         _AORemapMin("AORemapMin", Float) = 0.0
         _AORemapMax("AORemapMax", Float) = 1.0
 
-        _ShorelineMap("ShorelineMap", 2D) = "white" {}
         _NormalMap1("NormalMap1", 2D) = "bump" {}     // Tangent space normal map
         _NormalMap2("NormalMap2", 2D) = "bump" {}     // Tangent space normal map
         _NormalMap1Vec("Normal Map Scrolling (x-z + speed)", Vector) = (1,0,0,1)
@@ -28,7 +27,12 @@ Shader "HDRenderPipeline/Water"
         _NormalScale2("_NormalScale2", Range(0.0, 2.0)) = 1
         _NormalFrequency("Normal Frequency", Float) = 10
 
-        //_BentNormalMap("_BentNormalMap", 2D) = "bump" {}
+        _ShorelineMap("ShorelineMap", 2D) = "white" {}
+        _FoamMap("FoamMap", 2D) = "black" {}
+        _ShorelineWaveHeight("ShorelineWaveHeight", Float) = 0.1
+        _ShorelineWaveFrequency("ShorelineWaveHeight", Float) = 200
+        _ShorelineWaveSpeed("ShorelineWaveSpeed", Float) = 5.0
+        _ShorelineWaveDistance("ShorelineWaveDistance", Float) = 50.0
 
         _HeightMap("HeightMap", 2D) = "black" {}
         // Caution: Default value of _HeightAmplitude must be (_HeightMax - _HeightMin) * 0.01

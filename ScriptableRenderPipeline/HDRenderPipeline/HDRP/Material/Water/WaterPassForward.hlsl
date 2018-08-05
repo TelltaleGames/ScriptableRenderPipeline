@@ -51,8 +51,8 @@ void Frag(PackedVaryingsToPS packedInput,
     SurfaceData surfaceData;
     BuiltinData builtinData;
     GetSurfaceAndBuiltinData(input, V, posInput, surfaceData, builtinData);
-    float presence = builtinData.emissiveIntensity;
-    builtinData.emissiveIntensity = 0.0;
+    float presence = surfaceData.metallic;
+    surfaceData.metallic = 0.0;
 
 #ifdef DEBUG_DISPLAY
     ApplyDebugToSurfaceData(input.worldToTangent, surfaceData);
