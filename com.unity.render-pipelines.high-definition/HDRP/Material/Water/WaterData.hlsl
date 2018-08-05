@@ -216,8 +216,8 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
 
     // Caution: surfaceData must be fully initialize before calling GetBuiltinData
     GetBuiltinData(input, surfaceData, alpha, bentNormalWS, depthOffset, builtinData);
-    builtinData.emissiveIntensity = presence;
-
+    // TODO Brandon: builtinData no longer has emissiveIntensity, need another way to pass in presence.
+    // builtinData.emissiveIntensity = presence;
 }
 
 #include "../Lit/LitDataMeshModification.hlsl"

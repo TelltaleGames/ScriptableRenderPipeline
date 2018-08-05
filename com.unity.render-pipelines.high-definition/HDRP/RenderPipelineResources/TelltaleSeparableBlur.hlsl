@@ -24,8 +24,8 @@ TEXTURE2D(_MainTex);
 SAMPLER(sampler_MainTex);
 float4 _MainTex_TexelSize;
 
-TEXTURE2D(_MainDepthTexture); 
-SAMPLER(sampler_MainDepthTexture);
+TEXTURE2D(_CameraDepthTexture);
+SAMPLER(sampler_CameraDepthTexture);
 
 sampler2D _SecondTex;
 float _Blend;
@@ -36,7 +36,7 @@ int _SampleRadius;
 half4 ApplyFilter(float2 texelPosition, float2 direction)
 {
     half4 baseShadow = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, texelPosition);
-    float baseDepth = SAMPLE_TEXTURE2D(_MainDepthTexture, sampler_MainDepthTexture, texelPosition).x;
+    float baseDepth = SAMPLE_TEXTURE2D(_CameraDepthTexture, sampler_CameraDepthTexture, texelPosition).x;
 
     float4 totalValue = baseShadow;
     float totalWeight = 1.0f;
@@ -51,7 +51,7 @@ half4 ApplyFilter(float2 texelPosition, float2 direction)
 
             // TODO: pack depth into shadow alpha, save a lookup?
             half4 sampleShadow = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, samplePosition);
-            float sampleDepth = SAMPLE_TEXTURE2D(_MainDepthTexture, sampler_MainDepthTexture, samplePosition).x;
+            float sampleDepth = SAMPLE_TEXTURE2D(_CameraDepthTexture, sampler_CameraDepthTexture, samplePosition).x;
 
             float sampleWeight = saturate(1.0f - abs(baseDepth - sampleDepth) * 100.0f);
 

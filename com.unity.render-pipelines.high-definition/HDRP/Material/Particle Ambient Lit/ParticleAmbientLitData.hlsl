@@ -12,7 +12,7 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     surfaceData.color *= input.color.rgb;
     alpha             *= input.color.a;
 
-    float sceneDepth = LinearEyeDepth(LOAD_TEXTURE2D(_MainDepthTexture, input.positionSS.xy).x,_ZBufferParams);    
+    float sceneDepth = LinearEyeDepth(LOAD_TEXTURE2D(_CameraDepthTexture, input.positionSS.xy).x,_ZBufferParams);
     float diff = abs(sceneDepth - input.positionSS.w) / _SoftDepthFactor;
 
     alpha *= saturate(diff);
@@ -31,14 +31,11 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     float3 bakedGI = SampleBakedGI(input.positionWS, input.worldToTangent[2], input.texCoord1, input.texCoord2);
     surfaceData.color = lerp(surfaceData.color, surfaceData.color * bakedGI, _LightingContribution);
 
-    // Emissive Intensity is only use here, but is part of BuiltinData to enforce UI parameters as we want the users to fill one color and one intensity
-    builtinData.emissiveIntensity = _EmissiveIntensity;
-
 #ifdef _EMISSIVE_COLOR_MAP
-    builtinData.emissiveColor = SAMPLE_TEXTURE2D(_EmissiveColorMap, sampler_EmissiveColorMap, TRANSFORM_TEX(input.texCoord0, _EmissiveColorMap)).rgb * _EmissiveColor * builtinData.emissiveIntensity;
+    builtinData.emissiveColor = SAMPLE_TEXTURE2D(_EmissiveColorMap, sampler_EmissiveColorMap, TRANSFORM_TEX(input.texCoord0, _EmissiveColorMap)).rgb * _EmissiveColor;
 #else
 
-    builtinData.emissiveColor = _EmissiveColor * builtinData.emissiveIntensity;
+    builtinData.emissiveColor = _EmissiveColor;
 #endif
 
     builtinData.velocity = float2(0.0, 0.0);

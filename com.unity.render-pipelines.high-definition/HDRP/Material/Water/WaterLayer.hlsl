@@ -113,7 +113,7 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
 {
     float alpha = SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_BaseColorMap), ADD_ZERO_IDX(sampler_BaseColorMap), ADD_IDX(layerTexCoord.base)).a * ADD_IDX(_BaseColor).a;
 
-    float linearEyeDepth = LinearEyeDepth(LOAD_TEXTURE2D(_MainDepthTexture, input.positionSS.xy).x,_ZBufferParams);
+    float linearEyeDepth = LinearEyeDepth(LOAD_TEXTURE2D(_CameraDepthTexture, input.positionSS.xy).x,_ZBufferParams);
     float waterDepth = abs(linearEyeDepth - input.positionSS.w);
     float density = max(_MurkDensity,0.0);
     //alpha = saturate(waterDepth/density);

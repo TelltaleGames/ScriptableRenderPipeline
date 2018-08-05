@@ -458,7 +458,7 @@ Shader "HDRenderPipeline/Water"
             #include "../../Material/Material.hlsl"
 
             #ifdef WRITE_NORMAL_BUFFER // If enabled we need all regular interpolator
-            #include "../Lit/SShaderPass/LitSharePass.hlsl"
+            #include "../Lit/ShaderPass/LitSharePass.hlsl"
             #else
             #include "../Lit/ShaderPass/LitDepthPass.hlsl"
             #endif
