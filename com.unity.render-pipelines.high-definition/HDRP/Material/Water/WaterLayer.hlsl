@@ -1,3 +1,12 @@
+
+float ADD_IDX(fakeCos)(float input)
+{
+    float t = input * 0.15915; // div by 2PI
+    float saw = abs(((t)-(floor(t)))*2.0-1.0);
+    float saw2 = saw*saw;
+    return 3.0*saw2 - 2.0*saw*saw2;
+}
+
 void ADD_IDX(ComputeLayerTexCoord)( // Uv related parameters
                                     float2 texCoord0, float2 texCoord1, float2 texCoord2, float2 texCoord3, float4 uvMappingMask, float4 uvMappingMaskDetails,
                                     // scale and bias for base and detail + global tiling factor (for layered lit only)
@@ -145,18 +154,31 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
 
     surfaceData.baseColor = SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_BaseColorMap), ADD_ZERO_IDX(sampler_BaseColorMap), ADD_IDX(layerTexCoord.base)).rgb * ADD_IDX(_BaseColor).rgb;
     float3 shorewaveMap = SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_ShorelineMap), ADD_ZERO_IDX(sampler_ShorelineMap), ADD_IDX(layerTexCoord.base)).rgb;
-    float shorewaveWeight = saturate( 1-2.2*(abs(shorewaveMap.b-0.5)) );
+    float shorewaveWeight = saturate(1.0-2.1*abs(shorewaveMap.b-0.3));
+    shorewaveWeight *= shorewaveWeight;
     shorewaveWeight *= SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_ShorelineMap), ADD_ZERO_IDX(sampler_ShorelineMap), ADD_IDX(layerTexCoord.base)).a;
-    float shorewaveSpeed = 5.0;
-    float shorewaves = sin(_Time.y * shorewaveSpeed + shorewaveMap.b * 100.0);
-    shorewaves *= shorewaveWeight;
-    //surfaceData.baseColor = float3(shorewaves,shorewaves,shorewaves);
-/*
+    float shorewaves = fakeCos(_Time.y * _ShorelineWaveSpeed + shorewaveMap.b * _ShorelineWaveFrequency);
+    float shorewavePeaks = fakeCos(_Time.y * _ShorelineWaveSpeed + shorewaveMap.b * _ShorelineWaveFrequency - 0.785/*PI/4*/);
+    float shorewave_distance_falloff = 1.0 - saturate(input.positionSS.w / _ShorelineWaveDistance);
+    shorewaves *= shorewaveWeight * shorewave_distance_falloff;
+    shorewavePeaks *= shorewavePeaks * shorewaveWeight * shorewave_distance_falloff;
+
+    // foam
+    float _FoamFrequency = 150.0;
+    UVMapping foam_uv = layerTexCoord.base;
+    foam_uv.uv = layerTexCoord.base.uv * _FoamFrequency + _Time.y*float2(0.1,0);
+    float foam = SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_FoamMap), ADD_ZERO_IDX(sampler_FoamMap), ADD_IDX(foam_uv)).r;
+    //foam = lerp(foam, foam*shorewaveWeight,0.25);
+    foam = lerp(foam, foam*shorewavePeaks,0.5);
+    //foam += 0.1*shorewavePeaks;
+    float foamThreshold = (1.0-shorewaveWeight)*(1.0-shorewavePeaks)*(1.0-shorewavePeaks);
+    foam = saturate((foam-foamThreshold)*5 + foamThreshold);
+
+    surfaceData.baseColor = lerp(surfaceData.baseColor, float3(1.0,1.0,1.0), foam);
+    alpha = lerp(alpha,1.0,foam);
+
     // offsetting the normal for the shoreline waves.  Totally getting the wrong result here...
-    normalTS = float3(-1+2*shorewaveMap.r, 0.0, -1+2*shorewaveMap.g)*shorewaves;
-    normalTS = normalize(float3(normalTS.x, 1.0, normalTS.z));
-    normalTS = float3(shorewaveMap.r, 1.0, shorewaveMap.g);
-*/
+    float3 shorewaveNormal = float3(2.0*shorewaveMap.r-1.0, 0.0, 2.0*shorewaveMap.g-1.0)*shorewaves*_ShorelineWaveHeight;
 
 #ifdef _DETAIL_MAP_IDX
     // Use overlay blend mode for detail abledo: (base < 0.5 ? (2.0 * base * blend) : (1.0 - 2.0 * (1.0 - base) * (1.0 - blend)))
@@ -224,9 +246,9 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
         normalTS += SAMPLE_UVMAPPING_NORMALMAP(ADD_IDX(_NormalMap2), SAMPLER_NORMALMAP2_IDX, ADD_IDX(norm2_uv), ADD_IDX(norm2scale));
     #endif
 #else
-    normalTS = float3(0.0, 0.0, 1.0);
+    normalTS = float3(0.0, 0.0, 0.0);
 #endif
-
+    normalTS += shorewaveNormal;
 
 
     // this just sets bnm to normal for water shader
@@ -251,6 +273,8 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
     // Lerp with details mask
     surfaceData.perceptualSmoothness = lerp(surfaceData.perceptualSmoothness, saturate(smoothnessOverlay), detailMask);
 #endif
+
+    surfaceData.perceptualSmoothness = lerp(surfaceData.perceptualSmoothness, 0.0, foam);
 
     // MaskMap is RGBA: Metallic, Ambient Occlusion (Optional), detail Mask (Optional), Smoothness
 #ifdef _MASKMAP_IDX

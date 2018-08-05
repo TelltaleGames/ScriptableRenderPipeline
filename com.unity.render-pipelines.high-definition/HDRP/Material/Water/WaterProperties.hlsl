@@ -23,6 +23,8 @@ SAMPLER(sampler_MaskMap);
 
 TEXTURE2D(_ShorelineMap);
 SAMPLER(sampler_ShorelineMap);
+TEXTURE2D(_FoamMap);
+SAMPLER(sampler_FoamMap);
 TEXTURE2D(_NormalMap1);
 TEXTURE2D(_NormalMap2);
 SAMPLER(sampler_NormalMap1);
@@ -130,6 +132,10 @@ float _SoftDepth;
 float4 _BaseColorMap_ST;
 float4 _BaseColorMap_TexelSize;
 float4 _BaseColorMap_MipInfo;
+float _ShorelineWaveHeight;
+float _ShorelineWaveFrequency;
+float _ShorelineWaveSpeed;
+float _ShorelineWaveDistance;
 
 float _Metallic;
 float _Smoothness;

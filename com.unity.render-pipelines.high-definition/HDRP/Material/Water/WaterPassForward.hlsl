@@ -52,10 +52,8 @@ void Frag(PackedVaryingsToPS packedInput,
     BuiltinData builtinData;
     GetSurfaceAndBuiltinData(input, V, posInput, surfaceData, builtinData);
 
-    // TODO Brandon: builtinData no longer has emissiveIntensity, need another way to pass in presence.
-    // float presence = builtinData.emissiveIntensity;
-    // builtinData.emissiveIntensity = 0.0;
-    float presence = 0.5f;
+    float presence = surfaceData.metallic;
+    surfaceData.metallic = 0.0;
 
 #ifdef DEBUG_DISPLAY
     ApplyDebugToSurfaceData(input.worldToTangent, surfaceData);

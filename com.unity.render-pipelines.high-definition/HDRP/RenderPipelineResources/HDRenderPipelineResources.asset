@@ -60,6 +60,8 @@ MonoBehaviour:
     type: 3}
   telltaleContactShadowComputeShader: {fileID: 7200000, guid: e6cb7c0f60691cb489f9298230b7212b,
     type: 3}
+  telltaleSeparableBlurShader: {fileID: 4800000, guid: a5114b7a2ceab694687453b47beae745,
+    type: 3}
   subsurfaceScatteringCS: {fileID: 7200000, guid: b06a7993621def248addd55d0fe931b1,
     type: 3}
   subsurfaceScattering: {fileID: 4800000, guid: 867b36db983aa0548889a66f8d685ff6,
