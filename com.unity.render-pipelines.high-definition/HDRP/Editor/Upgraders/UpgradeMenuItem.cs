@@ -282,12 +282,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                         mat.shader.name == "HDRenderPipeline/Unlit" ||
                         /* Start Telltale shaders */
                         mat.shader.name == "HDRenderPipeline/CharacterLit" ||
+                        mat.shader.name == "HDRenderPipeline/FX/FX Unlit" ||
                         mat.shader.name == "HDRenderPipeline/FX/LitBurn" ||
+                        mat.shader.name == "HDRenderPipeline/FX/Particle Ambient Lit" ||
+                        mat.shader.name == "HDRenderPipeline/Particle Uber" ||
                         mat.shader.name == "HDRenderPipeline/SkyDomeUnlit" ||
                         mat.shader.name == "HDRenderPipeline/TerrainBlend" ||
                         mat.shader.name == "HDRenderPipeline/TerrainBlendPaint" ||
-                        mat.shader.name == "HDRenderPipeline/FX/FX Unlit" ||
-                        mat.shader.name == "HDRenderPipeline/Particle Uber"
+                        mat.shader.name == "HDRenderPipeline/Water"
                         /* End Telltale shaders */
                        )
                     {
