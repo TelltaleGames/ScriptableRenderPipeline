@@ -5,6 +5,7 @@ Shader "Hidden/TelltaleSeparableBlur"
         _MainTex("Texture", 2D) = "white" {}
 		_SampleRadius("Sample Radius", Int) = 3
 	}
+
 	SubShader
 	{
 		// No culling or depth

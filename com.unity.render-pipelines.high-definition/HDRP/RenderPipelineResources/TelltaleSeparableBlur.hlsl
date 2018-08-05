@@ -80,25 +80,25 @@ fixed4 frag (v2f i) : SV_Target
     // Unity's Gaussian Method (adapted from PostProcessing/ScalableAO):
 
     half4 p0  = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv);
-    float p0Depth = SAMPLE_TEXTURE2D(_MainDepthTexture, sampler_MainDepthTexture, i.uv).x;
+    float p0Depth = SAMPLE_TEXTURE2D(_CameraDepthTexture, sampler_CameraDepthTexture, i.uv).x;
 
     half4 p1a = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, (i.uv - delta));
-    float p1aDepth = SAMPLE_TEXTURE2D(_MainDepthTexture, sampler_MainDepthTexture, (i.uv - delta)).x;
+    float p1aDepth = SAMPLE_TEXTURE2D(_CameraDepthTexture, sampler_CameraDepthTexture, (i.uv - delta)).x;
 
     half4 p1b = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, (i.uv + delta));
-    float p1bDepth = SAMPLE_TEXTURE2D(_MainDepthTexture, sampler_MainDepthTexture, (i.uv + delta)).x;
+    float p1bDepth = SAMPLE_TEXTURE2D(_CameraDepthTexture, sampler_CameraDepthTexture, (i.uv + delta)).x;
 
     half4 p2a = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, (i.uv - delta * 2.0));
-    float p2aDepth = SAMPLE_TEXTURE2D(_MainDepthTexture, sampler_MainDepthTexture, (i.uv - delta * 2.0)).x;
+    float p2aDepth = SAMPLE_TEXTURE2D(_CameraDepthTexture, sampler_CameraDepthTexture, (i.uv - delta * 2.0)).x;
 
     half4 p2b = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, (i.uv + delta * 2.0));
-    float p2bDepth = SAMPLE_TEXTURE2D(_MainDepthTexture, sampler_MainDepthTexture, (i.uv + delta * 2.0)).x;
+    float p2bDepth = SAMPLE_TEXTURE2D(_CameraDepthTexture, sampler_CameraDepthTexture, (i.uv + delta * 2.0)).x;
 
     half4 p3a = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, (i.uv - delta * 3.2307692308));
-    float p3aDepth = SAMPLE_TEXTURE2D(_MainDepthTexture, sampler_MainDepthTexture, (i.uv - delta * 3.2307692308)).x;
+    float p3aDepth = SAMPLE_TEXTURE2D(_CameraDepthTexture, sampler_CameraDepthTexture, (i.uv - delta * 3.2307692308)).x;
 
     half4 p3b = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, (i.uv + delta * 3.2307692308));
-    float p3bDepth = SAMPLE_TEXTURE2D(_MainDepthTexture, sampler_MainDepthTexture, (i.uv + delta * 3.2307692308)).x;
+    float p3bDepth = SAMPLE_TEXTURE2D(_CameraDepthTexture, sampler_CameraDepthTexture, (i.uv + delta * 3.2307692308)).x;
 
     const half depthThreshold = 500.0f;
     half w0 = 0.37004405286;
