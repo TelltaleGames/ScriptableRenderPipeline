@@ -103,7 +103,9 @@ void ApplyAmbientOcclusionFactor(AmbientOcclusionFactor aoFactor, inout BakeLigh
     // so Ambient occlusion is multiply by emissive which is wrong but not a big deal
     bakeLightingData.bakeDiffuseLighting *= aoFactor.indirectAmbientOcclusion;
     lighting.indirect.specularReflected *= aoFactor.indirectSpecularOcclusion;
+#ifndef TELLTALE_CHARACTER_LIGHTING
     lighting.direct.diffuse *= aoFactor.directAmbientOcclusion;
+#endif
 }
 
 #ifdef DEBUG_DISPLAY

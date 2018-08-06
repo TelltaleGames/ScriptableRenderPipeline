@@ -65,8 +65,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
     LightLoopContext context;
     context.sampleReflection = 0;
     context.shadowContext = InitShadowContext();
-
-
+    
     // TTG_MOD - Moved out from PostEvaluateBSDF in order to work with character light rigs
 #ifdef TELLTALE_CHARACTER_LIGHTING
         // Ambient occlusion use for indirect lighting (reflection probe, baked diffuse lighting)
@@ -79,7 +78,6 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         float directAmbientOcclusion = 1.0;
     #endif
 #endif
-
 
     // This struct is define in the material. the Lightloop must not access it
     // PostEvaluateBSDF call at the end will convert Lighting to diffuse and specular lighting
@@ -177,12 +175,13 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
     }
 
 #ifdef TELLTALE_CHARACTER_LIGHTING
-    // Important to do this after all standard Unity diffuse lighting has been accumulated, but before Character Lights are added
+    // Important to do this after all standard Unity diffuse lighting has been accumulated, but before Character Lights are added.
+    // "if" structure should match behavior in CharacterLit.
     aggregateLighting.direct.diffuse *=
-    #if GTAO_MULTIBOUNCE_APPROX
-            GTAOMultiBounce(directAmbientOcclusion, bsdfData.diffuseColor);
-    #else
+    #if 0
             lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), directAmbientOcclusion);
+    #else
+            GTAOMultiBounce(directAmbientOcclusion, bsdfData.diffuseColor);
     #endif
     aggregateLighting.direct.diffuse *= _Contribution_Std_Char_Env_Refl.x;
     aggregateLighting.direct.specular *= _Contribution_Std_Char_Env_Refl.x;
@@ -196,10 +195,10 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
 
             DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _CharacterLights[i], bsdfData, bakeLightingData, true);
             lighting.diffuse *=
-        #if GTAO_MULTIBOUNCE_APPROX
-                    GTAOMultiBounce(directAmbientOcclusionCL, bsdfData.diffuseColor);
-        #else
+        #if 0
                     lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), directAmbientOcclusionCL);
+        #else
+                    GTAOMultiBounce(directAmbientOcclusionCL, bsdfData.diffuseColor);
         #endif
             AccumulateDirectLighting(lighting, _Contribution_Std_Char_Env_Refl.y, aggregateLighting);
         }
