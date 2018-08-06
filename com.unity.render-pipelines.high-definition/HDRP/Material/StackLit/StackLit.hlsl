@@ -2642,13 +2642,10 @@ IndirectLighting EvaluateBSDF_Env(  LightLoopContext lightLoopContext,
 }
 
 //-----------------------------------------------------------------------------
-// PostEvaluateBSDF
+// PreEvaluateAO
 // ----------------------------------------------------------------------------
 
-void PostEvaluateBSDF(  LightLoopContext lightLoopContext,
-                        float3 V, PositionInputs posInput,
-                        PreLightData preLightData, BSDFData bsdfData, BakeLightingData bakeLightingData, AggregateLighting lighting,
-                        out float3 diffuseLighting, out float3 specularLighting)
+void PreEvaluateAO(float3 V, PositionInputs posInput, PreLightData preLightData, BSDFData bsdfData, out AmbientOcclusionFactor aoFactor)
 {
     float3 N;
     float unclampedNdotV;
@@ -2658,7 +2655,18 @@ void PostEvaluateBSDF(  LightLoopContext lightLoopContext,
     // Use GTAOMultiBounce approximation for ambient occlusion (allow to get a tint from the baseColor)
     //GetScreenSpaceAmbientOcclusionMultibounce(posInput.positionSS, preLightData.NdotV, lerp(bsdfData.perceptualRoughnessA, bsdfData.perceptualRoughnessB, bsdfData.lobeMix), bsdfData.ambientOcclusion, 1.0, bsdfData.diffuseColor, bsdfData.fresnel0, aoFactor);
     GetScreenSpaceAmbientOcclusionMultibounce(posInput.positionSS, unclampedNdotV, lerp(bsdfData.perceptualRoughnessA, bsdfData.perceptualRoughnessB, bsdfData.lobeMix), bsdfData.ambientOcclusion, 1.0, bsdfData.diffuseColor, bsdfData.fresnel0, aoFactor);
+}
 
+//-----------------------------------------------------------------------------
+// PostEvaluateBSDF
+// ----------------------------------------------------------------------------
+
+void PostEvaluateBSDF(  LightLoopContext lightLoopContext,
+                        float3 V, PositionInputs posInput,
+                        PreLightData preLightData, BSDFData bsdfData, BakeLightingData bakeLightingData, AggregateLighting lighting,
+                        AmbientOcclusionFactor aoFactor,
+                        out float3 diffuseLighting, out float3 specularLighting)
+{
     ApplyAmbientOcclusionFactor(aoFactor, bakeLightingData, lighting);
 
     // Subsurface scattering mdoe

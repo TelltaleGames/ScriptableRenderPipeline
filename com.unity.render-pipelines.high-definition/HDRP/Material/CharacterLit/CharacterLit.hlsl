@@ -2184,6 +2184,20 @@ IndirectLighting EvaluateBSDF_Env(  LightLoopContext lightLoopContext,
 }
 
 //-----------------------------------------------------------------------------
+// PreEvaluateAO
+// ----------------------------------------------------------------------------
+
+void PreEvaluateAO(float3 V, PositionInputs posInput, PreLightData preLightData, BSDFData bsdfData, out AmbientOcclusionFactor aoFactor)
+{
+    // Use GTAOMultiBounce approximation for ambient occlusion (allow to get a tint from the baseColor)
+    #if 0
+        GetScreenSpaceAmbientOcclusion(posInput.positionSS, preLightData.NdotV, bsdfData.perceptualRoughness, 1.0, bsdfData.specularOcclusion, aoFactor);
+    #else
+        GetScreenSpaceAmbientOcclusionMultibounce(posInput.positionSS, preLightData.NdotV, bsdfData.perceptualRoughness, 1.0, bsdfData.specularOcclusion, bsdfData.diffuseColor, bsdfData.fresnel0, aoFactor);
+    #endif
+}
+
+//-----------------------------------------------------------------------------
 // PostEvaluateBSDF
 // ----------------------------------------------------------------------------
 
@@ -2191,16 +2205,9 @@ void PostEvaluateBSDF(  LightLoopContext lightLoopContext,
                         float3 V, PositionInputs posInput,
                         PreLightData preLightData, BSDFData bsdfData, BakeLightingData bakeLightingData, AggregateLighting lighting,
                         float environmentLightWeight, // Light groups.
+                        AmbientOcclusionFactor aoFactor,
                         out float3 diffuseLighting, out float3 specularLighting)
 {
-    AmbientOcclusionFactor aoFactor;
-    // Use GTAOMultiBounce approximation for ambient occlusion (allow to get a tint from the baseColor)
-#if 0
-    GetScreenSpaceAmbientOcclusion(posInput.positionSS, preLightData.NdotV, bsdfData.perceptualRoughness, 1.0, bsdfData.specularOcclusion, aoFactor);
-#else
-    GetScreenSpaceAmbientOcclusionMultibounce(posInput.positionSS, preLightData.NdotV, bsdfData.perceptualRoughness, 1.0, bsdfData.specularOcclusion, bsdfData.diffuseColor, bsdfData.fresnel0, aoFactor);
-#endif
-
     ApplyAmbientOcclusionFactor(aoFactor, bakeLightingData, lighting);
 
     // Subsurface scattering mdoe

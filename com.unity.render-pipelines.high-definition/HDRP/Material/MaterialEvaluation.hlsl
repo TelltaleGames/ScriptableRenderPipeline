@@ -46,6 +46,7 @@ struct AmbientOcclusionFactor
     float3 indirectAmbientOcclusion;
     float3 directAmbientOcclusion;
     float3 indirectSpecularOcclusion;
+    float indirectAmbientOcclusionRaw;
 };
 
 void GetScreenSpaceAmbientOcclusion(float2 positionSS, float NdotV, float perceptualRoughness, float ambientOcclusionFromData, float specularOcclusionFromData, out AmbientOcclusionFactor aoFactor)
@@ -70,6 +71,7 @@ void GetScreenSpaceAmbientOcclusion(float2 positionSS, float NdotV, float percep
     aoFactor.indirectSpecularOcclusion = lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), min(specularOcclusionFromData, specularOcclusion));
     aoFactor.indirectAmbientOcclusion = lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), min(ambientOcclusionFromData, indirectAmbientOcclusion));
     aoFactor.directAmbientOcclusion = lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), directAmbientOcclusion);
+    aoFactor.indirectAmbientOcclusionRaw = indirectAmbientOcclusion;
 }
 
 void GetScreenSpaceAmbientOcclusionMultibounce(float2 positionSS, float NdotV, float perceptualRoughness, float ambientOcclusionFromData, float specularOcclusionFromData, float3 diffuseColor, float3 fresnel0, out AmbientOcclusionFactor aoFactor)
@@ -95,6 +97,7 @@ void GetScreenSpaceAmbientOcclusionMultibounce(float2 positionSS, float NdotV, f
     aoFactor.indirectSpecularOcclusion = GTAOMultiBounce(min(specularOcclusionFromData, specularOcclusion), fresnel0);
     aoFactor.indirectAmbientOcclusion = GTAOMultiBounce(min(ambientOcclusionFromData, indirectAmbientOcclusion), diffuseColor);
     aoFactor.directAmbientOcclusion = GTAOMultiBounce(directAmbientOcclusion, diffuseColor);
+    aoFactor.indirectAmbientOcclusionRaw = indirectAmbientOcclusion;
 }
 
 void ApplyAmbientOcclusionFactor(AmbientOcclusionFactor aoFactor, inout BakeLightingData bakeLightingData, inout AggregateLighting lighting)
