@@ -2190,11 +2190,27 @@ IndirectLighting EvaluateBSDF_Env(  LightLoopContext lightLoopContext,
 void PreEvaluateAO(float3 V, PositionInputs posInput, PreLightData preLightData, BSDFData bsdfData, out AmbientOcclusionFactor aoFactor)
 {
     // Use GTAOMultiBounce approximation for ambient occlusion (allow to get a tint from the baseColor)
-    #if 0
-        GetScreenSpaceAmbientOcclusion(posInput.positionSS, preLightData.NdotV, bsdfData.perceptualRoughness, 1.0, bsdfData.specularOcclusion, aoFactor);
-    #else
-        GetScreenSpaceAmbientOcclusionMultibounce(posInput.positionSS, preLightData.NdotV, bsdfData.perceptualRoughness, 1.0, bsdfData.specularOcclusion, bsdfData.diffuseColor, bsdfData.fresnel0, aoFactor);
-    #endif
+#if 0
+    GetScreenSpaceAmbientOcclusion(posInput.positionSS, preLightData.NdotV, bsdfData.perceptualRoughness, 1.0, bsdfData.specularOcclusion, aoFactor);
+#else
+    GetScreenSpaceAmbientOcclusionMultibounce(posInput.positionSS, preLightData.NdotV, bsdfData.perceptualRoughness, 1.0, bsdfData.specularOcclusion, bsdfData.diffuseColor, bsdfData.fresnel0, aoFactor);
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// GetCharacterLightAmbientOcclusion
+// ----------------------------------------------------------------------------
+
+float GetCharacterLightAmbientOcclusion(BSDFData bsdfData, AmbientOcclusionFactor aoFactor, float directWeight)
+{
+    float directAmbientOcclusionCL = lerp(1.0, aoFactor.indirectAmbientOcclusionRaw, directWeight);
+#if 0
+    // Same math as GetScreenSpaceAmbientOcclusion
+    return lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), directAmbientOcclusionCL);
+#else
+    // Same math as GetScreenSpaceAmbientOcclusionMultibounce
+    return GTAOMultiBounce(directAmbientOcclusionCL, bsdfData.diffuseColor);
+#endif
 }
 
 //-----------------------------------------------------------------------------

@@ -177,15 +177,8 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         // Apply per-object directional lights:
         for (i = 0; i < 3; ++i)
         {
-            float directAmbientOcclusionCL = lerp(1.0, aoFactor.indirectAmbientOcclusionRaw, 1.0 - _CharacterLights[i].shadowMaskSelector.w);
-
             DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _CharacterLights[i], bsdfData, bakeLightingData, true);
-            lighting.diffuse *=
-        #if 0
-                    lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), directAmbientOcclusionCL);
-        #else
-                    GTAOMultiBounce(directAmbientOcclusionCL, bsdfData.diffuseColor);
-        #endif
+            lighting.diffuse *= GetCharacterLightAmbientOcclusion(bsdfData, aoFactor, 1.0 - _CharacterLights[i].shadowMaskSelector.w);
             AccumulateDirectLighting(lighting, _Contribution_Std_Char_Env_Refl.y, aggregateLighting);
         }
     }
