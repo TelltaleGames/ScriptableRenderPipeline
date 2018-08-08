@@ -84,6 +84,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 newAsset.volumeVoxelizationCS = Load<ComputeShader>(HDRenderPipelinePath + "Lighting/Volumetrics/VolumeVoxelization.compute");
                 newAsset.volumetricLightingCS = Load<ComputeShader>(HDRenderPipelinePath + "Lighting/Volumetrics/VolumetricLighting.compute");
 
+                newAsset.ambientOcclusionCapsuleCS = Load<ComputeShader>( HDRenderPipelinePath + "Lighting/AOCapsuleApply.compute" );
+
                 newAsset.telltaleContactShadowComputeShader = Load<ComputeShader>(HDRenderPipelinePath + "Lighting/TelltaleContactShadow.compute");
                 newAsset.telltaleSeparableBlurShader = Load<Shader>(HDRenderPipelinePath + "RenderPipelineResources/TelltaleSeparableBlur.shader");
 

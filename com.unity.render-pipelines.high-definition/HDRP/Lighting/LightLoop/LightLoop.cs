@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine.Experimental.Rendering.HDPipeline.Internal;
 using UnityEngine.Rendering;
@@ -302,6 +302,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public const int k_MaxStereoEyes = 2;
         public static readonly Vector3 k_BoxCullingExtentThreshold = Vector3.one * 0.01f;
 
+        public const int k_MaxAOCapsulesOnScreen = 1024;
+
         // Light groups.
         // When these constants change, matching constants in LightLoopDef.hlsl must also be updated.
         public const int k_MaxLightGroups = 32;
@@ -320,6 +322,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         ComputeBuffer m_shadowDatas = null;
         ComputeBuffer m_DecalDatas = null;
         ComputeBuffer m_LightGroupData = null; // Light groups.
+        ComputeBuffer m_AOCapsuleData = null;
 
         Texture2DArray  m_DefaultTexture2DArray;
         Cubemap         m_DefaultTextureCube;
@@ -329,6 +332,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         TextureCache2D m_CookieTexArray;
         TextureCacheCubemap m_CubeCookieTexArray;
         List<Matrix4x4> m_Env2DCaptureVP = new List<Matrix4x4>();
+
+        private struct PackedAOCapsule
+        {
+            public uint x, y, z, w;
+        }
+
+        PackedAOCapsule[] m_AOCapsuleArray = new PackedAOCapsule[k_MaxAOCapsulesOnScreen];
+        int m_AOCapsuleCount = 0;
 
         // For now we don't use shadow cascade borders.
         static public readonly bool s_UseCascadeBorders = false;
@@ -396,6 +407,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         private ComputeShader clearDispatchIndirectShader { get { return m_Resources.clearDispatchIndirectShader; } }
         private ComputeShader deferredComputeShader { get { return m_Resources.deferredComputeShader; } }
         private ComputeShader deferredDirectionalShadowComputeShader { get { return m_Resources.deferredDirectionalShadowComputeShader; } }
+        private ComputeShader ambientOcclusionCapsuleCS { get { return m_Resources.ambientOcclusionCapsuleCS; } }
+
         private ComputeShader telltaleContactShadowComputeShader { get { return m_Resources.telltaleContactShadowComputeShader; } }
         private Shader telltaleSeparableBlurShader { get { return m_Resources.telltaleSeparableBlurShader; } }
 
@@ -421,6 +434,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         static int s_deferredDirectionalShadow_Contact_Kernel;
 
         static int s_telltaleContactShadowKernel;
+        static int s_ambientOcclusionCapsuleKernel;
 
         static ComputeBuffer s_LightVolumeDataBuffer = null;
         static ComputeBuffer s_ConvexBoundsBuffer = null;
@@ -564,6 +578,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_DecalDatas = new ComputeBuffer(k_MaxDecalsOnScreen, System.Runtime.InteropServices.Marshal.SizeOf(typeof(DecalData)));
             m_LightGroupData = new ComputeBuffer(k_MaxLightGroups * k_LightGroupStride, System.Runtime.InteropServices.Marshal.SizeOf(typeof(float))); // Light groups.
 
+            m_AOCapsuleData = new ComputeBuffer( k_MaxAOCapsulesOnScreen, 16 );
+
             GlobalLightLoopSettings gLightLoopSettings = hdAsset.GetRenderPipelineSettings().lightLoopSettings;
             m_CookieTexArray = new TextureCache2D("Cookie");
             m_CookieTexArray.AllocTextureArray(gLightLoopSettings.cookieTexArraySize, (int)gLightLoopSettings.cookieSize, (int)gLightLoopSettings.cookieSize, TextureFormat.RGBA32, true);
@@ -612,6 +628,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             s_deferredDirectionalShadow_Contact_Kernel = deferredDirectionalShadowComputeShader.FindKernel("DeferredDirectionalShadow_Contact");
 
             s_telltaleContactShadowKernel = telltaleContactShadowComputeShader.FindKernel("TelltaleContactShadow");
+
+            //if( ambientOcclusionCapsuleCS != null )
+            {
+                s_ambientOcclusionCapsuleKernel = ambientOcclusionCapsuleCS.FindKernel( "AOCapsuleApply" );
+            }
 
             for (int variant = 0; variant < LightDefinitions.s_NumFeatureVariants; variant++)
             {
@@ -679,6 +700,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             CoreUtils.SafeRelease(m_shadowDatas);
             CoreUtils.SafeRelease(m_DecalDatas);
             CoreUtils.SafeRelease(m_LightGroupData); // Light groups.
+            CoreUtils.SafeRelease( m_AOCapsuleData );
 
             if (m_ReflectionProbeCache != null)
             {
@@ -2032,11 +2054,113 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 }
 
                 UpdateDataBuffers();
+
+                UpdateAOCapsules( hdCamera );
             }
 
             m_enableBakeShadowMask = m_enableBakeShadowMask && hdCamera.frameSettings.enableShadowMask;
 
             return m_enableBakeShadowMask;
+        }
+
+        private unsafe uint FloatToHalf( float v )
+        {
+            // taken from DirectX::PackedVector::XMConvertFloatToHalf
+            uint IValue = *(uint*)( &v );
+            uint Sign = ( IValue & 0x80000000U ) >> 16;
+            IValue = IValue & 0x7FFFFFFFU;      // Hack off the sign
+
+            uint Result;
+            if( IValue > 0x477FE000U )
+            {
+                // The number is too large to be represented as a half.  Saturate to infinity.
+                if( ( ( IValue & 0x7F800000 ) == 0x7F800000 ) && ( ( IValue & 0x7FFFFF ) != 0 ) )
+                {
+                    Result = 0x7FFF; // NAN
+                }
+                else
+                {
+                    Result = 0x7C00U; // INF
+                }
+            }
+            else
+            {
+                if( IValue < 0x38800000U )
+                {
+                    // The number is too small to be represented as a normalized half.
+                    // Convert it to a denormalized value.
+                    uint Shift = 113U - ( IValue >> 23 );
+                    IValue = ( 0x800000U | ( IValue & 0x7FFFFFU ) ) >> (int)Shift;
+                }
+                else
+                {
+                    // Rebias the exponent to represent the value as a normalized half.
+                    IValue += 0xC8000000U;
+                }
+
+                Result = ( ( IValue + 0x0FFFU + ( ( IValue >> 13 ) & 1U ) ) >> 13 ) & 0x7FFFU;
+            }
+            return (uint)( Result | Sign );
+        }
+
+        private void AddAOCapsule( HDCamera hdCamera, Vector3 start, Vector3 end, float radius )
+        {
+            if( ShaderConfig.s_CameraRelativeRendering != 0 )
+            {
+                Vector3 cameraPosition = hdCamera.cameraPos;
+                start -= cameraPosition;
+                end -= cameraPosition;
+            }
+
+            Vector3 viewStart = hdCamera.viewMatrix.MultiplyPoint( start );
+            Vector3 viewEnd = hdCamera.viewMatrix.MultiplyPoint( end );
+            Vector3 viewMid = ( viewStart + viewEnd ) * 0.5f;
+            Vector3 viewVec = ( viewEnd - viewStart );
+            Vector3 viewDir = viewVec.normalized;
+            float length = Math.Min( viewVec.magnitude * 0.5f, 4.0f );
+            radius = Math.Min( radius, 4.0f );
+
+            // as capsule's actual influence goes from kFalloffAttenStart to kFalloffAttenEnd,
+            // it will fade down to 0...this is used to constrain the area of influence for each capsule
+            // (otherwise capsules have infinite area of influence)
+            const float kFalloffAttenStart = 0.2f;
+            const float kFalloffAttenEnd = 0.1f;
+
+            // compute distances where the falloff occurs
+            float falloffStart = radius / Mathf.Sqrt( kFalloffAttenStart );
+            float falloffEnd = radius / Mathf.Sqrt( kFalloffAttenEnd );
+            float falloffRange = falloffEnd - falloffStart;
+            float falloffScale = -1.0f / falloffRange;
+            float falloffBias = falloffEnd / falloffRange;
+
+            uint packedX = FloatToHalf( viewMid.x );
+            uint packedY = FloatToHalf( viewMid.y );
+            uint packedZ = FloatToHalf( viewMid.z );
+            uint packedFalloffScale = FloatToHalf( falloffScale );
+            uint packedFalloffBias = FloatToHalf( falloffBias );
+            uint packedVX = (uint)( ( viewDir.x * 0.5f + 0.5f ) * 255.0f + 0.5f );
+            uint packedVY = (uint)( ( viewDir.y * 0.5f + 0.5f ) * 255.0f + 0.5f );
+            uint packedVZ = (uint)( ( viewDir.z * 0.5f + 0.5f ) * 255.0f + 0.5f );
+            uint packedRadius = (uint)( radius * 0.25f * 255.0f + 0.5f );
+            uint packedLength = (uint)( length * 0.25f * 255.0f + 0.5f );
+
+            PackedAOCapsule packedCapsule = new PackedAOCapsule();
+            packedCapsule.x = packedX | ( packedY << 16 );
+            packedCapsule.y = packedZ | ( packedRadius << 16 );
+            packedCapsule.z = packedFalloffScale | ( packedFalloffBias << 16 );
+            packedCapsule.w = packedVX | ( packedVY << 8 ) | ( packedVZ << 16 ) | ( packedLength << 24 );
+
+            m_AOCapsuleArray[m_AOCapsuleCount++] = packedCapsule;
+        }
+
+        private void UpdateAOCapsules( HDCamera hdCamera )
+        {
+            m_AOCapsuleCount = 0;
+            for( int index = 0; index < AOCapsule.smCapsules.Count; ++index )
+            {
+                AOCapsule capsule = AOCapsule.smCapsules[index];
+                AddAOCapsule( hdCamera, capsule.transform.position, capsule.End, capsule.Radius );
+            }
         }
 
         static float CalculateProbeLogVolume(Bounds bounds)
@@ -2358,6 +2482,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_shadowDatas.SetData(m_lightList.shadows);
             m_DecalDatas.SetData(DecalSystem.m_DecalDatas, 0, 0, Math.Min(DecalSystem.m_DecalDatasCount, k_MaxDecalsOnScreen)); // don't add more than the size of the buffer
             m_LightGroupData.SetData(m_lightList.lightGroupWeights); // Light groups.
+            m_AOCapsuleData.SetData( m_AOCapsuleArray );
 
             // These two buffers have been set in Rebuild()
             s_ConvexBoundsBuffer.SetData(m_lightList.bounds);
@@ -2566,6 +2691,33 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 
                 cmd.SetGlobalTexture(HDShaderIDs._TelltaleContactShadowTexture, contactShadowOutRT);
             }
+        }
+
+        public void RenderAOCapsules( HDCamera hdCamera,
+            RenderTargetIdentifier destination,
+            RenderTargetIdentifier depthTexture,
+            NormalBufferManager normalBuffers,
+            CommandBuffer cmd )
+        {
+            if( ambientOcclusionCapsuleCS == null )
+            {
+                return;
+            }
+
+            int kernel = s_ambientOcclusionCapsuleKernel;
+
+            cmd.SetComputeBufferParam( ambientOcclusionCapsuleCS, kernel, HDShaderIDs._AOCapsuleData, m_AOCapsuleData );
+            cmd.SetComputeTextureParam( ambientOcclusionCapsuleCS, kernel, HDShaderIDs._AOCapsuleTexture, destination );
+            cmd.SetComputeTextureParam( ambientOcclusionCapsuleCS, kernel, HDShaderIDs._CameraDepthTexture, depthTexture );
+            normalBuffers.BindNormalBuffers( cmd );
+
+            cmd.SetComputeIntParam( ambientOcclusionCapsuleCS, HDShaderIDs._AOCapsuleCount, m_AOCapsuleCount );
+
+            int tileSize = 16; // Must match TelltaleContactShadow.compute
+            int numTilesX = ( hdCamera.actualWidth + tileSize - 1 ) / tileSize;
+            int numTilesY = ( hdCamera.actualHeight + tileSize - 1 ) / tileSize;
+
+            cmd.DispatchCompute( ambientOcclusionCapsuleCS, kernel, numTilesX, numTilesY, 1 );
         }
 
         public void RenderDeferredLighting(HDCamera hdCamera, CommandBuffer cmd, DebugDisplaySettings debugDisplaySettings,

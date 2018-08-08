@@ -1613,6 +1613,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 {
                     postProcessLayer.BakeMSVOMap(cmd, camera, m_AmbientOcclusionBuffer, GetDepthTexture(), true);
 
+                    m_LightLoop.RenderAOCapsules( hdCamera, m_AmbientOcclusionBuffer, GetDepthTexture(), m_NormalBufferManager, cmd );
+
                     cmd.SetGlobalTexture(HDShaderIDs._AmbientOcclusionTexture, m_AmbientOcclusionBuffer);
                     cmd.SetGlobalVector(HDShaderIDs._AmbientOcclusionParam, new Vector4(settings.color.value.r, settings.color.value.g, settings.color.value.b, settings.directLightingStrength.value));
                     PushFullScreenDebugTexture(hdCamera, cmd, m_AmbientOcclusionBuffer, FullScreenDebugMode.SSAO);

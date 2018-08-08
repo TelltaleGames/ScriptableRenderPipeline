@@ -192,6 +192,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static readonly int _TelltaleShadowLights = Shader.PropertyToID("_TelltaleShadowLights");
         public static readonly int _TelltaleShadowMaskIds = Shader.PropertyToID("_TelltaleShadowMaskIds");
 
+        public static readonly int _AOCapsuleData = Shader.PropertyToID( "_AOCapsuleData" );
+        public static readonly int _AOCapsuleCount = Shader.PropertyToID( "_AOCapsuleCount" );
+        public static readonly int _AOCapsuleTexture = Shader.PropertyToID( "_AOCapsuleTexture" );
+
         public static readonly int _StencilMask = Shader.PropertyToID("_StencilMask");
         public static readonly int _StencilRef = Shader.PropertyToID("_StencilRef");
         public static readonly int _StencilCmp = Shader.PropertyToID("_StencilCmp");

@@ -1,0 +1,201 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel AOCapsuleApply
+
+#ifdef SHADER_API_PSSL
+#   pragma argument( scheduler=minpressure ) // instruct the shader compiler to prefer minimizing vgpr usage
+#endif
+
+#include "CoreRP/ShaderLibrary/Common.hlsl"
+#include "../ShaderVariables.hlsl"
+#include "../Material/NormalBuffer.hlsl"
+#include "Lighting.hlsl" 
+
+#pragma only_renderers d3d11 ps4 xboxone vulkan metal
+
+StructuredBuffer<uint4> _AOCapsuleData;
+
+RWTexture2D<float> _AOCapsuleTexture;
+
+CBUFFER_START( AOCapsuleParameters )
+uint _AOCapsuleCount;
+CBUFFER_END
+
+//
+struct AOCapsule
+{
+    float3 Mid;
+    float3 Vector;
+    float Radius;
+    float Length;
+    float FalloffScale;
+    float FalloffBias;
+};
+
+//
+float UnpackUN8( uint v )
+{
+    return (float)v / 255.0f;
+}
+
+//
+AOCapsule UnpackCapsule( uint4 packedCapsule )
+{
+    AOCapsule result;
+    result.Mid.x = f16tof32( packedCapsule.x );
+    result.Mid.y = f16tof32( packedCapsule.x >> 16 );
+    result.Mid.z = f16tof32( packedCapsule.y );
+    result.Radius = UnpackUN8( packedCapsule.y >> 16 ) * 4.0f;
+    result.Vector.x = UnpackUN8( packedCapsule.w & 0xff ) * 2.0f - 1.0f;
+    result.Vector.y = UnpackUN8( ( packedCapsule.w >> 8 ) & 0xff ) * 2.0f - 1.0f;
+    result.Vector.z = UnpackUN8( ( packedCapsule.w >> 16 ) & 0xff ) * 2.0f - 1.0f;
+    result.Length = UnpackUN8( ( packedCapsule.w >> 24 ) & 0xff ) * 4.0f;
+    result.FalloffScale = f16tof32( packedCapsule.z );
+    result.FalloffBias = f16tof32( packedCapsule.z >> 16 );
+    return result;
+}
+
+//
+float3 ClosestPointToLine( float3 p, float3 start, float3 end )
+{
+    float3 lineVector = end - start;
+    float t = saturate( dot( p - start, lineVector ) / dot( lineVector, lineVector ) );
+    return start + t * lineVector;
+}
+
+//
+float Square( float v ) { return v * v; }
+
+//
+float Distance2PointBox( float3 p, float3 boxMin, float3 boxMax )
+{
+    float d2 = 0.0f;
+    for( int i = 0; i < 3; ++i )
+    {
+        float v = p[i];
+        if( v < boxMin[i] ) d2 += Square( boxMin[i] - v );
+        if( v > boxMax[i] ) d2 += Square( v - boxMax[i] );
+    }
+    return d2;
+}
+
+//
+float SphereOcclusion( float3 pos, float3 nor, float3 spherePosition, float sphereRadius, float falloffScale, float falloffBias )
+{
+    float3 v = spherePosition - pos;
+    float vLength2 = dot( v, v );
+    float vInvLength = rsqrt( vLength2 );
+    float3 vNormalized = v * vInvLength;
+    float nl = dot( nor, vNormalized );
+    float h = sphereRadius * vInvLength;
+    float res = saturate( nl ) * min( h * h, 0.75f );
+
+    float vLength = vLength2 * vInvLength;
+    float atten = saturate( falloffScale * vLength + falloffBias );
+
+    return res * atten;
+}
+
+//
+float3 ComputeViewSpacePositionLH( float2 positionNDC, float deviceDepth, float4x4 invProjMatrix )
+{
+    float4 positionCS = ComputeClipSpacePosition( positionNDC, deviceDepth );
+    float4 positionVS = mul( invProjMatrix, positionCS );
+    return positionVS.xyz / positionVS.w;
+}
+
+groupshared uint gTileDepthMinAsUint;
+groupshared uint gTileDepthMaxAsUint;
+groupshared uint4 gTileCapsules[256];
+groupshared uint gTileCapsuleCount;
+
+[numthreads( 16, 16, 1 )]
+void AOCapsuleApply( uint2 id : SV_DispatchThreadID,
+    uint2 groupId : SV_GroupID,
+    uint2 groupThreadId : SV_GroupThreadID,
+    uint groupIndex : SV_GroupIndex )
+{
+    if( groupIndex == 0u )
+    {
+        gTileDepthMinAsUint = asuint( 1.0f );
+        gTileDepthMaxAsUint = asuint( 0.0f );
+        gTileCapsuleCount = 0;
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    uint2 texelLocation = groupId * 16 + groupThreadId;
+    float depth = LOAD_TEXTURE2D( _CameraDepthTexture, texelLocation ).x;
+    if( depth != UNITY_RAW_FAR_CLIP_VALUE )
+    {
+        uint depthAsUint = asuint( depth );
+        InterlockedMin( gTileDepthMinAsUint, depthAsUint );
+        InterlockedMax( gTileDepthMaxAsUint, depthAsUint );
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    float tileDepthMin = asfloat( gTileDepthMinAsUint );
+    float tileDepthMax = asfloat( gTileDepthMaxAsUint );
+
+    float2 gridTexelLocation00 = float2( groupId * 16u ) + float2( 0.5f, 0.5f );
+    float2 gridTexelLocation11 = gridTexelLocation00 + float2( 15.0f, 15.0f );
+    float3 tileView00 = ComputeViewSpacePositionLH( gridTexelLocation00 * _ScreenSize.zw, tileDepthMin, UNITY_MATRIX_I_P );
+    float3 tileView11 = ComputeViewSpacePositionLH( gridTexelLocation11 * _ScreenSize.zw, tileDepthMax, UNITY_MATRIX_I_P );
+    float3 tileViewMin = min( tileView00, tileView11 );
+    float3 tileViewMax = max( tileView00, tileView11 );
+
+    {
+        uint index = groupIndex;
+        if( index < _AOCapsuleCount )
+        {
+            uint4 packedCapsule = _AOCapsuleData[index];
+            AOCapsule capsule = UnpackCapsule( packedCapsule );
+
+            // conservative distance between the capsule and the AABB for this tile,
+            // used to check if any pixel in this tile may be influenced by capsule
+            float distance = sqrt( Distance2PointBox( capsule.Mid, tileViewMin, tileViewMax ) ) - capsule.Radius - capsule.Length;
+            float atten = saturate( capsule.FalloffScale * distance + capsule.FalloffBias );
+            if( atten > 0.0f )
+            {
+                uint tileIndex;
+                InterlockedAdd( gTileCapsuleCount, 1u, tileIndex );
+                gTileCapsules[tileIndex] = packedCapsule;
+            }
+        }
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    if( depth == UNITY_RAW_FAR_CLIP_VALUE )
+    {
+        return;
+    }
+
+    // we use proj rather than viewProj matrix here, this way positionWS is actually in view space
+    PositionInputs posInput = GetPositionInput( texelLocation, _ScreenSize.zw, depth, UNITY_MATRIX_I_P, UNITY_MATRIX_P, groupId );
+    float3 viewPosition = posInput.positionWS;
+
+    NormalData normalData;
+    DecodeFromNormalBuffer( posInput.positionSS, normalData );
+    float3 viewNormal = TransformWorldToViewDir( normalData.normalWS );
+
+    float occlusionResult = 1.0f;
+    UNITY_LOOP for( uint index = 0u; index < gTileCapsuleCount; ++index )
+    {
+        AOCapsule capsule = UnpackCapsule( gTileCapsules[index] );
+        float3 capsuleStart = capsule.Mid - capsule.Vector * capsule.Length;
+        float3 capsuleEnd = capsule.Mid + capsule.Vector * capsule.Length;
+        float3 capsulePosition = ClosestPointToLine( viewPosition, capsuleStart, capsuleEnd );
+
+        float capsuleOcclusion = SphereOcclusion( viewPosition, viewNormal, capsulePosition, capsule.Radius, capsule.FalloffScale, capsule.FalloffBias );
+        //occlusionResult = max( occlusionResult, saturate( capsuleOcclusion ) );
+        occlusionResult *= saturate( 1.0f - capsuleOcclusion );
+    }
+
+    float debugValue = 1.0f;
+    if( gTileCapsuleCount > 15 ) debugValue = 0.0f;
+    else if( gTileCapsuleCount > 5 ) debugValue = 0.2f;
+    else if( gTileCapsuleCount > 0 ) debugValue = 0.4f;
+
+    _AOCapsuleTexture[texelLocation] = 1.0f - occlusionResult;
+}
