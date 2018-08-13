@@ -11,7 +11,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             public static string InputsText = "Inputs";
 
-            public static GUIContent alphaText = new GUIContent("Alpha Map", "Single Channel (R) Alpha used for all layering");
             public static GUIContent baseColorText = new GUIContent("Albedo (RGB)", "Albedo (RGB)");
             public static GUIContent baseColorText2 = new GUIContent("Blend Factor (A)", "Blend Factor (A)");
             public static GUIContent normalMapText = new GUIContent("Normal Map", "Normal Map (BC7/BC5/DXT5(nm))");
@@ -21,9 +20,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent BlendText = new GUIContent("Decal Blend", "Whole decal blend");
             public static GUIContent AlbedoModeText = new GUIContent("Albedo contribution", "Base color + Blend, Blend only");
         }
-
-        protected MaterialProperty alphaMap = new MaterialProperty();
-        protected const string kAlphaMap = "_AlphaMap";
 
         protected MaterialProperty baseColorMap = new MaterialProperty();
         protected const string kBaseColorMap = "_BaseColorMap";
@@ -53,7 +49,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         void FindMaterialProperties(MaterialProperty[] props)
         {
-            alphaMap = FindProperty(kAlphaMap, props);
             baseColor = FindProperty(kBaseColor, props);
             baseColorMap = FindProperty(kBaseColorMap, props);
             normalMap = FindProperty(kNormalMap, props);
@@ -69,7 +64,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         // All Setup Keyword functions must be static. It allow to create script to automatically update the shaders with a script if code change
         static public void SetupMaterialKeywordsAndPass(Material material)
         {
-            CoreUtils.SetKeyword(material, "_ALPHAMAP", material.GetTexture(kAlphaMap));
             CoreUtils.SetKeyword(material, "_ALBEDOCONTRIBUTION", material.GetFloat(kAlbedoMode) == 1.0f);
             CoreUtils.SetKeyword(material, "_COLORMAP", material.GetTexture(kBaseColorMap));
             CoreUtils.SetKeyword(material, "_NORMALMAP", material.GetTexture(kNormalMap));
@@ -92,15 +86,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 EditorGUILayout.LabelField(Styles.InputsText, EditorStyles.boldLabel);
 
                 EditorGUI.indentLevel++;
-                m_MaterialEditor.TexturePropertySingleLine(Styles.alphaText, alphaMap);
                 m_MaterialEditor.ShaderProperty(albedoMode, Styles.AlbedoModeText);
                 if (material.GetFloat(kAlbedoMode) == 1.0f)
                 {
-                    m_MaterialEditor.TexturePropertySingleLine(Styles.baseColorText, baseColorMap, baseColor);                    
+                    m_MaterialEditor.TexturePropertySingleLine(Styles.baseColorText, baseColorMap, baseColor);
                 }
                 else
                 {
-                    m_MaterialEditor.TexturePropertySingleLine(Styles.baseColorText2, baseColorMap, baseColor);                    
+                    m_MaterialEditor.TexturePropertySingleLine(Styles.baseColorText2, baseColorMap, baseColor);
                 }
                 m_MaterialEditor.TexturePropertySingleLine(Styles.normalMapText, normalMap, normalMapIntensity);
                 m_MaterialEditor.TexturePropertySingleLine(Styles.maskMapText, maskMap);

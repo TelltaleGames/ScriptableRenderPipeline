@@ -17,7 +17,7 @@ void GetSurfaceData(FragInputs input, out DecalSurfaceData surfaceData)
     surfaceData.mask = float4(0,0,0,0);
     surfaceData.HTileMask = 0;
     surfaceData.alpha = 1; // TODO: @Brandon, you'll need to reapply the your changes to this file - Jayeson.
-    
+
 #if (SHADERPASS == SHADERPASS_DBUFFER_PROJECTOR)
     float totalBlend = clamp(normalToWorld[0][3], 0.0f, 1.0f);
     float2 scale = float2(normalToWorld[3][0], normalToWorld[3][1]);
@@ -28,9 +28,8 @@ void GetSurfaceData(FragInputs input, out DecalSurfaceData surfaceData)
 	float2 texCoords = input.texCoord0;
 #endif
 
-
 #if _COLORMAP
-    surfaceData.baseColor *= SAMPLE_TEXTURE2D(_BaseColorMap, sampler_BaseColorMap, texCoords);    
+    surfaceData.baseColor *= SAMPLE_TEXTURE2D(_BaseColorMap, sampler_BaseColorMap, texCoords);
 #endif
 	surfaceData.baseColor.w *= totalBlend;
 	totalBlend = surfaceData.baseColor.w;   // base alpha affects all other channels;
@@ -43,10 +42,10 @@ void GetSurfaceData(FragInputs input, out DecalSurfaceData surfaceData)
 #endif
 
 #if _NORMALMAP
-	float3 normalTS = UnpackNormalmapRGorAG(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, texCoords));
+	float3 normalTS = UnpackNormalmapRGorAG(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, texCoords), _NormalMapIntensity);
 #if (SHADERPASS == SHADERPASS_DBUFFER_PROJECTOR)
 	float3 normalWS = mul((float3x3)normalToWorld, normalTS);
-#elif (SHADERPASS == SHADERPASS_DBUFFER_MESH)	
+#elif (SHADERPASS == SHADERPASS_DBUFFER_MESH)
 	float3 normalWS;
 	GetNormalWS(input, 0, normalTS, normalWS);
 #endif

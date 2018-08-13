@@ -178,8 +178,9 @@ real3 UnpackNormalAG(real4 packedNormal, real scale = 1.0)
 {
     real3 normal;
     normal.xy = packedNormal.wy * 2.0 - 1.0;
-    normal.xy *= scale;
     normal.z = sqrt(1.0 - saturate(dot(normal.xy, normal.xy)));
+    normal.xy *= scale;
+    normal = normalize(normal);
     return normal;
 }
 

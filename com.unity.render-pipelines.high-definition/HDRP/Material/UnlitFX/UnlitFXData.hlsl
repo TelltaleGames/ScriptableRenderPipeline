@@ -23,9 +23,9 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     if (_NoiseMapEnable)
     {
         float2 noiseMapUv = TRANSFORM_TEX(input.texCoord0, _NoiseMap);
-        float3 noise = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, noiseMapUv).rgb;
+        float noise = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, noiseMapUv).r;
 
-        alpha = lerp(alpha, alpha*noise, _NoiseIntensity);
+        alpha = lerp(alpha, alpha*noise, _NoiseIntensity); 
     }
 
 #ifdef _ALPHATEST_ON
