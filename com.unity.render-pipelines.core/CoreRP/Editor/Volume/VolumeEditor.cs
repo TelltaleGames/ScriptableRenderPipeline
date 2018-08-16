@@ -21,7 +21,14 @@ namespace UnityEditor.Experimental.Rendering
 
         VolumeProfile profileRef
         {
-            get { return actualTarget.HasInstantiatedProfile() ? actualTarget.profile : actualTarget.sharedProfile; }
+            get { return HasInstantiatedProfile() ? actualTarget.profile : actualTarget.sharedProfile; }
+        }
+
+        bool HasInstantiatedProfile()
+        {
+            // Telltale: We don't want to be editing the instantiated profile.
+            return false;
+            // return actualTarget.HasInstantiatedProfile();
         }
 
         void OnEnable()
@@ -80,7 +87,7 @@ namespace UnityEditor.Experimental.Rendering
             var buttonNewRect = new Rect(fieldRect.xMax, lineRect.y, buttonWidth, lineRect.height);
             var buttonCopyRect = new Rect(buttonNewRect.xMax, lineRect.y, buttonWidth, lineRect.height);
 
-            EditorGUI.PrefixLabel(labelRect, CoreEditorUtils.GetContent(actualTarget.HasInstantiatedProfile() ? "Profile (Instance)|A copy of a profile asset." : "Profile|A reference to a profile asset."));
+            EditorGUI.PrefixLabel(labelRect, CoreEditorUtils.GetContent(HasInstantiatedProfile() ? "Profile (Instance)|A copy of a profile asset." : "Profile|A reference to a profile asset."));
 
             using (var scope = new EditorGUI.ChangeCheckScope())
             {
@@ -88,7 +95,7 @@ namespace UnityEditor.Experimental.Rendering
 
                 VolumeProfile profile = null;
 
-                if (actualTarget.HasInstantiatedProfile())
+                if (HasInstantiatedProfile())
                     profile = (VolumeProfile)EditorGUI.ObjectField(fieldRect, actualTarget.profile, typeof(VolumeProfile), false);
                 else
                     profile = (VolumeProfile)EditorGUI.ObjectField(fieldRect, m_Profile.objectReferenceValue, typeof(VolumeProfile), false);
@@ -98,7 +105,7 @@ namespace UnityEditor.Experimental.Rendering
                     assetHasChanged = true;
                     m_Profile.objectReferenceValue = profile;
 
-                    if (actualTarget.HasInstantiatedProfile()) // Clear the instantiated profile, from now on we're using shared again
+                    if (HasInstantiatedProfile()) // Clear the instantiated profile, from now on we're using shared again
                         actualTarget.profile = null;
                 }
 
@@ -119,7 +126,7 @@ namespace UnityEditor.Experimental.Rendering
                     assetHasChanged = true;
                 }
 
-                if (showCopy && GUI.Button(buttonCopyRect, CoreEditorUtils.GetContent(actualTarget.HasInstantiatedProfile() ? "Save|Save the instantiated profile" : "Clone|Create a new profile and copy the content of the currently assigned profile."), EditorStyles.miniButtonRight))
+                if (showCopy && GUI.Button(buttonCopyRect, CoreEditorUtils.GetContent(HasInstantiatedProfile() ? "Save|Save the instantiated profile" : "Clone|Create a new profile and copy the content of the currently assigned profile."), EditorStyles.miniButtonRight))
                 {
                     // Duplicate the currently assigned profile and save it as a new profile
                     var origin = profileRef;
@@ -150,7 +157,7 @@ namespace UnityEditor.Experimental.Rendering
 
             EditorGUILayout.Space();
 
-            if (m_Profile.objectReferenceValue == null && !actualTarget.HasInstantiatedProfile())
+            if (m_Profile.objectReferenceValue == null && !HasInstantiatedProfile())
             {
                 if (assetHasChanged)
                     m_ComponentList.Clear(); // Asset wasn't null before, do some cleanup
