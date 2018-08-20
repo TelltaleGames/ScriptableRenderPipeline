@@ -1,3 +1,4 @@
+// Based on UnlitProperties.hlsl.
 
 TEXTURE2D(_CloudHorizonMap);
 SAMPLER(sampler_CloudHorizonMap);

@@ -1,3 +1,5 @@
+// Based on Unlit.shader.
+
 Shader "HDRenderPipeline/SkyDomeUnlit"
 {
     Properties
