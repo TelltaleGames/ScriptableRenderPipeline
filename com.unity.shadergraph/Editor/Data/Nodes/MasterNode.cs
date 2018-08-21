@@ -73,6 +73,9 @@ namespace UnityEditor.ShaderGraph
             foreach (var activeNode in activeNodeList.OfType<AbstractMaterialNode>())
                 activeNode.CollectShaderProperties(shaderProperties, mode);
 
+            foreach (var subShader in m_SubShaders)
+                subShader.CollectShaderProperties(shaderProperties, mode);
+
             var finalShader = new ShaderStringBuilder();
             finalShader.AppendLine(@"Shader ""{0}""", outputName);
             using (finalShader.BlockScope())

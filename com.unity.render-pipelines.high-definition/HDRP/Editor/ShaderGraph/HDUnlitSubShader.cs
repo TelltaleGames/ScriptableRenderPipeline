@@ -509,5 +509,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             return subShader.GetShaderString(0);
         }
+
+        public void CollectShaderProperties(PropertyCollector properties, GenerationMode generationMode)
+        {
+        }
     }
 }

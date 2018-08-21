@@ -578,7 +578,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             return activeFields;
         }
 
-        private static bool GenerateShaderPassLit(AbstractMaterialNode masterNode, Pass pass, GenerationMode mode, SurfaceMaterialOptions materialOptions, ShaderGenerator result, List<string> sourceAssetDependencyPaths)
+        private static bool GenerateShaderPassLit(AbstractMaterialNode masterNode, Pass pass, GenerationMode mode, SurfaceMaterialOptions materialOptions, ShaderGenerator result, List<string> sourceAssetDependencyPaths, PropertyCollector additionalProperties = null)
         {
             var templateLocation = Path.Combine(Path.Combine(Path.Combine(HDEditorUtils.GetHDRenderPipelinePath(), "Editor"), "ShaderGraph"), pass.TemplateName);
             if (!File.Exists(templateLocation))
@@ -613,7 +613,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             var vertexSlots = HDSubShaderUtilities.FindMaterialSlotsOnNode(pass.VertexShaderSlots, masterNode);
 
             // properties used by either pixel and vertex shader
-            PropertyCollector sharedProperties = new PropertyCollector();
+            PropertyCollector sharedProperties = additionalProperties ?? new PropertyCollector();
 
             // build the graph outputs structure to hold the results of each active slots (and fill out activeFields to indicate they are active)
             string pixelGraphInputStructName = "SurfaceDescriptionInputs";
@@ -805,6 +805,22 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             return true;
         }
 
+        public static void CollectShaderPropertiesForwardLit(PropertyCollector properties, GenerationMode mode)
+        {
+            var lightGroupIndexProperty = new HideInInspectorPropertyDecorator(
+                new Vector1ShaderProperty()
+                {
+                    value = 0,
+                    displayName = "LightGroupIndex",
+                    generatePropertyBlock = true,
+                    overrideReferenceName = "_LightGroupIndex",
+                    floatType = FloatType.Integer
+                }
+            );
+
+            properties.AddShaderProperty(lightGroupIndexProperty);
+        }
+
         public string GetSubshader(IMasterNode iMasterNode, GenerationMode mode, List<string> sourceAssetDependencyPaths = null)
         {
             if (sourceAssetDependencyPaths != null)
@@ -868,7 +884,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     GenerateShaderPassLit(masterNode, m_PassTransparentBackface, mode, materialOptions, subShader, sourceAssetDependencyPaths);
                 }
 
-                GenerateShaderPassLit(masterNode, m_PassForward, mode, materialOptions, subShader, sourceAssetDependencyPaths);
+                {
+                    PropertyCollector forwardProperties = new PropertyCollector();
+                    CollectShaderPropertiesForwardLit(forwardProperties, mode);
+
+                    GenerateShaderPassLit(masterNode, m_PassForward, mode, materialOptions, subShader, sourceAssetDependencyPaths, forwardProperties);
+                }
 
                 if (transparentDepthPostpassActive)
                 {
@@ -879,6 +900,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             subShader.AddShaderChunk("}", true);
 
             return subShader.GetShaderString(0);
+        }
+
+        public void CollectShaderProperties(PropertyCollector properties, GenerationMode mode)
+        {
+            CollectShaderPropertiesForwardLit(properties, mode);
         }
     }
 }
