@@ -315,6 +315,9 @@ namespace UnityEditor.ShaderGraph.Drawing
                     case ConcreteSlotValueType.Boolean:
                         prop = new BooleanShaderProperty();
                         break;
+                    case ConcreteSlotValueType.CompileTimeBoolean:
+                        prop = new CompileTimeBooleanShaderProperty();
+                        break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }

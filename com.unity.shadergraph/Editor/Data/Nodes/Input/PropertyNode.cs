@@ -83,6 +83,11 @@ namespace UnityEditor.ShaderGraph
                 AddSlot(new BooleanMaterialSlot(OutputSlotId, property.displayName, "Out", SlotType.Output, false));
                 RemoveSlotsNameNotMatching(new[] { OutputSlotId });
             }
+            else if (property is CompileTimeBooleanShaderProperty)
+            {
+                AddSlot(new CompileTimeBooleanMaterialSlot(OutputSlotId, property.displayName, "Out", SlotType.Output, false));
+                RemoveSlotsNameNotMatching(new[] { OutputSlotId });
+            }
         }
 
         public void GenerateNodeCode(ShaderGenerator visitor, GenerationMode generationMode)
@@ -138,6 +143,27 @@ namespace UnityEditor.ShaderGraph
                         , precision
                         , GetVariableNameForSlot(OutputSlotId)
                         , property.referenceName);
+                visitor.AddShaderChunk(result, true);
+            }
+            else if (property is CompileTimeBooleanShaderProperty)
+            {
+                string keywordName = ((IShaderKeywordProperty)property).shaderKeywordName;
+                string variableName = GetVariableNameForSlot(OutputSlotId);
+                string result;
+
+                result = string.Format("#ifdef {0}", keywordName);
+                visitor.AddShaderChunk(result, true);
+
+                result = string.Format("bool {0} = true;", variableName);
+                visitor.AddShaderChunk(result, true);
+
+                result = string.Format("#else");
+                visitor.AddShaderChunk(result, true);
+
+                result = string.Format("bool {0} = false;", variableName);
+                visitor.AddShaderChunk(result, true);
+
+                result = string.Format("#endif");
                 visitor.AddShaderChunk(result, true);
             }
         }

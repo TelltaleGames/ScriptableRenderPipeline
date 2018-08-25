@@ -180,6 +180,7 @@ namespace UnityEditor.ShaderGraph.Drawing
             gm.AddItem(new GUIContent("Texture3D"), false, () => AddProperty(new Texture3DShaderProperty(), true));
             gm.AddItem(new GUIContent("Cubemap"), false, () => AddProperty(new CubemapShaderProperty(), true));
             gm.AddItem(new GUIContent("Boolean"), false, () => AddProperty(new BooleanShaderProperty(), true));
+            gm.AddItem(new GUIContent("Boolean (Compile Time)"), false, () => AddProperty(new CompileTimeBooleanShaderProperty(), true));
             gm.ShowAsContext();
         }
 

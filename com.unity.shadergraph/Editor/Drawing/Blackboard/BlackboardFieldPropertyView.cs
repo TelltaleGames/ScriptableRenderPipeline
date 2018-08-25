@@ -63,6 +63,33 @@ namespace UnityEditor.ShaderGraph.Drawing
             if (!string.IsNullOrEmpty(property.overrideReferenceName))
                 m_ReferenceNameField.AddToClassList("modified");
 
+            if (property is IShaderKeywordProperty)
+            {
+                var keywordProperty = (IShaderKeywordProperty)property;
+
+                var keywordNameField = new TextField(512, false, false, ' ');
+                keywordNameField.AddStyleSheetPath("Styles/PropertyNameReferenceField");
+                AddRow("Shader Keyword", keywordNameField);
+                keywordNameField.value = keywordProperty.shaderKeywordName;
+                keywordNameField.isDelayed = true;
+                keywordNameField.OnValueChanged(newName =>
+                {
+                    string newKeywordName = m_Graph.SanitizePropertyShaderKeywordName(newName.newValue, property.guid);
+                    keywordProperty.overrideShaderKeywordName = newKeywordName;
+                    keywordNameField.value = keywordProperty.shaderKeywordName;
+
+                    if (string.IsNullOrEmpty(keywordProperty.overrideShaderKeywordName))
+                        keywordNameField.RemoveFromClassList("modified");
+                    else
+                        keywordNameField.AddToClassList("modified");
+
+                    DirtyNodes(ModificationScope.Graph);
+                });
+
+                if (!string.IsNullOrEmpty(keywordProperty.overrideShaderKeywordName))
+                    keywordNameField.AddToClassList("modified");
+            }
+
             if (property is Vector1ShaderProperty)
             {
                 VisualElement floatRow = new VisualElement();
@@ -292,6 +319,19 @@ namespace UnityEditor.ShaderGraph.Drawing
                     {
                         booleanProperty.value = evt.newValue;
                         DirtyNodes();
+                    };
+                var field = new Toggle();
+                field.OnToggleChanged(onBooleanChanged);
+                field.value = booleanProperty.value;
+                AddRow("Default", field);
+            }
+            else if (property is CompileTimeBooleanShaderProperty)
+            {
+                var booleanProperty = (CompileTimeBooleanShaderProperty)property;
+                EventCallback<ChangeEvent<bool>> onBooleanChanged = evt =>
+                    {
+                        booleanProperty.value = evt.newValue;
+                        DirtyNodes(ModificationScope.Graph);
                     };
                 var field = new Toggle();
                 field.OnToggleChanged(onBooleanChanged);

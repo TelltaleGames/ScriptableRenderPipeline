@@ -80,6 +80,8 @@ namespace UnityEditor.ShaderGraph
                     return "(4)";
                 case ConcreteSlotValueType.Boolean:
                     return "(B)";
+                case ConcreteSlotValueType.CompileTimeBoolean:
+                    return "(CTB)";
                 case ConcreteSlotValueType.Matrix2:
                     return "(2x2)";
                 case ConcreteSlotValueType.Matrix3:
@@ -162,6 +164,8 @@ namespace UnityEditor.ShaderGraph
                     return new DynamicValueMaterialSlot(slotId, displayName, shaderOutputName, slotType, new Matrix4x4(defaultValue, Vector4.zero, Vector4.zero, Vector4.zero), shaderStageCapability, hidden);
                 case SlotValueType.Boolean:
                     return new BooleanMaterialSlot(slotId, displayName, shaderOutputName, slotType, false, shaderStageCapability, hidden);
+                case SlotValueType.CompileTimeBoolean:
+                    return new CompileTimeBooleanMaterialSlot(slotId, displayName, shaderOutputName, slotType, false, shaderStageCapability, hidden);
             }
 
             throw new ArgumentOutOfRangeException("type", type, null);
@@ -298,6 +302,8 @@ namespace UnityEditor.ShaderGraph
                         || inputType == SlotValueType.Dynamic;
                 case SlotValueType.Boolean:
                     return inputType == SlotValueType.Boolean;
+                case SlotValueType.CompileTimeBoolean:
+                    return inputType == SlotValueType.CompileTimeBoolean;
             }
             return false;
         }
@@ -353,6 +359,8 @@ namespace UnityEditor.ShaderGraph
                     return PropertyType.Gradient;
                 case ConcreteSlotValueType.Boolean:
                     return PropertyType.Boolean;
+                case ConcreteSlotValueType.CompileTimeBoolean:
+                    return PropertyType.CompileTimeBoolean;
                 case ConcreteSlotValueType.Vector1:
                     return PropertyType.Vector1;
                 case ConcreteSlotValueType.Vector2:

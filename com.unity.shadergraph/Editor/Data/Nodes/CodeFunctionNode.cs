@@ -36,6 +36,9 @@ namespace UnityEditor.ShaderGraph
         protected struct Boolean
         {}
 
+        protected struct CompileTimeBoolean
+        {}
+
         protected struct Vector1
         {}
 
@@ -149,6 +152,10 @@ namespace UnityEditor.ShaderGraph
             if (t == typeof(Boolean))
             {
                 return SlotValueType.Boolean;
+            }
+            if (t == typeof(CompileTimeBoolean))
+            {
+                return SlotValueType.CompileTimeBoolean;
             }
             if (t == typeof(Vector1))
             {

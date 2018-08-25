@@ -236,11 +236,29 @@ namespace UnityEditor.ShaderGraph.Drawing
                     continue;
                 node.CollectPreviewMaterialProperties(m_PreviewProperties);
                 foreach (var prop in m_Graph.properties)
+                {
                     m_PreviewProperties.Add(prop.GetPreviewMaterialProperty());
+                }
 
                 foreach (var previewProperty in m_PreviewProperties)
                     m_PreviewPropertyBlock.SetPreviewProperty(previewProperty);
                 m_PreviewProperties.Clear();
+            }
+
+            // Gather enabled shader variants.
+            var enabledCompileTimeBooleanNames = new HashSet<string>();
+            foreach (IShaderProperty prop in m_Graph.properties)
+            {
+                var compileTimeBoolProperty = prop as CompileTimeBooleanShaderProperty;
+                if (compileTimeBoolProperty != null && prop.generatePropertyBlock && compileTimeBoolProperty.value)
+                {
+                    enabledCompileTimeBooleanNames.Add(compileTimeBoolProperty.referenceName);
+                }
+            }
+
+            foreach (var referenceName in enabledCompileTimeBooleanNames)
+            {
+                m_PreviewMaterial.SetFloat(referenceName, 1);
             }
 
             foreach (var i in m_DirtyPreviews)
@@ -326,6 +344,11 @@ namespace UnityEditor.ShaderGraph.Drawing
             m_RenderList2D.Clear();
             m_RenderList3D.Clear();
             m_DirtyPreviews.Clear();
+
+            foreach (var referenceName in enabledCompileTimeBooleanNames)
+            {
+                m_PreviewMaterial.SetFloat(referenceName, 0);
+            }
         }
 
         IndexSet m_NodesWith3DPreview = new IndexSet();
@@ -430,7 +453,6 @@ namespace UnityEditor.ShaderGraph.Drawing
             if (m_PreviewMaterial.shader != renderData.shaderData.shader)
                 m_PreviewMaterial.shader = renderData.shaderData.shader;
             var previousRenderTexure = RenderTexture.active;
-
 
             //Temp workaround for alpha previews...
             var temp = RenderTexture.GetTemporary(renderData.renderTexture.descriptor);

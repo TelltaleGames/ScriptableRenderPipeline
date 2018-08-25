@@ -420,7 +420,30 @@ namespace UnityEditor.ShaderGraph
 
             referenceName = Regex.Replace(referenceName, @"(?:[^A-Za-z_0-9])|(?:\s)", "_");
 
-            return GraphUtil.SanitizeName(m_Properties.Where(p => p.guid != guid).Select(p => p.referenceName), "{0}_{1}", referenceName);
+            var existingNames = m_Properties.Where(p => p.guid != guid).Select(p => p.referenceName)
+                .Concat(m_Properties.Where(p => p is IShaderKeywordProperty).Select(p => ((IShaderKeywordProperty)p).shaderKeywordName));
+
+            return GraphUtil.SanitizeName(existingNames, "{0}_{1}", referenceName);
+        }
+
+        public string SanitizePropertyShaderKeywordName(string keywordName, Guid guid = default(Guid))
+        {
+            keywordName = keywordName.Trim();
+
+            keywordName = keywordName.ToUpper();
+
+            if (string.IsNullOrEmpty(keywordName))
+                return null;
+
+            if (!keywordName.StartsWith("_"))
+                keywordName = "_" + keywordName;
+
+            keywordName = Regex.Replace(keywordName, @"(?:[^A-Za-z_0-9])|(?:\s)", "_");
+
+            var existingNames = m_Properties.Where(p => p is IShaderKeywordProperty).Where(p => p.guid != guid).Select(p => ((IShaderKeywordProperty)p).shaderKeywordName)
+                .Concat(m_Properties.Select(p => p.referenceName));
+
+            return GraphUtil.SanitizeName(existingNames, "{0}_{1}", keywordName);
         }
 
         public void RemoveShaderProperty(Guid guid)

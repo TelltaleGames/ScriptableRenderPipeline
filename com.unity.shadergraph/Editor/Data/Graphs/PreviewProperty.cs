@@ -143,13 +143,13 @@ namespace UnityEditor.ShaderGraph
         {
             get
             {
-                if (propType != PropertyType.Boolean)
+                if (propType != PropertyType.Boolean && propType != PropertyType.CompileTimeBoolean)
                     throw new ArgumentException(string.Format(k_GetErrorMessage, PropertyType.Boolean, propType));
                 return m_StructData.booleanValue;
             }
             set
             {
-                if (propType != PropertyType.Boolean)
+                if (propType != PropertyType.Boolean && propType != PropertyType.CompileTimeBoolean)
                     throw new ArgumentException(string.Format(k_SetErrorMessage, PropertyType.Boolean, propType));
                 m_StructData.booleanValue = value;
             }
@@ -170,7 +170,7 @@ namespace UnityEditor.ShaderGraph
                 block.SetVector(name, m_StructData.vector4Value);
             else if (propType == PropertyType.Vector1)
                 block.SetFloat(name, m_StructData.floatValue);
-            else if (propType == PropertyType.Boolean)
+            else if (propType == PropertyType.Boolean || propType == PropertyType.CompileTimeBoolean)
                 block.SetFloat(name, m_StructData.booleanValue ? 1 : 0);
         }
     }

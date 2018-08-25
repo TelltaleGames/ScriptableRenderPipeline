@@ -234,6 +234,8 @@ namespace UnityEditor.Graphing
             {
                 case ConcreteSlotValueType.Boolean:
                     return p.ToString();
+                case ConcreteSlotValueType.CompileTimeBoolean:
+                    return "bool";
                 case ConcreteSlotValueType.Vector1:
                     return p.ToString();
                 case ConcreteSlotValueType.Vector2:

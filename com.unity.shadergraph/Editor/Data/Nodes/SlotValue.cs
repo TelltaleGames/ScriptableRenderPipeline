@@ -22,7 +22,8 @@ namespace UnityEditor.ShaderGraph
         Vector2,
         Vector1,
         Dynamic,
-        Boolean
+        Boolean,
+        CompileTimeBoolean
     }
 
     public enum ConcreteSlotValueType
@@ -40,7 +41,8 @@ namespace UnityEditor.ShaderGraph
         Vector3,
         Vector2,
         Vector1,
-        Boolean
+        Boolean,
+        CompileTimeBoolean
     }
 
     public static class SlotValueHelper
@@ -105,7 +107,8 @@ namespace UnityEditor.ShaderGraph
             "typeFloat3",
             "typeFloat2",
             "typeFloat1",
-            "typeBoolean"
+            "typeBoolean",
+            "typeCompileTimeBoolean"
         };
 
         public static string ToClassName(this ConcreteSlotValueType type)
