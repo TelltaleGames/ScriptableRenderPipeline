@@ -1,5 +1,5 @@
-// SurfaceData is define in CharacterLit.cs which generate CharacterLit.cs.hlsl
-#include "CharacterLit.cs.hlsl"
+// SurfaceData is define in Lit.cs which generate Lit.cs.hlsl
+#include "../Lit/Lit.cs.hlsl"
 #include "../SubsurfaceScattering/SubsurfaceScattering.hlsl"
 #include "../NormalBuffer.hlsl"
 #include "CoreRP/ShaderLibrary/VolumeRendering.hlsl"
@@ -443,11 +443,13 @@ BSDFData ConvertSurfaceDataToBSDFData(uint2 positionSS, SurfaceData surfaceData)
     // perceptualRoughness can be modify by FillMaterialClearCoatData, so ConvertAnisotropyToClampRoughness must be call after
     ConvertAnisotropyToClampRoughness(bsdfData.perceptualRoughness, bsdfData.anisotropy, bsdfData.roughnessT, bsdfData.roughnessB);
 
+#if _MATERIAL_FEATURE_HAIR
     // Fill in Hair parameters after clamping above, since we're using roughnessT and roughnessB to store hair highlight roughness values
     if (HasFeatureFlag(surfaceData.materialFeatures, MATERIALFEATUREFLAGS_LIT_HAIR))
     {
         FillMaterialHair(surfaceData.hairShiftPrimary, surfaceData.hairShiftSecondary, surfaceData.hairSmoothnessPrimary, surfaceData.hairSmoothnessSecondary, surfaceData.specularColor, surfaceData.hairOffset, surfaceData.tangentWS, bsdfData);
     }
+#endif
 
 #if HAS_REFRACTION
     // Note: Reuse thickness of transmission's property set
@@ -821,14 +823,14 @@ void GetSurfaceDataDebug(uint paramId, SurfaceData surfaceData, inout float3 res
     // Overide debug value output to be more readable
     switch (paramId)
     {
-    case DEBUGVIEW_CHARACTERLIT_SURFACEDATA_NORMAL_VIEW_SPACE:
+    case DEBUGVIEW_LIT_SURFACEDATA_NORMAL_VIEW_SPACE:
         // Convert to view space
         result = TransformWorldToViewDir(surfaceData.normalWS) * 0.5 + 0.5;
         break;
-    case DEBUGVIEW_CHARACTERLIT_SURFACEDATA_MATERIAL_FEATURES:
+    case DEBUGVIEW_LIT_SURFACEDATA_MATERIAL_FEATURES:
         result = (surfaceData.materialFeatures.xxx) / 255.0; // Aloow to read with color picker debug mode
         break;
-    case DEBUGVIEW_CHARACTERLIT_SURFACEDATA_INDEX_OF_REFRACTION:
+    case DEBUGVIEW_LIT_SURFACEDATA_INDEX_OF_REFRACTION:
         result = saturate((surfaceData.ior - 1.0) / 1.5).xxx;
         break;
     }
@@ -841,14 +843,14 @@ void GetBSDFDataDebug(uint paramId, BSDFData bsdfData, inout float3 result, inou
     // Overide debug value output to be more readable
     switch (paramId)
     {
-    case DEBUGVIEW_CHARACTERLIT_BSDFDATA_NORMAL_VIEW_SPACE:
+    case DEBUGVIEW_LIT_BSDFDATA_NORMAL_VIEW_SPACE:
         // Convert to view space
         result = TransformWorldToViewDir(bsdfData.normalWS) * 0.5 + 0.5;
         break;
-    case DEBUGVIEW_CHARACTERLIT_BSDFDATA_MATERIAL_FEATURES:
+    case DEBUGVIEW_LIT_BSDFDATA_MATERIAL_FEATURES:
         result = (bsdfData.materialFeatures.xxx) / 255.0; // Aloow to read with color picker debug mode
         break;
-    case DEBUGVIEW_CHARACTERLIT_BSDFDATA_IOR:
+    case DEBUGVIEW_LIT_BSDFDATA_IOR:
         result = saturate((bsdfData.ior - 1.0) / 1.5).xxx;
         break;
     }

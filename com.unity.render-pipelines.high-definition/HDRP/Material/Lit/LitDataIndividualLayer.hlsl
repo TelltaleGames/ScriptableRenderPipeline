@@ -380,14 +380,9 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
     surfaceData.iridescenceMask = 0.0;
 #endif
 
-// Using the Character shader, but maybe not hair, so we have to fill in the struct data
+// Using the Character shader, but maybe not hair.
 #ifdef UNITY_MATERIAL_CHARACTERLIT
-    surfaceData.hairShiftPrimary = 0.0;
-    surfaceData.hairShiftSecondary = 0.0;
-    surfaceData.hairSmoothnessPrimary = 0.0;
-    surfaceData.hairSmoothnessSecondary = 0.0;
     surfaceData.specularColor = float3(1,1,1);
-    surfaceData.hairOffset = 0.0;
     surfaceData.anisotropy = _Anisotropy;
 #endif
 #ifdef _MATERIAL_FEATURE_HAIR
@@ -395,6 +390,7 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
     surfaceData.hairShiftSecondary = _HairShiftSecondary;
     surfaceData.hairSmoothnessPrimary = _HairSmoothnessPrimary;
     surfaceData.hairSmoothnessSecondary = _HairSmoothnessSecondary;
+    surfaceData.hairOffset = 0.0;
     surfaceData.specularColor = tex2D(_HairSpecularMap, layerTexCoord.base.uv).rgb * _HairSpecularColor;
     surfaceData.anisotropy = 0.8; // used for IBL, not direct lighting of hair
 #endif
