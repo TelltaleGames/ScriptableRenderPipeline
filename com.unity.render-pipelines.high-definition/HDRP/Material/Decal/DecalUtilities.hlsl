@@ -27,7 +27,7 @@ void ApplyBlendNormal(inout float4 dst, inout int matMask, float2 texCoords, int
 void ApplyBlendDiffuse(inout float4 dst, inout int matMask, float2 texCoords, float4 src, int mapMask, inout float blend, float lod, int diffuseTextureBound)
 {
 	if(diffuseTextureBound)
-	{ 
+	{
 		src *= SAMPLE_TEXTURE2D_LOD(_DecalAtlas2D, _trilinear_clamp_sampler_DecalAtlas2D, texCoords, lod);
 	}
     src.w *= blend;
@@ -123,16 +123,16 @@ void AddDecalContribution(PositionInputs posInput, inout SurfaceData surfaceData
                 float decalBlend = decalData.normalToWorld[0][3];
 				float4 src = decalData.baseColor;
 				int diffuseTextureBound = (decalData.diffuseScaleBias.x > 0) && (decalData.diffuseScaleBias.y > 0);
-                
-				ApplyBlendDiffuse(DBuffer0, mask, sampleDiffuse, src, DBUFFERHTILEBIT_DIFFUSE, decalBlend, lodDiffuse, diffuseTextureBound);		
-				alpha = alpha < decalBlend ? decalBlend : alpha;    // use decal alpha if it is higher than transparent alpha
+
+				ApplyBlendDiffuse(DBuffer0, mask, sampleDiffuse, src, DBUFFERHTILEBIT_DIFFUSE, decalBlend, lodDiffuse, diffuseTextureBound);
+				alpha = alpha < decalBlend ? decalBlend : alpha;     // use decal alpha if it is higher than transparent alpha
 
 				float albedoContribution = decalData.normalToWorld[1][3];
 				if (albedoContribution == 0.0f)
 				{
-					mask = 0;	// diffuse will not get modified						
+					mask = 0;	// diffuse will not get modified
 				}
-				
+
                 if ((decalData.normalScaleBias.x > 0) && (decalData.normalScaleBias.y > 0))
                 {
                     ApplyBlendNormal(DBuffer1, mask, sampleNormal, DBUFFERHTILEBIT_NORMAL, (float3x3)decalData.normalToWorld, decalBlend, lodNormal);
@@ -148,21 +148,20 @@ void AddDecalContribution(PositionInputs posInput, inout SurfaceData surfaceData
         mask = UnpackByte(LOAD_TEXTURE2D(_DecalHTileTexture, posInput.positionSS / 8).r);
 #endif
         DECODE_FROM_DBUFFER(DBuffer, decalSurfaceData);
+
         // using alpha compositing https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch23.html
         if(mask & DBUFFERHTILEBIT_DIFFUSE)
         {
             surfaceData.baseColor.xyz = surfaceData.baseColor.xyz * decalSurfaceData.baseColor.w + decalSurfaceData.baseColor.xyz;
         }
-
         if(mask & DBUFFERHTILEBIT_NORMAL)
         {
-            surfaceData.normalWS.xyz = normalize(surfaceData.normalWS.xyz * decalSurfaceData.normalWS.w + decalSurfaceData.normalWS.xyz);
+            surfaceData.normalWS.xyz = normalize(surfaceData.normalWS.xyz * lerp(decalSurfaceData.normalWS.w,1.0,decalSurfaceData.mask.y) + decalSurfaceData.normalWS.xyz);
         }
         if(mask & DBUFFERHTILEBIT_MASK)
         {
-            surfaceData.metallic = surfaceData.metallic * decalSurfaceData.mask.w + decalSurfaceData.mask.x;
-            surfaceData.ambientOcclusion = surfaceData.ambientOcclusion * decalSurfaceData.mask.w + decalSurfaceData.mask.y;
-            surfaceData.perceptualSmoothness = surfaceData.perceptualSmoothness * decalSurfaceData.mask.w + decalSurfaceData.mask.z;
+            surfaceData.metallic = surfaceData.metallic * decalSurfaceData.normalWS.w + decalSurfaceData.mask.x;
+            surfaceData.perceptualSmoothness = surfaceData.perceptualSmoothness * decalSurfaceData.normalWS.w + decalSurfaceData.mask.z;
         }
     }
 }

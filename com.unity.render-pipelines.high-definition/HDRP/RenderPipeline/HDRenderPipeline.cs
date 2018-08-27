@@ -408,7 +408,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 return false;
             }
 
-#if !UNITY_SWITCH
+//>>> TT_MODS - Skipping this block for XB1 as well. There were some architecture changes in how this is handled which don't play nicely with XB1.
+//              Sorry if you are trying to run the game on a VR headset. - adipirro
+#if !UNITY_SWITCH && !UNITY_XBOXONE
             // VR is not supported currently in HD
             if (XRSettings.isDeviceActive)
             {

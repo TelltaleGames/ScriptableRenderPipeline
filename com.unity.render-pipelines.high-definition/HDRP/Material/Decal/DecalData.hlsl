@@ -54,10 +54,22 @@ void GetSurfaceData(FragInputs input, out DecalSurfaceData surfaceData)
     surfaceData.HTileMask |= DBUFFERHTILEBIT_NORMAL;
 #endif
 
-#if _MASKMAP
-    surfaceData.mask = SAMPLE_TEXTURE2D(_MaskMap, sampler_MaskMap, texCoords);
-    surfaceData.mask.z = surfaceData.mask.w;
-    surfaceData.mask.w = totalBlend;
+    // initialized so that y channel will come through even w/o _MASKCONTRIBUTION set
+    surfaceData.mask = float4(0,0,0,1);
+
+#if _MASKCONTRIBUTION
+    #if _MASKMAP
+        surfaceData.mask = SAMPLE_TEXTURE2D(_MaskMap, sampler_MaskMap, texCoords);
+        surfaceData.mask.x *= _Metallic;
+        surfaceData.mask.z = lerp(_SmoothnessRemapMin, _SmoothnessRemapMax, surfaceData.mask.w);
+        surfaceData.mask.w = totalBlend;
+    #else
+        surfaceData.mask.x = _Metallic;
+        surfaceData.mask.z = _Smoothness;
+        surfaceData.mask.w = totalBlend;
+    #endif
     surfaceData.HTileMask |= DBUFFERHTILEBIT_MASK;
 #endif
+    surfaceData.mask.y = _NormalAdd; // TT dev - replaced AO mask input w/ ability to retain (mix in) underlying normal
+
 }
