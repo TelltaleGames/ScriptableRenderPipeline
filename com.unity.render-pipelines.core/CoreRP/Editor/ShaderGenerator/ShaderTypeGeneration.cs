@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
+using System.Linq;
 
 namespace UnityEditor.Experimental.Rendering
 {
@@ -74,25 +75,27 @@ namespace UnityEditor.Experimental.Rendering
 
         class ShaderFieldInfo : ICloneable
         {
-            public ShaderFieldInfo(PrimitiveType type, string name, int rows, int cols)
+            public ShaderFieldInfo(PrimitiveType type, string name, int rows, int cols, string[] conditionalNames)
             {
                 this.type = type;
                 this.name = originalName = name;
                 this.rows = rows;
                 this.cols = cols;
                 this.comment = "";
+                this.conditionalNames = conditionalNames;
                 swizzleOffset = 0;
                 packed = false;
                 accessor = new Accessor(type, name, rows, cols);
             }
 
-            public ShaderFieldInfo(PrimitiveType type, string name, int rows, int cols, string comment)
+            public ShaderFieldInfo(PrimitiveType type, string name, int rows, int cols, string comment, string[] conditionalNames)
             {
                 this.type = type;
                 this.name = originalName = name;
                 this.rows = rows;
                 this.cols = cols;
                 this.comment = comment;
+                this.conditionalNames = conditionalNames;
                 swizzleOffset = 0;
                 packed = false;
                 accessor = new Accessor(type, name, rows, cols);
@@ -125,7 +128,7 @@ namespace UnityEditor.Experimental.Rendering
 
             public object Clone()
             {
-                ShaderFieldInfo info = new ShaderFieldInfo(type, name, rows, cols, comment);
+                ShaderFieldInfo info = new ShaderFieldInfo(type, name, rows, cols, comment, conditionalNames);
                 info.swizzleOffset = swizzleOffset;
                 info.packed = packed;
                 info.accessor = accessor;
@@ -136,6 +139,7 @@ namespace UnityEditor.Experimental.Rendering
             public string name;
             public readonly string originalName;
             public readonly string comment;
+            public readonly string[] conditionalNames;
             public int rows;
             public int cols;
             public int swizzleOffset;
@@ -145,13 +149,14 @@ namespace UnityEditor.Experimental.Rendering
 
         class DebugFieldInfo
         {
-            public DebugFieldInfo(string defineName, string fieldName, Type fieldType, bool isDirection, bool isSRGB)
+            public DebugFieldInfo(string defineName, string fieldName, Type fieldType, bool isDirection, bool isSRGB, string[] conditionalNames)
             {
                 this.defineName = defineName;
                 this.fieldName = fieldName;
                 this.fieldType = fieldType;
                 this.isDirection = isDirection;
                 this.isSRGB = isSRGB;
+                this.conditionalNames = conditionalNames;
             }
 
             public string defineName;
@@ -159,6 +164,7 @@ namespace UnityEditor.Experimental.Rendering
             public Type fieldType;
             public bool isDirection;
             public bool isSRGB;
+            public string[] conditionalNames;
         }
 
         void Error(string error)
@@ -181,14 +187,14 @@ namespace UnityEditor.Experimental.Rendering
             }
         }
 
-        void EmitPrimitiveType(PrimitiveType type, int elements, string name, string comment, List<ShaderFieldInfo> fields)
+        void EmitPrimitiveType(PrimitiveType type, int elements, string name, string comment, List<ShaderFieldInfo> fields, string[] conditionalNames)
         {
-            fields.Add(new ShaderFieldInfo(type, name, elements, 1, comment));
+            fields.Add(new ShaderFieldInfo(type, name, elements, 1, comment, conditionalNames));
         }
 
-        void EmitMatrixType(PrimitiveType type, int rows, int cols, string name, string comment, List<ShaderFieldInfo> fields)
+        void EmitMatrixType(PrimitiveType type, int rows, int cols, string name, string comment, List<ShaderFieldInfo> fields, string[] conditionalNames)
         {
-            fields.Add(new ShaderFieldInfo(type, name, rows, cols, comment));
+            fields.Add(new ShaderFieldInfo(type, name, rows, cols, comment, conditionalNames));
         }
 
         bool ExtractComplex(FieldInfo field, List<ShaderFieldInfo> shaderFields)
@@ -247,7 +253,7 @@ namespace UnityEditor.Experimental.Rendering
                     Error(mismatchErrorMsg);
                     return false;
                 }
-                EmitPrimitiveType(PrimitiveType.Float, floatFields.Count, field.Name, comment, shaderFields);
+                EmitPrimitiveType(PrimitiveType.Float, floatFields.Count, field.Name, comment, shaderFields, null);
             }
             else if (intFields.Count > 0)
             {
@@ -256,7 +262,7 @@ namespace UnityEditor.Experimental.Rendering
                     Error(mismatchErrorMsg);
                     return false;
                 }
-                EmitPrimitiveType(PrimitiveType.Int, intFields.Count, field.Name, "", shaderFields);
+                EmitPrimitiveType(PrimitiveType.Int, intFields.Count, field.Name, "", shaderFields, null);
             }
             else if (uintFields.Count > 0)
             {
@@ -265,7 +271,7 @@ namespace UnityEditor.Experimental.Rendering
                     Error(mismatchErrorMsg);
                     return false;
                 }
-                EmitPrimitiveType(PrimitiveType.UInt, uintFields.Count, field.Name, "", shaderFields);
+                EmitPrimitiveType(PrimitiveType.UInt, uintFields.Count, field.Name, "", shaderFields, null);
             }
             else if (boolFields.Count > 0)
             {
@@ -274,7 +280,7 @@ namespace UnityEditor.Experimental.Rendering
                     Error(mismatchErrorMsg);
                     return false;
                 }
-                EmitPrimitiveType(PrimitiveType.Bool, boolFields.Count, field.Name, "", shaderFields);
+                EmitPrimitiveType(PrimitiveType.Bool, boolFields.Count, field.Name, "", shaderFields, null);
             }
             else
             {
@@ -384,7 +390,16 @@ namespace UnityEditor.Experimental.Rendering
             shaderText += "{\n";
             foreach (var shaderFieldInfo in m_PackedFields)
             {
+                if (shaderFieldInfo.conditionalNames != null)
+                {
+                    shaderText += GetConditionalIfdef(shaderFieldInfo.conditionalNames) + "\n";
+                }
                 shaderText += "    " + shaderFieldInfo.ToString() + "\n";
+                if (shaderFieldInfo.conditionalNames != null)
+                {
+                    shaderText += GetConditionalEndif(shaderFieldInfo.conditionalNames) + "\n";
+                }
+
             }
             shaderText += "};\n";
 
@@ -400,6 +415,11 @@ namespace UnityEditor.Experimental.Rendering
             shaderText += "//\n";
             foreach (var shaderField in m_ShaderFields)
             {
+                if (shaderField.conditionalNames != null)
+                {
+                    shaderText += GetConditionalIfdef(shaderField.conditionalNames) + "\n";
+                }
+
                 Accessor acc = shaderField.accessor;
                 string accessorName = shaderField.originalName;
                 accessorName = "Get" + char.ToUpper(accessorName[0]) + accessorName.Substring(1);
@@ -424,6 +444,11 @@ namespace UnityEditor.Experimental.Rendering
                             "    " // unity convention use space instead of tab...
                             + "return value." + acc.name + swizzle + ";\n";
                 shaderText += "}\n";
+
+                if (shaderField.conditionalNames != null)
+                {
+                    shaderText += GetConditionalEndif(shaderField.conditionalNames) + "\n";
+                }
             }
 
             return shaderText;
@@ -466,6 +491,11 @@ namespace UnityEditor.Experimental.Rendering
 
             foreach (var debugField in m_DebugFields)
             {
+                if (debugField.conditionalNames != null)
+                {
+                    shaderText += GetConditionalIfdef(debugField.conditionalNames) + "\n";
+                }
+
                 shaderText += "        case " + debugField.defineName + ":\n";
                 if (debugField.fieldType == typeof(float))
                 {
@@ -516,12 +546,27 @@ namespace UnityEditor.Experimental.Rendering
                 }
 
                 shaderText += "            break;\n";
+
+                if (debugField.conditionalNames != null)
+                {
+                    shaderText += GetConditionalEndif(debugField.conditionalNames) + "\n";
+                }
             }
 
             shaderText += "    }\n";
             shaderText += "}\n";
 
             return shaderText;
+        }
+
+        public string GetConditionalIfdef(string[] conditionalNames)
+        {
+            return "#if " + String.Join(" || ", conditionalNames.Select(s => "defined(" + s + ")"));
+        }
+
+        public string GetConditionalEndif(string[] conditionalNames)
+        {
+            return "#endif";
         }
 
         public string Emit()
@@ -586,6 +631,8 @@ namespace UnityEditor.Experimental.Rendering
                     continue;
                 }
 
+                string[] conditionalNames = null;
+
                 if (attr.needParamDebug)
                 {
                     List<string> displayNames = new List<string>();
@@ -608,6 +655,7 @@ namespace UnityEditor.Experimental.Rendering
                         }
                         isDirection = propertyAttr[0].isDirection;
                         sRGBDisplay = propertyAttr[0].sRGBDisplay;
+                        conditionalNames = propertyAttr[0].conditionalNames;
                     }
 
                     string className = type.FullName.Substring(type.FullName.LastIndexOf((".")) + 1); // ClassName include nested class
@@ -620,20 +668,23 @@ namespace UnityEditor.Experimental.Rendering
                         string defineName = ("DEBUGVIEW_" + className + "_" + name).ToUpper();
                         m_Statics[defineName] = Convert.ToString(attr.paramDefinesStart + debugCounter++);
 
-                        m_DebugFields.Add(new DebugFieldInfo(defineName, field.Name, field.FieldType, isDirection, sRGBDisplay));
+                        m_DebugFields.Add(new DebugFieldInfo(defineName, field.Name, field.FieldType, isDirection, sRGBDisplay, conditionalNames));
                     }
                 }
+
+
+
 
                 if (field.FieldType.IsPrimitive)
                 {
                     if (field.FieldType == typeof(float))
-                        EmitPrimitiveType(PrimitiveType.Float, 1, field.Name, "", m_ShaderFields);
+                        EmitPrimitiveType(PrimitiveType.Float, 1, field.Name, "", m_ShaderFields, conditionalNames);
                     else if (field.FieldType == typeof(int))
-                        EmitPrimitiveType(PrimitiveType.Int, 1, field.Name, "", m_ShaderFields);
+                        EmitPrimitiveType(PrimitiveType.Int, 1, field.Name, "", m_ShaderFields, conditionalNames);
                     else if (field.FieldType == typeof(uint))
-                        EmitPrimitiveType(PrimitiveType.UInt, 1, field.Name, "", m_ShaderFields);
+                        EmitPrimitiveType(PrimitiveType.UInt, 1, field.Name, "", m_ShaderFields, conditionalNames);
                     else if (field.FieldType == typeof(bool))
-                        EmitPrimitiveType(PrimitiveType.Bool, 1, field.Name, "", m_ShaderFields);
+                        EmitPrimitiveType(PrimitiveType.Bool, 1, field.Name, "", m_ShaderFields, conditionalNames);
                     else
                     {
                         Error("unsupported field type '" + field.FieldType + "'");
@@ -644,13 +695,13 @@ namespace UnityEditor.Experimental.Rendering
                 {
                     // handle special types, otherwise try parsing the struct
                     if (field.FieldType == typeof(Vector2))
-                        EmitPrimitiveType(PrimitiveType.Float, 2, field.Name, "", m_ShaderFields);
+                        EmitPrimitiveType(PrimitiveType.Float, 2, field.Name, "", m_ShaderFields, conditionalNames);
                     else if (field.FieldType == typeof(Vector3))
-                        EmitPrimitiveType(PrimitiveType.Float, 3, field.Name, "", m_ShaderFields);
+                        EmitPrimitiveType(PrimitiveType.Float, 3, field.Name, "", m_ShaderFields, conditionalNames);
                     else if (field.FieldType == typeof(Vector4))
-                        EmitPrimitiveType(PrimitiveType.Float, 4, field.Name, "", m_ShaderFields);
+                        EmitPrimitiveType(PrimitiveType.Float, 4, field.Name, "", m_ShaderFields, conditionalNames);
                     else if (field.FieldType == typeof(Matrix4x4))
-                        EmitMatrixType(PrimitiveType.Float, 4, 4, field.Name, "", m_ShaderFields);
+                        EmitMatrixType(PrimitiveType.Float, 4, 4, field.Name, "", m_ShaderFields, conditionalNames);
                     else if (!ExtractComplex(field, m_ShaderFields))
                     {
                         // Error reporting done in ExtractComplex()
