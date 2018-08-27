@@ -14,6 +14,8 @@
 #define MATERIALFEATUREFLAGS_LIT_ANISOTROPY (16)
 #define MATERIALFEATUREFLAGS_LIT_IRIDESCENCE (32)
 #define MATERIALFEATUREFLAGS_LIT_CLEAR_COAT (64)
+#define MATERIALFEATUREFLAGS_LIT_TRANSMISSION_PROBE (64)
+#define MATERIALFEATUREFLAGS_LIT_HAIR (128)
 
 //
 // UnityEngine.Experimental.Rendering.HDPipeline.Lit+ProjectionModel:  static fields
@@ -54,6 +56,11 @@
 #define DEBUGVIEW_LIT_SURFACEDATA_TRANSMITTANCE_COLOR (1018)
 #define DEBUGVIEW_LIT_SURFACEDATA_TRANSMITTANCE_ABSORPTION_DISTANCE (1019)
 #define DEBUGVIEW_LIT_SURFACEDATA_TRANSMITTANCE_MASK (1020)
+#define DEBUGVIEW_LIT_SURFACEDATA_HAIR_SHIFT_PRIMARY (1021)
+#define DEBUGVIEW_LIT_SURFACEDATA_HAIR_SHIFT_SECONDARY (1022)
+#define DEBUGVIEW_LIT_SURFACEDATA_HAIR_SMOOTHNESS_PRIMARY (1023)
+#define DEBUGVIEW_LIT_SURFACEDATA_HAIR_SMOOTHNESS_SECONDARY (1024)
+#define DEBUGVIEW_LIT_SURFACEDATA_HAIR_HIGHLIGHT_OFFSET (1025)
 
 //
 // UnityEngine.Experimental.Rendering.HDPipeline.Lit+BSDFData:  static fields
@@ -112,6 +119,21 @@ struct SurfaceData
     float3 transmittanceColor;
     float atDistance;
     float transmittanceMask;
+#if defined(_MATERIAL_FEATURE_HAIR)
+    float hairShiftPrimary;
+#endif
+#if defined(_MATERIAL_FEATURE_HAIR)
+    float hairShiftSecondary;
+#endif
+#if defined(_MATERIAL_FEATURE_HAIR)
+    float hairSmoothnessPrimary;
+#endif
+#if defined(_MATERIAL_FEATURE_HAIR)
+    float hairSmoothnessSecondary;
+#endif
+#if defined(_MATERIAL_FEATURE_HAIR)
+    float hairOffset;
+#endif
 };
 
 // Generated from UnityEngine.Experimental.Rendering.HDPipeline.Lit+BSDFData
@@ -215,6 +237,36 @@ void GetGeneratedSurfaceDataDebug(uint paramId, SurfaceData surfacedata, inout f
         case DEBUGVIEW_LIT_SURFACEDATA_TRANSMITTANCE_MASK:
             result = surfacedata.transmittanceMask.xxx;
             break;
+#if defined(_MATERIAL_FEATURE_HAIR)
+        case DEBUGVIEW_LIT_SURFACEDATA_HAIR_SHIFT_PRIMARY:
+            result = surfacedata.hairShiftPrimary.xxx;
+            needLinearToSRGB = true;
+            break;
+#endif
+#if defined(_MATERIAL_FEATURE_HAIR)
+        case DEBUGVIEW_LIT_SURFACEDATA_HAIR_SHIFT_SECONDARY:
+            result = surfacedata.hairShiftSecondary.xxx;
+            needLinearToSRGB = true;
+            break;
+#endif
+#if defined(_MATERIAL_FEATURE_HAIR)
+        case DEBUGVIEW_LIT_SURFACEDATA_HAIR_SMOOTHNESS_PRIMARY:
+            result = surfacedata.hairSmoothnessPrimary.xxx;
+            needLinearToSRGB = true;
+            break;
+#endif
+#if defined(_MATERIAL_FEATURE_HAIR)
+        case DEBUGVIEW_LIT_SURFACEDATA_HAIR_SMOOTHNESS_SECONDARY:
+            result = surfacedata.hairSmoothnessSecondary.xxx;
+            needLinearToSRGB = true;
+            break;
+#endif
+#if defined(_MATERIAL_FEATURE_HAIR)
+        case DEBUGVIEW_LIT_SURFACEDATA_HAIR_HIGHLIGHT_OFFSET:
+            result = surfacedata.hairOffset.xxx;
+            needLinearToSRGB = true;
+            break;
+#endif
     }
 }
 

@@ -18,7 +18,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             LitTransmission         = 1 << 3,
             LitAnisotropy           = 1 << 4,
             LitIridescence          = 1 << 5,
-            LitClearCoat            = 1 << 6
+            LitClearCoat            = 1 << 6,
+            LitTransmissionProbe    = 1 << 6,   // Not used by CharacterLit shader.
+			LitHair                 = 1 << 7    // Only used in CharacterLit shader
         };
 
         public enum RefractionModel
@@ -62,7 +64,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             [SurfaceDataAttributes("Specular Occlusion")]
             public float specularOcclusion;
 
-            [SurfaceDataAttributes(new string[] {"Normal", "Normal View Space"}, true)]
+            [SurfaceDataAttributes(new string[] { "Normal", "Normal View Space" }, true)]
             public Vector3 normalWS;
             [SurfaceDataAttributes("Smoothness")]
             public float perceptualSmoothness;
@@ -118,6 +120,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public float atDistance;
             [SurfaceDataAttributes("Transmittance mask")]
             public float transmittanceMask;
+
+            // Hair
+            [SurfaceDataAttributes("Hair Shift Primary", false, true, new string[] { "_MATERIAL_FEATURE_HAIR" })]
+            public float hairShiftPrimary;
+            [SurfaceDataAttributes("Hair Shift Secondary", false, true, new string[] { "_MATERIAL_FEATURE_HAIR" })]
+            public float hairShiftSecondary;
+            [SurfaceDataAttributes("Hair Smoothness Primary", false, true, new string[] { "_MATERIAL_FEATURE_HAIR" })]
+            public float hairSmoothnessPrimary;
+            [SurfaceDataAttributes("Hair Smoothness Secondary", false, true, new string[] { "_MATERIAL_FEATURE_HAIR" })]
+            public float hairSmoothnessSecondary;
+            [SurfaceDataAttributes("Hair Highlight Offset", false, true, new string[] { "_MATERIAL_FEATURE_HAIR" })]
+            public float hairOffset;
         };
 
         //-----------------------------------------------------------------------------
