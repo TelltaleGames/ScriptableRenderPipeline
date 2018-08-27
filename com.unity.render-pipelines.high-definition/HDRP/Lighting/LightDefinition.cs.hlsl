@@ -273,29 +273,28 @@ float GetVolumetricDimmer(LightData value)
 //
 float3 GetDirection0(TelltaleLightShadowData value)
 {
-	return value.direction0;
+    return value.direction0;
 }
 float GetWeight0(TelltaleLightShadowData value)
 {
-	return value.weight0;
+    return value.weight0;
 }
 float3 GetDirection1(TelltaleLightShadowData value)
 {
-	return value.direction1;
+    return value.direction1;
 }
 float GetWeight1(TelltaleLightShadowData value)
 {
-	return value.weight1;
+    return value.weight1;
 }
 float3 GetDirection2(TelltaleLightShadowData value)
 {
-	return value.direction2;
+    return value.direction2;
 }
 float GetWeight2(TelltaleLightShadowData value)
 {
-	return value.weight2;
+    return value.weight2;
 }
-
 
 //
 // Accessors for UnityEngine.Experimental.Rendering.HDPipeline.EnvLightData
