@@ -1,3 +1,5 @@
+// Based on Unlit.shader.
+
 Shader "HDRenderPipeline/Particle Uber" 
 {
     Properties 
@@ -276,7 +278,7 @@ Shader "HDRenderPipeline/Particle Uber"
             #define SCENESELECTIONPASS // This will drive the output of the scene selection shader
             #include "../../Material/Material.hlsl"
             #include "../Material/Unlit/UnlitDepthPass.hlsl"
-            #include "particle_uberData.hlsl"
+            #include "../Material/Unlit/UnlitData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
@@ -298,7 +300,7 @@ Shader "HDRenderPipeline/Particle Uber"
             #define SHADERPASS SHADERPASS_DEPTH_ONLY
             #include "../Material/Material.hlsl"
             #include "../Material/Unlit/UnlitDepthPass.hlsl"
-            #include "particle_uberData.hlsl"
+            #include "../Material/Unlit/UnlitData.hlsl"
             #include "../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
@@ -837,7 +839,7 @@ Shader "HDRenderPipeline/Particle Uber"
             #define SHADERPASS SHADERPASS_FORWARD_UNLIT
             #include "../Material/Material.hlsl"
             #include "../Material/Unlit/UnlitSharePass.hlsl"
-            #include "particle_uberData.hlsl"
+            #include "../Material/Unlit/UnlitData.hlsl"
             #include "../ShaderPass/ShaderPassForwardUnlit.hlsl"
 
             ENDHLSL
@@ -863,7 +865,7 @@ Shader "HDRenderPipeline/Particle Uber"
             #define SHADERPASS SHADERPASS_LIGHT_TRANSPORT
             #include "../Material/Material.hlsl"
             #include "../Material/Unlit/UnlitSharePass.hlsl"
-            #include "particle_uberData.hlsl"
+            #include "../Material/Unlit/UnlitData.hlsl"
             #include "../ShaderPass/ShaderPassLightTransport.hlsl"
 
             ENDHLSL
