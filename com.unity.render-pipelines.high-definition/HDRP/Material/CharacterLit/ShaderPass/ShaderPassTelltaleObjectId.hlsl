@@ -1,3 +1,4 @@
+// Based on HDRP/ShaderPass/ShaderPassDepthOnly.hlsl.
 #if (SHADERPASS != SHADERPASS_TELLTALE_SHADOW_CASTER_ID)
 #error SHADERPASS_is_not_correctly_define
 #endif

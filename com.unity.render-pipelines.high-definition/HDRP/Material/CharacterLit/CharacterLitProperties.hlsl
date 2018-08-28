@@ -1,3 +1,5 @@
+// Based on LitProperties.hlsl.
+
 // ===========================================================================
 //                              WARNING:
 // On PS4, texture/sampler declarations need to be outside of CBuffers
