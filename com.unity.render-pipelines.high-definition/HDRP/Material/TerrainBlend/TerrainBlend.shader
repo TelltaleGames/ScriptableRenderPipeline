@@ -1,3 +1,5 @@
+// Based on Lit.shader.
+
 Shader "HDRenderPipeline/TerrainBlend"
 {
     Properties
