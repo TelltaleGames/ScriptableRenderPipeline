@@ -20,6 +20,7 @@ namespace UnityEditor.ShaderGraph.Drawing
         public WindowDockingLayout previewLayout = new WindowDockingLayout();
         public WindowDockingLayout blackboardLayout = new WindowDockingLayout();
         public Vector2 masterPreviewSize = new Vector2(400, 400);
+        public bool autoDock = false;
     }
 
     public class GraphEditorView : VisualElement, IDisposable
@@ -35,6 +36,9 @@ namespace UnityEditor.ShaderGraph.Drawing
 
         const string k_FloatingWindowsLayoutKey = "UnityEditor.ShaderGraph.FloatingWindowsLayout";
         FloatingWindowsLayout m_FloatingWindowsLayout;
+
+        const float minAutoMasterPreviewHeight = 50;
+        const float minAutoBlackBoardHeight = 50;
 
         public Action saveRequested { get; set; }
 
@@ -87,6 +91,19 @@ namespace UnityEditor.ShaderGraph.Drawing
                         if (showInProjectRequested != null)
                             showInProjectRequested();
                     }
+
+                    bool currentAutoDockPanels = m_FloatingWindowsLayout.autoDock;
+                    bool newAutoDockPanels = GUILayout.Toggle(currentAutoDockPanels, "Auto Dock", EditorStyles.toolbarButton);
+                    if (newAutoDockPanels != currentAutoDockPanels)
+                    {
+                        m_FloatingWindowsLayout.autoDock = newAutoDockPanels;
+                        UpdateSerializedWindowLayout();
+                    }
+
+                    if (GUILayout.Button("Reframe", EditorStyles.toolbarButton))
+                    {
+                    }
+
                     GUILayout.FlexibleSpace();
                     GUILayout.EndHorizontal();
                 });
@@ -446,6 +463,7 @@ namespace UnityEditor.ShaderGraph.Drawing
         void HandleEditorViewChanged(GeometryChangedEvent evt)
         {
             m_BlackboardProvider.blackboard.layout = m_FloatingWindowsLayout.blackboardLayout.GetLayout(m_GraphView.layout);
+            ApplyAutoDocking();
         }
 
         void StoreBlackboardLayoutOnGeometryChanged(GeometryChangedEvent evt)
@@ -497,6 +515,8 @@ namespace UnityEditor.ShaderGraph.Drawing
             if (m_FloatingWindowsLayout == null)
                 m_FloatingWindowsLayout = new FloatingWindowsLayout();
 
+            ApplyAutoDocking();
+
             m_FloatingWindowsLayout.previewLayout.CalculateDockingCornerAndOffset(m_MasterPreviewView.layout, m_GraphView.layout);
             m_FloatingWindowsLayout.previewLayout.ClampToParentWindow();
 
@@ -510,6 +530,23 @@ namespace UnityEditor.ShaderGraph.Drawing
 
             string serializedWindowLayout = JsonUtility.ToJson(m_FloatingWindowsLayout);
             EditorUserSettings.SetConfigValue(k_FloatingWindowsLayoutKey, serializedWindowLayout);
+        }
+
+        void ApplyAutoDocking()
+        {
+            if (m_FloatingWindowsLayout.autoDock)
+            {
+                Rect graphViewLayout = m_GraphView.layout;
+                Rect masterPreviewLayout = m_MasterPreviewView.layout;
+                Rect blackboardLayout = m_BlackboardProvider.blackboard.layout;
+
+                blackboardLayout.x = graphViewLayout.x;
+                blackboardLayout.y = graphViewLayout.y;
+                blackboardLayout.height = Math.Max(minAutoBlackBoardHeight, graphViewLayout.height - masterPreviewLayout.height);
+
+                m_BlackboardProvider.blackboard.layout = blackboardLayout;
+                //            m_MasterPreviewView.layout = masterPreviewLayout;
+            }
         }
 
         public void Dispose()
