@@ -1,3 +1,5 @@
+// Based on HDRP/ShaderPass/ShaderPassForward.hlsl.
+
 #if SHADERPASS != SHADERPASS_FORWARD
 #error SHADERPASS_is_not_correctly_define
 #endif

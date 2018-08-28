@@ -1,3 +1,4 @@
+// Based on LitDataIndividualLayer.hlsl.
 
 float ADD_IDX(fakeCos)(float input)
 {
