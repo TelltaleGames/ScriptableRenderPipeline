@@ -332,7 +332,8 @@ Shader "HDRenderPipeline/CharacterLit"
     // Define
     //-------------------------------------------------------------------------------------
 
-    #define UNITY_MATERIAL_CHARACTERLIT // Need to be define before including Material.hlsl
+    #define UNITY_MATERIAL_LIT // Need to be define before including Material.hlsl
+    #define UNITY_MATERIAL_CHARACTERLIT
     // Use surface gradient normal mapping as it handle correctly triplanar normal mapping and multiple UVSet
     #define SURFACE_GRADIENT
     // This shader support vertex modification

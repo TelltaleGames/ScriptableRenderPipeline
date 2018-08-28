@@ -133,8 +133,6 @@ void UpdateLightingHierarchyWeights(inout float hierarchyWeight, inout float wei
 // If GBUFFERMATERIAL_COUNT is define two time, the shaders will not compile
 #ifdef UNITY_MATERIAL_LIT
 #include "Lit/Lit.hlsl"
-#elif defined(UNITY_MATERIAL_CHARACTERLIT)
-#include "CharacterLit/CharacterLit.hlsl"
 #elif defined(UNITY_MATERIAL_UNLIT)
 #include "Unlit/Unlit.hlsl"
 #elif defined(UNITY_MATERIAL_STACKLIT)

@@ -247,6 +247,20 @@ void FillMaterialAnisotropy(float anisotropy, float3 tangentWS, float3 bitangent
     bsdfData.bitangentWS = bitangentWS;
 }
 
+void FillMaterialHair(float shiftPrimary, float shiftSecondary, float smoothnessPrimary, float smoothnessSecondary, float3 hairSpecColor, float hairOffset, float3 tangentWS, inout BSDFData bsdfData)
+{
+    // trying to use existing struct members instead of adding custom hair ones.  may change later...
+    bsdfData.thickness  = shiftPrimary;
+    bsdfData.coatMask   = shiftSecondary;
+    bsdfData.roughnessT = smoothnessPrimary;
+    bsdfData.roughnessB = smoothnessSecondary;
+    bsdfData.tangentWS  = tangentWS;
+    bsdfData.absorptionCoefficient = hairSpecColor;
+    bsdfData.transmittanceMask = hairOffset;
+    bsdfData.anisotropy = 0.8;
+    bsdfData.perceptualRoughness = 0.99;
+}
+
 void FillMaterialIridescence(float mask, float thickness, inout BSDFData bsdfData)
 {
     bsdfData.iridescenceMask = mask;
@@ -274,7 +288,9 @@ void FillMaterialTransparencyData(float3 baseColor, float metallic, float ior, f
     // IOR define the fresnel0 value, so update it also for consistency (and even if not physical we still need to take into account any metal mask)
     bsdfData.fresnel0 = lerp(IorToFresnel0(ior).xxx, baseColor, metallic);
 
+#if !defined(UNITY_MATERIAL_CHARACTERLIT)
     bsdfData.absorptionCoefficient = TransmittanceColorAtDistanceToAbsorption(transmittanceColor, atDistance);
+#endif
     bsdfData.transmittanceMask = transmittanceMask;
     bsdfData.thickness = max(thickness, 0.0001);
 }
@@ -384,7 +400,7 @@ BSDFData ConvertSurfaceDataToBSDFData(uint2 positionSS, SurfaceData surfaceData)
 #endif
 
     // There is no metallic with SSS and specular color mode
-    float metallic = HasFeatureFlag(surfaceData.materialFeatures, MATERIALFEATUREFLAGS_LIT_SPECULAR_COLOR | MATERIALFEATUREFLAGS_LIT_SUBSURFACE_SCATTERING | MATERIALFEATUREFLAGS_LIT_TRANSMISSION) ? 0.0 : surfaceData.metallic;
+    float metallic = HasFeatureFlag(surfaceData.materialFeatures, MATERIALFEATUREFLAGS_LIT_SPECULAR_COLOR | MATERIALFEATUREFLAGS_LIT_SUBSURFACE_SCATTERING | MATERIALFEATUREFLAGS_LIT_TRANSMISSION | MATERIALFEATUREFLAGS_LIT_HAIR) ? 0.0 : surfaceData.metallic;
 
     bsdfData.diffuseColor = ComputeDiffuseColor(surfaceData.baseColor, metallic);
     bsdfData.fresnel0     = HasFeatureFlag(surfaceData.materialFeatures, MATERIALFEATUREFLAGS_LIT_SPECULAR_COLOR) ? surfaceData.specularColor : ComputeFresnel0(surfaceData.baseColor, surfaceData.metallic, DEFAULT_SPECULAR_VALUE);
@@ -429,7 +445,15 @@ BSDFData ConvertSurfaceDataToBSDFData(uint2 positionSS, SurfaceData surfaceData)
     // perceptualRoughness can be modify by FillMaterialClearCoatData, so ConvertAnisotropyToClampRoughness must be call after
     ConvertAnisotropyToClampRoughness(bsdfData.perceptualRoughness, bsdfData.anisotropy, bsdfData.roughnessT, bsdfData.roughnessB);
 
-#if HAS_REFRACTION
+#if _MATERIAL_FEATURE_HAIR
+    // Fill in Hair parameters after clamping above, since we're using roughnessT and roughnessB to store hair highlight roughness values
+    if (HasFeatureFlag(surfaceData.materialFeatures, MATERIALFEATUREFLAGS_LIT_HAIR))
+    {
+        FillMaterialHair(surfaceData.hairShiftPrimary, surfaceData.hairShiftSecondary, surfaceData.hairSmoothnessPrimary, surfaceData.hairSmoothnessSecondary, surfaceData.specularColor, surfaceData.hairOffset, surfaceData.tangentWS, bsdfData);
+    }
+#endif
+
+#if HAS_REFRACTION && !defined(UNITY_MATERIAL_CHARACTERLIT)
     // Note: Reuse thickness of transmission's property set
     FillMaterialTransparencyData( surfaceData.baseColor, surfaceData.metallic, surfaceData.ior, surfaceData.transmittanceColor, surfaceData.atDistance,
                                     surfaceData.thickness, surfaceData.transmittanceMask, bsdfData);
@@ -953,7 +977,13 @@ PreLightData GetPreLightData(float3 V, PositionInputs posInput, inout BSDFData b
 
     // Handle IBL +  multiscattering
     float specularReflectivity;
-    GetPreIntegratedFGDGGXAndDisneyDiffuse(NdotV, preLightData.iblPerceptualRoughness, bsdfData.fresnel0, preLightData.specularFGD, preLightData.diffuseFGD, specularReflectivity);
+    #ifdef _MATERIAL_FEATURE_HAIR
+        //Not going to use the texture, so the params we send in are for simple hair-specific calculation
+        float TdV = dot(bsdfData.tangentWS, V);
+        GetPreIntegratedFGDGGXAndDisneyDiffuse(sqrt(1.0 - (TdV*TdV)), preLightData.iblPerceptualRoughness, bsdfData.fresnel0, preLightData.specularFGD, preLightData.diffuseFGD, specularReflectivity);
+    #else
+        GetPreIntegratedFGDGGXAndDisneyDiffuse(NdotV, preLightData.iblPerceptualRoughness, bsdfData.fresnel0, preLightData.specularFGD, preLightData.diffuseFGD, specularReflectivity);
+    #endif
 #ifdef LIT_DIFFUSE_LAMBERT_BRDF
     preLightData.diffuseFGD = 1.0;
 #endif
@@ -1158,12 +1188,40 @@ void BSDF(  float3 V, float3 L, float NdotL, float3 positionWS, PreLightData pre
         // TODO: Do comparison between this correct version and the one from isotropic and see if there is any visual difference
         DV = DV_SmithJointGGXAniso(TdotH, BdotH, NdotH, NdotV, TdotL, BdotL, NdotL,
                                    bsdfData.roughnessT, bsdfData.roughnessB, preLightData.partLambdaV);
+        specularLighting = F * DV;
+    }
+    else if(HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_HAIR))
+    {
+        // Need to change fresnel behavior for hair???
+        // F = F_Schlick(bsdfData.fresnel0, LdotH);
+
+        // bsdfData.thickness  = shiftPrimary;
+        // bsdfData.coatMask   = shiftSecondary;
+        // bsdfData.roughnessT = smoothnessPrimary;
+        // bsdfData.roughnessB = smoothnessSecondary;
+        // bsdfData.tangentWS  = tangentWS;
+        // bsdfData.absorptionCoefficient = hairSpecColor;
+        // bsdfData.transmittanceMask = hairOffset;
+
+        float3 H = (L + V) * invLenLV;
+        //float3 T_R = ShiftTangent(bsdfData.tangentWS, bsdfData.normalWS, bsdfData.thickness + bsdfData.transmittanceMask);
+        //float3 T_TRT = ShiftTangent(bsdfData.tangentWS, bsdfData.normalWS, bsdfData.coatMask + bsdfData.transmittanceMask);
+        float3 hairSpec =  KajiyaKaySpecular(
+            bsdfData.tangentWS, V, H, L, bsdfData.normalWS,     // vectors
+            bsdfData.absorptionCoefficient,                     // secondary spec color
+            bsdfData.thickness + bsdfData.transmittanceMask,    // R shift
+            bsdfData.coatMask + bsdfData.transmittanceMask,     // TRT shift
+            bsdfData.roughnessT,                                // primary 'smoothness' - NOT ROUGHNESS
+            bsdfData.roughnessB                                 // secondary 'smoothness' - NOT ROUGHNESS
+        );
+
+        specularLighting = hairSpec;
     }
     else
     {
         DV = DV_SmithJointGGX(NdotH, NdotL, NdotV, bsdfData.roughnessT, preLightData.partLambdaV);
+        specularLighting = F * DV;
     }
-    specularLighting = F * DV;
 
 #ifdef LIT_DIFFUSE_LAMBERT_BRDF
     float  diffuseTerm = Lambert();
@@ -1242,7 +1300,8 @@ float3 EvaluateTransmission(BSDFData bsdfData, float3 transmittance, float NdotL
 DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
                                         float3 V, PositionInputs posInput, PreLightData preLightData,
                                         DirectionalLightData lightData, BSDFData bsdfData,
-                                        BakeLightingData bakeLightingData)
+                                        BakeLightingData bakeLightingData,
+                                        bool useTelltaleContactShadow = false)
 {
     DirectLighting lighting;
     ZERO_INITIALIZE(DirectLighting, lighting);
@@ -1255,7 +1314,7 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
 
     float3 color;
     float attenuation;
-    EvaluateLight_Directional(lightLoopContext, posInput, lightData, bakeLightingData, N, L, false, color, attenuation);
+    EvaluateLight_Directional(lightLoopContext, posInput, lightData, bakeLightingData, N, L, useTelltaleContactShadow, color, attenuation);
 
     float intensity = max(0, attenuation * NdotL); // Warning: attenuation can be greater than 1 due to the inverse square attenuation (when position is close to light)
 
@@ -2140,6 +2199,22 @@ void PreEvaluateAO(float3 V, PositionInputs posInput, PreLightData preLightData,
     #else
         GetScreenSpaceAmbientOcclusionMultibounce(posInput.positionSS, preLightData.NdotV, bsdfData.perceptualRoughness, 1.0, bsdfData.specularOcclusion, bsdfData.diffuseColor, bsdfData.fresnel0, aoFactor);
     #endif
+}
+
+//-----------------------------------------------------------------------------
+// GetCharacterLightAmbientOcclusion
+// ----------------------------------------------------------------------------
+
+float GetCharacterLightAmbientOcclusion(BSDFData bsdfData, AmbientOcclusionFactor aoFactor, float directWeight)
+{
+    float directAmbientOcclusionCL = lerp(1.0, aoFactor.indirectAmbientOcclusionRaw, directWeight);
+#if 0
+    // Same math as GetScreenSpaceAmbientOcclusion
+    return lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), directAmbientOcclusionCL);
+#else
+    // Same math as GetScreenSpaceAmbientOcclusionMultibounce
+    return GTAOMultiBounce(directAmbientOcclusionCL, bsdfData.diffuseColor).x;
+#endif
 }
 
 //-----------------------------------------------------------------------------
