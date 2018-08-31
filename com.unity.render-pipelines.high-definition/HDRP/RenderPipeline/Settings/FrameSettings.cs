@@ -145,7 +145,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // Planar and real time cubemap doesn't need post process and render in FP16
             aggregate.enablePostprocess = camera.cameraType != CameraType.Reflection && srcFrameSettings.enablePostprocess;
 
-#if UNITY_SWITCH
+#if UNITY_SWITCH || UNITY_XBOXONE
             aggregate.enableStereo = false;
 #else
             aggregate.enableStereo = camera.cameraType != CameraType.Reflection && srcFrameSettings.enableStereo && XRSettings.isDeviceActive && (camera.stereoTargetEye == StereoTargetEyeMask.Both) && renderPipelineSettings.supportStereo;
