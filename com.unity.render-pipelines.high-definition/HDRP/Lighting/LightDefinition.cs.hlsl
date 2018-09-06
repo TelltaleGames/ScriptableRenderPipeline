@@ -89,6 +89,7 @@ struct LightData
     int lightType;
     float minRoughness;
     float volumetricDimmer;
+    float nprCurveTexCoord;
 };
 
 // Generated from UnityEngine.Experimental.Rendering.HDPipeline.TelltaleLightShadowData

@@ -863,6 +863,8 @@ struct PreLightData
 {
     float NdotV;                     // Could be negative due to normal mapping, use ClampNdotV()
 
+    float RimFactor;
+
     // GGX
     float partLambdaV;
     float energyCompensation;
@@ -906,6 +908,10 @@ PreLightData GetPreLightData(float3 V, PositionInputs posInput, inout BSDFData b
     float3 N = bsdfData.normalWS;
     preLightData.NdotV = dot(N, V);
     preLightData.iblPerceptualRoughness = bsdfData.perceptualRoughness;
+
+    float rimFactor = pow( saturate( ( 1.0f - preLightData.NdotV ) * _RimWidth ), _RimFalloff );
+    float rimEps = fwidth( rimFactor ) * _RimAntialias;
+    preLightData.RimFactor = rimFactor * _RimIntensity;// smoothstep( 0.5f - rimEps, 0.5f + rimEps, rimFactor ) * _RimIntensity;
 
     float NdotV = ClampNdotV(preLightData.NdotV);
 
@@ -1154,23 +1160,23 @@ bool ShouldOutputSplitLighting(BSDFData bsdfData)
 
 // This function apply BSDF. Assumes that NdotL is positive.
 void BSDF(  float3 V, float3 L, float NdotL, float3 positionWS, PreLightData preLightData, BSDFData bsdfData,
-            out float3 diffuseLighting,
-            out float3 specularLighting)
+            out float diffuseTerm,
+            out float3 specularF,
+            out float specularDV )
 {
     float LdotV, NdotH, LdotH, NdotV, invLenLV;
     GetBSDFAngle(V, L, NdotL, preLightData.NdotV, LdotV, NdotH, LdotH, NdotV, invLenLV);
 
-    float3 F = F_Schlick(bsdfData.fresnel0, LdotH);
+    specularF = F_Schlick(bsdfData.fresnel0, LdotH);
     // Remark: Fresnel must be use with LdotH angle. But Fresnel for iridescence is expensive to compute at each light.
     // Instead we use the incorrect angle NdotV as an approximation for LdotH for Fresnel evaluation.
     // The Fresnel with iridescence and NDotV angle is precomputed ahead and here we jsut reuse the result.
     // Thus why we shouldn't apply a second time Fresnel on the value if iridescence is enabled.
     if (HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_IRIDESCENCE))
     {
-        F = lerp(F, bsdfData.fresnel0, bsdfData.iridescenceMask);
+        specularF = lerp( specularF, bsdfData.fresnel0, bsdfData.iridescenceMask);
     }
 
-    float DV;
     if (HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_ANISOTROPY))
     {
         float3 H = (L + V) * invLenLV;
@@ -1182,9 +1188,8 @@ void BSDF(  float3 V, float3 L, float NdotL, float3 positionWS, PreLightData pre
         float BdotL = dot(bsdfData.bitangentWS, L);
 
         // TODO: Do comparison between this correct version and the one from isotropic and see if there is any visual difference
-        DV = DV_SmithJointGGXAniso(TdotH, BdotH, NdotH, NdotV, TdotL, BdotL, NdotL,
+        specularDV = DV_SmithJointGGXAniso(TdotH, BdotH, NdotH, NdotV, TdotL, BdotL, NdotL,
                                    bsdfData.roughnessT, bsdfData.roughnessB, preLightData.partLambdaV);
-        specularLighting = F * DV;
     }
     else if(HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_HAIR))
     {
@@ -1211,16 +1216,17 @@ void BSDF(  float3 V, float3 L, float NdotL, float3 positionWS, PreLightData pre
             bsdfData.roughnessB                                 // secondary 'smoothness' - NOT ROUGHNESS
         );
 
-        specularLighting = hairSpec;
+        // TODO
+        specularDV = 1.0;
+        specularF = hairSpec;
     }
     else
     {
-        DV = DV_SmithJointGGX(NdotH, NdotL, NdotV, bsdfData.roughnessT, preLightData.partLambdaV);
-        specularLighting = F * DV;
+        specularDV = DV_SmithJointGGX(NdotH, NdotL, NdotV, bsdfData.roughnessT, preLightData.partLambdaV);
     }
 
 #ifdef LIT_DIFFUSE_LAMBERT_BRDF
-    float  diffuseTerm = Lambert();
+    diffuseTerm = Lambert();
 #else
     // A note on subsurface scattering: [SSS-NOTE-TRSM]
     // The correct way to handle SSS is to transmit light inside the surface, perform SSS,
@@ -1237,11 +1243,8 @@ void BSDF(  float3 V, float3 L, float NdotL, float3 positionWS, PreLightData pre
     // Separating f_retro_reflection also has a small cost (mostly due to energy compensation
     // for multi-bounce GGX), and the visual difference is negligible.
     // Therefore, we choose not to separate diffuse lighting into reflected and transmitted.
-    float diffuseTerm = DisneyDiffuse(NdotV, NdotL, LdotV, bsdfData.perceptualRoughness);
+    diffuseTerm = DisneyDiffuse(NdotV, NdotL, LdotV, bsdfData.perceptualRoughness);
 #endif
-
-    // We don't multiply by 'bsdfData.diffuseColor' here. It's done only once in PostEvaluateBSDF().
-    diffuseLighting = diffuseTerm;
 
     if (HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_CLEAR_COAT))
     {
@@ -1249,18 +1252,30 @@ void BSDF(  float3 V, float3 L, float NdotL, float3 positionWS, PreLightData pre
         // Note: coat F is scalar as it is a dieletric
         float coatF = F_Schlick(CLEAR_COAT_F0, LdotH) * bsdfData.coatMask;
         // Scale base specular
-        specularLighting *= Sq(1.0 - coatF);
+        specularDV *= Sq(1.0 - coatF);
 
         // Add top specular
         // TODO: Should we call just D_GGX here ?
         float DV = DV_SmithJointGGX(NdotH, NdotL, NdotV, bsdfData.coatRoughness, preLightData.coatPartLambdaV);
-        specularLighting += coatF * DV;
+        specularDV += coatF * DV;
 
         // Note: The modification of the base roughness and fresnel0 by the clear coat is already handled in FillMaterialClearCoatData
 
         // Very coarse attempt at doing energy conservation for the diffuse layer based on NdotL. No science.
-        diffuseLighting *= lerp(1, 1.0 - coatF, bsdfData.coatMask);
+        diffuseTerm *= lerp(1, 1.0 - coatF, bsdfData.coatMask);
     }
+}
+
+void BSDF( float3 V, float3 L, float NdotL, float3 positionWS, PreLightData preLightData, BSDFData bsdfData,
+    out float3 diffuseLighting,
+    out float3 specularLighting )
+{
+    float diffuseTerm = 0.0f;
+    float3 specularF = 0.0f;
+    float specularDV = 0.0f;
+    BSDF( V, L, NdotL, positionWS, preLightData, bsdfData, diffuseTerm, specularF, specularDV );
+    diffuseLighting = diffuseTerm;
+    specularLighting = specularF * specularDV;
 }
 
 // Currently, we only model diffuse transmission. Specular transmission is not yet supported.
@@ -1317,7 +1332,7 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
     // Note: We use NdotL here to early out, but in case of clear coat this is not correct. But we are ok with this
     UNITY_BRANCH if (intensity > 0.0)
     {
-        BSDF(V, L, NdotL, posInput.positionWS, preLightData, bsdfData, lighting.diffuse, lighting.specular);
+        //BSDF(V, L, NdotL, posInput.positionWS, preLightData, bsdfData, lighting.diffuse, lighting.specular);
 
         lighting.diffuse  *= intensity * lightData.diffuseScale;
         lighting.specular *= intensity * lightData.specularScale;
@@ -1351,12 +1366,12 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
 // EvaluateBSDF_Punctual (supports spot, point and projector lights)
 //-----------------------------------------------------------------------------
 
-DirectLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
+NPRLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
                                      float3 V, PositionInputs posInput,
-                                     PreLightData preLightData, LightData lightData, BSDFData bsdfData, BakeLightingData bakeLightingData)
+                                     PreLightData preLightData, LightData lightData, BSDFData bsdfData, BakeLightingData bakeLightingData, AmbientOcclusionFactor aoFactor )
 {
-    DirectLighting lighting;
-    ZERO_INITIALIZE(DirectLighting, lighting);
+    NPRLighting lighting;
+    ZERO_INITIALIZE( NPRLighting, lighting);
 
     float3 lightToSample = posInput.positionWS - lightData.positionWS;
     int    lightType     = lightData.lightType;
@@ -1386,6 +1401,9 @@ DirectLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
     float  NdotL = dot(N, L);
     float  LdotV = dot(L, V);
 
+    float3 conformedN = normalize( lerp( N, L, saturate( NdotL ) ) );
+    float conformedNdotL = dot( conformedN, L );
+
     bool mixedThicknessMode = HasFeatureFlag(bsdfData.materialFeatures, MATERIAL_FEATURE_FLAGS_TRANSMISSION_MODE_MIXED_THICKNESS)
                               && NdotL < 0 && lightData.shadowIndex >= 0;
 
@@ -1406,23 +1424,63 @@ DirectLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
     // Restore the original shadow index.
     lightData.shadowIndex = originalShadowIndex;
 
-    float intensity = max(0, attenuation * NdotL); // Warning: attenuation can be greater than 1 due to the inverse square attenuation (when position is close to light)
+    //
+    float ao = pow( aoFactor.indirectAmbientOcclusionRaw, 3.0f );
+
+    // Simulate a sphere light with this hack
+    // Note that it is not correct with our pre-computation of PartLambdaV (mean if we disable the optimization we will not have the
+    // same result) but we don't care as it is a hack anyway
+    bsdfData.coatRoughness = max( bsdfData.coatRoughness, lightData.minRoughness );
+    bsdfData.roughnessT = max( bsdfData.roughnessT, lightData.minRoughness );
+    bsdfData.roughnessB = max( bsdfData.roughnessB, lightData.minRoughness );
+
+    float diffuseTerm = 0.0f;
+    float3 specularF = 0.0f;
+    float specularDV = 0.0f;
+    if( NdotL > 0.0f )
+    {
+        BSDF( V, L, NdotL, posInput.positionWS, preLightData, bsdfData, diffuseTerm, specularF, specularDV );
+    }
+
+    // Warning: attenuation can be greater than 1 due to the inverse square attenuation (when position is close to light)
+    float nprDiffuseIntensity = max(0, diffuseTerm * attenuation * NdotL * ao );
+    float nprOpacity = 0.0f;
+    if( nprDiffuseIntensity > 0.0f )
+    {
+        float tonemapNPRDiffuseIntensity = nprDiffuseIntensity / ( nprDiffuseIntensity + 1.0f );
+        float2 nprDiffuseTexCoord = float2( tonemapNPRDiffuseIntensity, lightData.nprCurveTexCoord );
+        float4 nprDiffuseCurve = SAMPLE_TEXTURE2D_LOD( _NPRLightCurveTexture, s_linear_clamp_sampler, nprDiffuseTexCoord, 0.0f );
+        lighting.diffuse = nprDiffuseCurve.rgb * lightData.diffuseScale;
+        //lighting.weight += dot( lighting.diffuse, float3( 0.2989f, 0.5870f, 0.1140f ) );
+        nprOpacity = nprDiffuseCurve.a;
+    }
+
+    float3 viewN = TransformWorldToViewDir( N );
+    float3 viewL = TransformWorldToViewDir( L );
+    float viewNdotL = saturate( dot( viewN.xy, viewL.xy ) * 0.5f + 0.5f );
+    float rimIntensity = preLightData.RimFactor * viewNdotL;// * attenuation;
 
     // Note: We use NdotL here to early out, but in case of clear coat this is not correct. But we are ok with this
-    UNITY_BRANCH if (intensity > 0.0)
+    float nprSpecularIntensity = max( 0, attenuation * ( NdotL * ao * specularDV + rimIntensity ) );
+    UNITY_BRANCH if ( nprSpecularIntensity > 0.0)
     {
-        // Simulate a sphere light with this hack
-        // Note that it is not correct with our pre-computation of PartLambdaV (mean if we disable the optimization we will not have the
-        // same result) but we don't care as it is a hack anyway
-        bsdfData.coatRoughness = max(bsdfData.coatRoughness, lightData.minRoughness);
-        bsdfData.roughnessT = max(bsdfData.roughnessT, lightData.minRoughness);
-        bsdfData.roughnessB = max(bsdfData.roughnessB, lightData.minRoughness);
+        float tonemapNPRSpecularIntensity = nprSpecularIntensity / ( nprSpecularIntensity + 1.0f );
+        float2 nprSpecularTexCoord = float2( tonemapNPRSpecularIntensity, lightData.nprCurveTexCoord );
+        float4 nprSpecularCurve = SAMPLE_TEXTURE2D_LOD( _NPRLightCurveTexture, s_linear_clamp_sampler, nprSpecularTexCoord, 0.0f );
 
-        BSDF(V, L, NdotL, posInput.positionWS, preLightData, bsdfData, lighting.diffuse, lighting.specular);
+        specularF = saturate( specularF + rimIntensity );
 
-        lighting.diffuse  *= intensity * lightData.diffuseScale;
-        lighting.specular *= intensity * lightData.specularScale;
+        lighting.specular = specularF * nprSpecularCurve.rgb * lightData.specularScale;
+        //lighting.weight += specularDV;//dot( lighting.specular, float3( 0.2989f, 0.5870f, 0.1140f ) );
+        nprOpacity = max( nprOpacity, nprSpecularCurve.a );
     }
+
+    //lighting.specular += rimIntensity;
+    //lighting.weight += rimIntensity;
+    //nprOpacity += rimIntensity;
+
+    lighting.weight = attenuation * NdotL * ( diffuseTerm + specularDV + rimIntensity );
+    lighting.translucency = saturate( 1.0f - nprOpacity );
 
     if (HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_TRANSMISSION))
     {
@@ -1485,13 +1543,13 @@ DirectLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
     lighting.diffuse  *= color;
     lighting.specular *= color;
 
-#ifdef DEBUG_DISPLAY
+/*#ifdef DEBUG_DISPLAY
     if (_DebugLightingMode == DEBUGLIGHTINGMODE_LUX_METER)
     {
         // Only lighting, not BSDF
         lighting.diffuse = color * intensity * lightData.diffuseScale;
     }
-#endif
+#endif*/
 
     return lighting;
 }
@@ -2224,11 +2282,22 @@ void PostEvaluateBSDF(  LightLoopContext lightLoopContext,
                         AmbientOcclusionFactor aoFactor,
                         out float3 diffuseLighting, out float3 specularLighting)
 {
+    float ao = pow( aoFactor.indirectAmbientOcclusionRaw, 3.0f );
+    float finalOpacity = EvaluateNPRLightStack( lighting );
+    float3 ambientLight = 0.1f;
+
+    //lighting.direct.diffuse += ambientLight * ao;// * finalOpacity;
+
     ApplyAmbientOcclusionFactor(aoFactor, bakeLightingData, lighting);
 
     // Subsurface scattering mdoe
     uint   texturingMode        = (bsdfData.materialFeatures >> MATERIAL_FEATURE_FLAGS_SSS_TEXTURING_MODE_OFFSET) & 3;
     float3 modifiedDiffuseColor = ApplySubsurfaceScatteringTexturingMode(texturingMode, bsdfData.diffuseColor);
+    float3 diffuseYCoCg = RGBToYCoCg( modifiedDiffuseColor );
+    diffuseYCoCg.x = pow( floor( diffuseYCoCg.x * 4.0f ) / 4.0f, 2.0f );
+    float3 shadowDiffuseColor = YCoCgToRGB( diffuseYCoCg );
+
+    //modifiedDiffuseColor = lerp( modifiedDiffuseColor, shadowDiffuseColor, finalOpacity.xxx );
 
     // Apply the albedo to the direct diffuse lighting (only once). The indirect (baked)
     // diffuse lighting has already had the albedo applied in GetBakedDiffuseLighting().

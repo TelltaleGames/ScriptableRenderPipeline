@@ -149,6 +149,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent transmittanceColorText = new GUIContent("Transmittance Color", "Absorption color (RGB)");
             public static GUIContent atDistanceText = new GUIContent("Transmittance Absorption Distance (m)", "Absorption distance reference");
 
+            // rim
+            public static GUIContent rimFalloffText = new GUIContent( "Rim Falloff" );
+            public static GUIContent rimWidthText = new GUIContent( "Rim Width" );
+
             public static GUIContent perPixelDisplacementDetailsWarning = new GUIContent("For pixel displacement to work correctly, details and base map must use same UV mapping");
         }
 
@@ -457,6 +461,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected MaterialProperty ssrefractionProjectionModel = null;
         protected const string kSSRefractionProjectionModel = "_SSRefractionProjectionModel";
 
+        protected MaterialProperty rimFalloff = null;
+        protected const string kRimFalloff = "_RimFalloff";
+        protected MaterialProperty rimWidth = null;
+        protected const string kRimWidth = "_RimWidth";
+        protected MaterialProperty rimIntensity = null;
+        protected const string kRimIntensity = "_RimIntensity";
+        protected MaterialProperty rimAntialias = null;
+        protected const string kRimAntialias = "_RimAntialias";
+        
+
         protected override bool showBlendModePopup
         {
             get { return refractionModel == null || refractionModel.floatValue == 0f; }
@@ -634,6 +648,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             thicknessMultiplier = FindProperty(kThicknessMultiplier, props, false);
             ior = FindProperty(kIor, props, false);
             // We reuse thickness from SSS
+
+            rimFalloff = FindProperty( kRimFalloff, props );
+            rimWidth = FindProperty( kRimWidth, props );
+            rimIntensity = FindProperty( kRimIntensity, props );
+            rimAntialias = FindProperty( kRimAntialias, props );
         }
 
         protected void ShaderSpecularColorInputGUI(Material material)
@@ -1280,6 +1299,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             EditorGUI.indentLevel--;
         }
 
+        protected void DoRimGUI( Material material )
+        {
+            m_MaterialEditor.ShaderProperty( rimFalloff, Styles.rimFalloffText );
+            m_MaterialEditor.ShaderProperty( rimWidth, Styles.rimWidthText );
+            m_MaterialEditor.ShaderProperty( rimIntensity, "Rim Intensity" );
+            m_MaterialEditor.ShaderProperty( rimAntialias, "Rim Antialias" );
+        }
+
         protected override void MaterialPropertiesGUI(Material material)
         {
             DoLayerGUI(material, 0, false, false);
@@ -1292,6 +1319,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 DoDecalGUI(material);
                 DoGrimeGUI(material);
             }
+
+            DoRimGUI( material );
+
             // The parent Base.ShaderPropertiesGUI will call DoEmissionArea
         }
 

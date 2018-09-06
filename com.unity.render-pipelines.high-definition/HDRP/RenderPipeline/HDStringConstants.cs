@@ -123,6 +123,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public static readonly int _LightGroupData = Shader.PropertyToID("_LightGroupData"); // Light groups.
 
+        public static readonly int _NPRLightCurveTexture = Shader.PropertyToID( "_NPRLightCurveTexture" );
+
         public static readonly int _TelltaleContactShadowTexture = Shader.PropertyToID("_TelltaleContactShadowTexture");
         public static readonly int _TelltaleContactShadowBlurTexture = Shader.PropertyToID("_TelltaleContactShadowBlurTexture");
 

@@ -71,6 +71,10 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
     AggregateLighting aggregateLighting;
     ZERO_INITIALIZE(AggregateLighting, aggregateLighting); // LightLoop is in charge of initializing the struct
 
+    // TTG_MOD - Moved out from PostEvaluateBSDF in order to work with character light rigs
+    AmbientOcclusionFactor aoFactor;
+    PreEvaluateAO( V, posInput, preLightData, bsdfData, aoFactor );
+
     uint i = 0; // Declare once to avoid the D3D11 compiler warning.
 
     if (featureFlags & LIGHTFEATUREFLAGS_DIRECTIONAL)
@@ -110,8 +114,8 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
             if (lightWeight > 0.0)
             {
                 LightData lightData = FetchLightWithLightIndex(j);
-                DirectLighting lighting = EvaluateBSDF_Punctual(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
-                AccumulateDirectLighting(lighting, lightWeight, aggregateLighting);
+                NPRLighting lighting = EvaluateBSDF_Punctual(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData, aoFactor);
+                AccumulateNPRLighting(lighting, lightWeight, aggregateLighting);
             }
         }
     }
@@ -161,10 +165,6 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         }
     }
 
-
-    // TTG_MOD - Moved out from PostEvaluateBSDF in order to work with character light rigs
-    AmbientOcclusionFactor aoFactor;
-    PreEvaluateAO(V, posInput, preLightData, bsdfData, aoFactor);
 #ifdef TELLTALE_CHARACTER_LIGHTING
     // Important to do this after all standard Unity diffuse lighting has been accumulated, but before Character Lights are added.
 

@@ -1296,12 +1296,12 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
 // EvaluateBSDF_Punctual (supports spot, point and projector lights)
 //-----------------------------------------------------------------------------
 
-DirectLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
+NPRLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
                                      float3 V, PositionInputs posInput,
-                                     PreLightData preLightData, LightData lightData, BSDFData bsdfData, BakeLightingData bakeLightingData)
+                                     PreLightData preLightData, LightData lightData, BSDFData bsdfData, BakeLightingData bakeLightingData, AmbientOcclusionFactor aoFactor )
 {
-    DirectLighting lighting;
-    ZERO_INITIALIZE(DirectLighting, lighting);
+    NPRLighting lighting;
+    ZERO_INITIALIZE( NPRLighting, lighting);
 
     float3 lightToSample = posInput.positionWS - lightData.positionWS;
     int    lightType     = lightData.lightType;

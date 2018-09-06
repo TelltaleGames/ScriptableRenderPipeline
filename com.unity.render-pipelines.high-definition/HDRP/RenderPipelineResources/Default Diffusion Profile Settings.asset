@@ -3,7 +3,7 @@
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
+  m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
@@ -15,9 +15,9 @@ MonoBehaviour:
   - name: Skin
     scatteringDistance: {r: 0.7568628, g: 0.32156864, b: 0.20000002, a: 1}
     transmissionTint: {r: 0.7568628, g: 0.32156864, b: 0.20000002, a: 1}
-    texturingMode: 0
+    texturingMode: 1
     transmissionMode: 0
-    thicknessRemap: {x: 0, y: 8.152544}
+    thicknessRemap: {x: 0, y: 8.152559}
     worldScale: 1
     ior: 1.4
     scatterDistance1: {r: 0.3019608, g: 0.20000002, b: 0.20000002, a: 0}

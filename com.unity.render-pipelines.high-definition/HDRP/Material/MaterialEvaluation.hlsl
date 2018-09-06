@@ -12,6 +12,14 @@ struct DirectLighting
     float3 specular;
 };
 
+struct NPRLighting
+{
+    float3 diffuse;
+    float3 specular;
+    float translucency;
+    float weight;
+};
+
 struct IndirectLighting
 {
     float3 specularReflected;
@@ -20,6 +28,7 @@ struct IndirectLighting
 
 struct AggregateLighting
 {
+    uint4            nprLightStack[4];
     DirectLighting   direct;
     IndirectLighting indirect;
 };
@@ -34,6 +43,74 @@ void AccumulateIndirectLighting(IndirectLighting src, inout AggregateLighting ds
 {
     dst.indirect.specularReflected += src.specularReflected;
     dst.indirect.specularTransmitted += src.specularTransmitted;
+}
+
+uint4 PackNPRLighting( NPRLighting src )
+{
+    uint4 result;
+    result.x = f32tof16( src.diffuse.r ) | ( f32tof16( src.diffuse.g ) << 16 );
+    result.y = f32tof16( src.diffuse.b ) | ( f32tof16( src.translucency ) << 16 );
+    result.z = f32tof16( src.weight ) | ( f32tof16( src.specular.r ) << 16 );
+    result.w = f32tof16( src.specular.g ) | ( f32tof16( src.specular.b ) << 16 );
+    return result;
+}
+
+NPRLighting UnpackNPRLighting( uint4 src )
+{
+    NPRLighting result;
+    result.diffuse.r = f16tof32( src.x );
+    result.diffuse.g = f16tof32( src.x >> 16 );
+    result.diffuse.b = f16tof32( src.y );
+    result.translucency = f16tof32( src.y >> 16 );
+    result.weight = f16tof32( src.z );
+    result.specular.r = f16tof32( src.z >> 16 );
+    result.specular.g = f16tof32( src.w );
+    result.specular.b = f16tof32( src.w >> 16 );
+    return result;
+}
+
+void AccumulateNPRLighting( NPRLighting src, float weight, inout AggregateLighting dst )
+{
+    for( int i = 0; i < 4; ++i )
+    {
+        NPRLighting prev = UnpackNPRLighting( dst.nprLightStack[i] );
+        if( src.weight >= prev.weight )
+        {
+            for( int j = 3; j > i; --j )
+            {
+                dst.nprLightStack[j] = dst.nprLightStack[j - 1];
+            }
+            dst.nprLightStack[i] = PackNPRLighting( src );
+            return;
+        }
+    }
+
+    dst.direct.diffuse += src.diffuse * weight;
+    dst.direct.specular += src.specular * weight;
+}
+
+float EvaluateNPRLightStack( inout AggregateLighting dst )
+{
+    float opacity = 1.0f;
+    float prevWeight = 1.0f;
+    float prevOpacity = 1.0f;
+    for( int i = 0; i < 4; ++i )
+    {
+        NPRLighting src = UnpackNPRLighting( dst.nprLightStack[i] );
+        if( src.weight > 0.0f )
+        {
+            float deltaWeight = abs( prevWeight - src.weight );
+            float blendFactor = 0;//saturate( 1.0f - deltaWeight * 20.0f );
+            float currentOpacity = lerp( opacity, prevOpacity, blendFactor * blendFactor );
+            dst.direct.diffuse += src.diffuse * currentOpacity;
+            dst.direct.specular += src.specular * currentOpacity;
+            prevOpacity = currentOpacity;
+            prevWeight = src.weight;
+            opacity *= src.translucency;
+        }
+    }
+
+    return opacity;
 }
 
 //-----------------------------------------------------------------------------

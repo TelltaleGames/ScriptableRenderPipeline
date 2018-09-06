@@ -42,6 +42,8 @@ StructuredBuffer<LightData>            _LightDatas;
 StructuredBuffer<EnvLightData>         _EnvLightDatas;
 StructuredBuffer<ShadowData>           _ShadowDatas;
 
+TEXTURE2D( _NPRLightCurveTexture );
+
 // Light groups.
 #define LIGHT_GROUP_STRIDE 64
 #define LIGHT_GROUP_ENVIRONMENT_LIGHT_OFFSET 0

@@ -209,6 +209,12 @@ float _ShiverDrag;
 float _ShiverDirectionality;
 float _DownwindWeight;
 
+// Rim
+float _RimFalloff;
+float _RimWidth;
+float _RimIntensity;
+float _RimAntialias;
+
 int _LightGroupIndex;
 
 // Specular AA

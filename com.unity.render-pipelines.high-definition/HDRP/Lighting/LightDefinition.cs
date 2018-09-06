@@ -87,6 +87,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public float minRoughness;  // This is use to give a small "area" to punctual light, as if we have a light with a radius.
 
         public float volumetricDimmer; // TODO: improve the cache locality
+        public float nprCurveTexCoord;
     };
 
     [GenerateHLSL]

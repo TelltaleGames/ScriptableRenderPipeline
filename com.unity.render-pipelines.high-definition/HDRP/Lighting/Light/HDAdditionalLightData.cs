@@ -35,6 +35,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // Only for Spotlight, should be hide for other light
         public bool enableSpotReflector = false;
 
+        public NPRLightProfile nprLightProfile;
+
         [Range(0.0f, 100.0f)]
         public float m_InnerSpotPercent = 0.0f; // To display this field in the UI this need to be public
 

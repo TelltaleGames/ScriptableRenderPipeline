@@ -327,6 +327,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         Texture2DArray  m_DefaultTexture2DArray;
         Cubemap         m_DefaultTextureCube;
 
+        private static readonly int kNPRLightCurveTextureSize = 1024;
+        Texture2D m_NPRLightCurveCache;
+        byte[] m_NPRLightCurveCacheData = new byte[kNPRLightCurveTextureSize * 256 * 16];
+        int m_NPRLightCurveCount = 0;
+
         PlanarReflectionProbeCache m_ReflectionPlanarProbeCache;
         ReflectionProbeCache m_ReflectionProbeCache;
         TextureCache2D m_CookieTexArray;
@@ -683,6 +688,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_DefaultTextureCube = new Cubemap(16, TextureFormat.ARGB32, false);
             m_DefaultTextureCube.Apply();
 
+            m_NPRLightCurveCache = new Texture2D( kNPRLightCurveTextureSize, 256, TextureFormat.RGBAFloat, false );
+
             InitShadowSystem(hdAsset, shadowSettings);
         }
 
@@ -974,7 +981,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // Setting 0 for invSqrAttenuationRadius mean we have no range attenuation, but still have inverse square attenuation.
             bool applyRangeAttenuation = additionalLightData.applyRangeAttenuation && (gpuLightType != GPULightType.ProjectorBox);
             lightData.invSqrAttenuationRadius = applyRangeAttenuation ? 1.0f / (light.range * light.range) : 0.0f;
-            lightData.color = GetLightColor(light);
+            lightData.color = new Vector3( 1.0f, 1.0f, 1.0f );// GetLightColor(light);
 
             lightData.forward = light.light.transform.forward; // Note: Light direction is oriented backward (-Z)
             lightData.up = light.light.transform.up;
@@ -1117,6 +1124,36 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 // use -1 to say that we don't use shadow mask
                 lightData.shadowMaskSelector.x = -1.0f;
                 lightData.nonLightmappedOnly = 0;
+            }
+
+            NPRLightProfile nprProfile = additionalLightData.nprLightProfile;
+            unsafe
+            {
+                int curveIndex = m_NPRLightCurveCount++;
+                lightData.nprCurveTexCoord = ( (float)curveIndex + 0.5f ) / 256.0f;
+                int nprCurveOffset = curveIndex * 4 * kNPRLightCurveTextureSize;
+                fixed ( byte* pLightCurvePointer = &m_NPRLightCurveCacheData[0] )
+                {
+                    float* pNPRLightCurveCacheData = (float*)pLightCurvePointer;
+                    for( int i = 0; i < kNPRLightCurveTextureSize; ++i )
+                    {
+                        float t = (float)i / (float)kNPRLightCurveTextureSize;
+                        float intensity = Mathf.Clamp( ( nprProfile != null ) ? nprProfile.IntensityCurve.Evaluate( t ) : t, 0.0f, 0.99f );
+                        float opacity = ( nprProfile != null ) ? Mathf.Clamp( nprProfile.OpacityCurve.Evaluate( t ), 0.0f, 1.0f ) : 0.0f;
+                        float saturation = ( nprProfile != null ) ? nprProfile.SaturationCurve.Evaluate( t ) : 1.0f;
+                        float tonemapIntensity = intensity / ( 1.0f - intensity );
+
+                        float gray = light.finalColor.grayscale;
+                        float r = gray + saturation * ( light.finalColor.r - gray );
+                        float g = gray + saturation * ( light.finalColor.g - gray );
+                        float b = gray + saturation * ( light.finalColor.b - gray );
+
+                        pNPRLightCurveCacheData[nprCurveOffset++] = tonemapIntensity * r;
+                        pNPRLightCurveCacheData[nprCurveOffset++] = tonemapIntensity * g;
+                        pNPRLightCurveCacheData[nprCurveOffset++] = tonemapIntensity * b;
+                        pNPRLightCurveCacheData[nprCurveOffset++] = opacity;
+                    }
+                }
             }
 
             m_lightList.lights.Add(lightData);
@@ -2487,6 +2524,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // These two buffers have been set in Rebuild()
             s_ConvexBoundsBuffer.SetData(m_lightList.bounds);
             s_LightVolumeDataBuffer.SetData(m_lightList.lightVolumes);
+
+            m_NPRLightCurveCache.LoadRawTextureData( m_NPRLightCurveCacheData );
+            m_NPRLightCurveCache.Apply();
+            m_NPRLightCurveCount = 0;
         }
 
         HDAdditionalReflectionData GetHDAdditionalReflectionData(VisibleReflectionProbe probe)
@@ -2538,6 +2579,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 cmd.SetGlobalInt(HDShaderIDs._DecalCount, DecalSystem.m_DecalDatasCount);
                 cmd.SetGlobalBuffer(HDShaderIDs._ShadowDatas, m_shadowDatas);
                 cmd.SetGlobalBuffer(HDShaderIDs._LightGroupData, m_LightGroupData); // Light groups.
+
+                cmd.SetGlobalTexture( HDShaderIDs._NPRLightCurveTexture, m_NPRLightCurveCache );
 
                 cmd.SetGlobalInt(HDShaderIDs._NumTileFtplX, GetNumTileFtplX(hdCamera));
                 cmd.SetGlobalInt(HDShaderIDs._NumTileFtplY, GetNumTileFtplY(hdCamera));

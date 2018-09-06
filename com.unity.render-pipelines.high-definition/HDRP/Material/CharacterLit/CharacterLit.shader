@@ -261,6 +261,12 @@ Shader "HDRenderPipeline/CharacterLit"
         [HideInInspector] _Contribution_Std_Char_Env_Refl("Lighting Contribution Std/Char/Env/Env Refl", Vector) = (1, 0, 1, 1)
 
         [HideInInspector] _ShadowMaskId("Shadow Mask Id", Int) = 0
+
+        // Rim
+        _RimFalloff("Rim Falloff", float) = 64.0
+        _RimWidth("Rim Width", float) = 1.0
+        _RimIntensity( "Rim Intensity", float ) = 1.0
+        _RimAntialias( "Rim Antialias", float ) = 1.0
     }
 
     HLSLINCLUDE
