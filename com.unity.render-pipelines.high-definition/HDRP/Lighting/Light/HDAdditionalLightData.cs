@@ -82,6 +82,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // If true, we apply the smooth attenuation factor on the range attenuation to get 0 value, else the attenuation is just inverse square and never reach 0
         public bool applyRangeAttenuation = true;
 
+        public NPRLightProfile nprLightProfile;
+
         // This is specific for the LightEditor GUI and not use at runtime
         public bool useOldInspector = false;
         public bool featuresFoldout = true;

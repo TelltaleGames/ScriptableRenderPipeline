@@ -4,12 +4,21 @@
 // Lighting structure for light accumulation
 //-----------------------------------------------------------------------------
 
+#if defined( TT_NPR_LIGHTING )
+#define kNPRLightStackCapacity 4
+#endif // TT_NPR_LIGHTING
+
 // These structure allow to accumulate lighting accross the Lit material
 // AggregateLighting is init to zero and transfer to EvaluateBSDF, but the LightLoop can't access its content.
 struct DirectLighting
 {
     float3 diffuse;
     float3 specular;
+#if defined( TT_NPR_LIGHTING )
+    float nprTranslucency;
+    float nprWeight;
+    bool nprIsEnabled;
+#endif // TT_NPR_LIGHTING
 };
 
 struct IndirectLighting
@@ -20,12 +29,72 @@ struct IndirectLighting
 
 struct AggregateLighting
 {
+#if defined( TT_NPR_LIGHTING )
+    uint4 nprLightStack[kNPRLightStackCapacity];
+    float3 nprOverflowDiffuse;
+    float3 nprOverflowSpecular;
+#endif // TT_NPR_LIGHTING
     DirectLighting   direct;
     IndirectLighting indirect;
 };
 
+#if defined( TT_NPR_LIGHTING )
+
+uint4 PackNPRLighting( DirectLighting src )
+{
+    uint4 result;
+    result.x = f32tof16( src.diffuse.r ) | ( f32tof16( src.diffuse.g ) << 16 );
+    result.y = f32tof16( src.diffuse.b ) | ( f32tof16( src.nprTranslucency ) << 16 );
+    result.z = f32tof16( src.nprWeight ) | ( f32tof16( src.specular.r ) << 16 );
+    result.w = f32tof16( src.specular.g ) | ( f32tof16( src.specular.b ) << 16 );
+    return result;
+}
+
+DirectLighting UnpackNPRLighting( uint4 src )
+{
+    DirectLighting result;
+    result.diffuse.r = f16tof32( src.x );
+    result.diffuse.g = f16tof32( src.x >> 16 );
+    result.diffuse.b = f16tof32( src.y );
+    result.nprTranslucency = f16tof32( src.y >> 16 );
+    result.nprWeight = f16tof32( src.z );
+    result.specular.r = f16tof32( src.z >> 16 );
+    result.specular.g = f16tof32( src.w );
+    result.specular.b = f16tof32( src.w >> 16 );
+    result.nprIsEnabled = true;
+    return result;
+}
+
+#endif // TT_NPR_LIGHTING
+
 void AccumulateDirectLighting(DirectLighting src, float weight, inout AggregateLighting dst)
 {
+#if defined( TT_NPR_LIGHTING )
+    if( src.nprIsEnabled )
+    {
+        src.diffuse *= weight;
+        src.specular *= weight;
+        src.nprWeight *= weight;
+        for( int i = 0; i < kNPRLightStackCapacity; ++i )
+        {
+            DirectLighting prev = UnpackNPRLighting( dst.nprLightStack[i] );
+            if( src.nprWeight >= prev.nprWeight )
+            {
+                for( int j = 3; j > i; --j )
+                {
+                    dst.nprLightStack[j] = dst.nprLightStack[j - 1];
+                }
+                dst.nprLightStack[i] = PackNPRLighting( src );
+                return;
+            }
+        }
+
+        // TODO - overflow
+
+        return;
+    }
+#endif // TT_NPR_LIGHTING
+
     dst.direct.diffuse += src.diffuse * weight;
     dst.direct.specular += src.specular * weight;
 }
@@ -35,6 +104,27 @@ void AccumulateIndirectLighting(IndirectLighting src, inout AggregateLighting ds
     dst.indirect.specularReflected += src.specularReflected;
     dst.indirect.specularTransmitted += src.specularTransmitted;
 }
+
+#if defined( TT_NPR_LIGHTING )
+
+float EvaluateNPRLightStack( inout AggregateLighting dst )
+{
+    float opacity = 1.0f;
+    for( int i = 0; i < kNPRLightStackCapacity; ++i )
+    {
+        DirectLighting src = UnpackNPRLighting( dst.nprLightStack[i] );
+        if( src.nprWeight > 0.0f )
+        {
+            dst.direct.diffuse += src.diffuse * opacity;
+            dst.direct.specular += src.specular * opacity;
+            opacity *= src.nprTranslucency;
+        }
+    }
+
+    return opacity;
+}
+
+#endif // TT_NPR_LIGHTING
 
 //-----------------------------------------------------------------------------
 // Ambient occlusion helper

@@ -151,7 +151,13 @@ void EvaluateLight_Punctual(LightLoopContext lightLoopContext, PositionInputs po
     float  shadow     = 1.0;
     float  shadowMask = 1.0;
 
+#if defined( TT_NPR_LIGHTING )
+    // NPR base color depends only on lookup texture
+    color       = float3( 1.0f, 1.0f, 1.0f );
+#else
     color       = lightData.color;
+#endif
+
     attenuation = SmoothPunctualLightAttenuation(distances, lightData.invSqrAttenuationRadius,
                                                  lightData.angleScale, lightData.angleOffset);
 

@@ -44,6 +44,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public SerializedProperty maxSmoothness;
             public SerializedProperty applyRangeAttenuation;
             public SerializedProperty volumetricDimmer;
+            public SerializedProperty nprLightProfile;
 
             // Editor stuff
             public SerializedProperty useOldInspector;
@@ -126,6 +127,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     shapeRadius = o.Find(x => x.shapeRadius),
                     maxSmoothness = o.Find(x => x.maxSmoothness),
                     applyRangeAttenuation = o.Find(x => x.applyRangeAttenuation),
+                    nprLightProfile = o.Find(x => x.nprLightProfile),
 
                     // Editor stuff
                     useOldInspector = o.Find(x => x.useOldInspector),
@@ -190,8 +192,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             DrawFoldout(m_AdditionalLightData.showFeatures, "Features", DrawFeatures);
             DrawFoldout(settings.lightType, "Shape", DrawShape);
             DrawFoldout(settings.intensity, "Light", DrawLightSettings);
+            DrawFoldout( m_AdditionalLightData.nprLightProfile, "NPR", DrawNPRLightProfile );
 
-            if (settings.shadowsType.enumValueIndex != (int)LightShadows.None)
+            if( settings.shadowsType.enumValueIndex != (int)LightShadows.None)
                 DrawFoldout(settings.shadowsType, "Shadows", DrawShadows);
 
             CoreEditorUtils.DrawSplitter();
@@ -464,6 +467,94 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             {
                 m_AdditionalLightData.fadeDistance.floatValue = Mathf.Max(m_AdditionalLightData.fadeDistance.floatValue, 0.01f);
                 ((Light)target).SetLightDirty(); // Should be apply only to parameter that's affect GI, but make the code cleaner
+            }
+        }
+
+        void DrawNPRLightProfile()
+        {
+            bool multiEdit = m_AdditionalLightData.nprLightProfile.hasMultipleDifferentValues;
+            bool showCopy = true;
+
+            // The layout system sort of break alignement when mixing inspector fields with custom
+            // layouted fields, do the layout manually instead
+            int buttonWidth = showCopy ? 45 : 60;
+            float indentOffset = EditorGUI.indentLevel * 15f;
+            var lineRect = GUILayoutUtility.GetRect( 1, EditorGUIUtility.singleLineHeight );
+            var labelRect = new Rect( lineRect.x, lineRect.y, EditorGUIUtility.labelWidth - indentOffset, lineRect.height );
+            var fieldRect = new Rect( labelRect.xMax, lineRect.y, lineRect.width - labelRect.width - buttonWidth * ( showCopy ? 2 : 1 ), lineRect.height );
+            var buttonNewRect = new Rect( fieldRect.xMax, lineRect.y, buttonWidth, lineRect.height );
+            var buttonCopyRect = new Rect( buttonNewRect.xMax, lineRect.y, buttonWidth, lineRect.height );
+
+            EditorGUI.PrefixLabel( labelRect, CoreEditorUtils.GetContent( "NPR Profile|A reference to a NPR light profile asset." ) );
+
+            using( var scope = new EditorGUI.ChangeCheckScope() )
+            {
+                EditorGUI.BeginProperty( fieldRect, GUIContent.none, m_AdditionalLightData.nprLightProfile );
+
+                m_AdditionalLightData.nprLightProfile.objectReferenceValue = (NPRLightProfile)EditorGUI.ObjectField( fieldRect,
+                    m_AdditionalLightData.nprLightProfile.objectReferenceValue,
+                    typeof( NPRLightProfile ),
+                    false );
+
+                EditorGUI.EndProperty();
+            }
+
+            using( new EditorGUI.DisabledScope( multiEdit ) )
+            {
+                if( GUI.Button( buttonNewRect, CoreEditorUtils.GetContent( "New|Create a new profile." ), showCopy ? EditorStyles.miniButtonLeft : EditorStyles.miniButton ) )
+                {
+                    // By default, try to put assets in a folder next to the currently active
+                    // scene file. If the user isn't a scene, put them in root instead.
+                    var targetName = m_AdditionalLightData.nprLightProfile.name;
+                    var scene = ( (Light)target ).gameObject.scene;
+                    var asset = NPRLightProfileFactory.CreateProfile( scene, targetName );
+                    m_AdditionalLightData.nprLightProfile.objectReferenceValue = asset;
+                }
+
+                if( showCopy && GUI.Button( buttonCopyRect, CoreEditorUtils.GetContent( "Clone|Create a new profile and copy the content of the currently assigned profile." ), EditorStyles.miniButtonRight ) )
+                {
+                    // Duplicate the currently assigned profile and save it as a new profile
+                    var origin = m_AdditionalLightData.nprLightProfile.objectReferenceValue;
+                    var path = AssetDatabase.GetAssetPath( origin );
+                    path = AssetDatabase.GenerateUniqueAssetPath( path );
+
+                    var asset = Instantiate( origin );
+                    AssetDatabase.CreateAsset( asset, path );
+
+                    AssetDatabase.SaveAssets();
+                    AssetDatabase.Refresh();
+
+                    m_AdditionalLightData.nprLightProfile.objectReferenceValue = asset;
+                }
+            }
+
+            EditorGUILayout.Space();
+
+            if( m_AdditionalLightData.nprLightProfile.objectReferenceValue == null )
+            {
+                EditorGUILayout.HelpBox( "Assign a NPR Light Profile to this light using the \"Asset\" field or create one automatically by clicking the \"New\" button.\nAssets are automatically put in a folder next to your scene file. If you scene hasn't been saved yet they will be created at the root of the Assets folder.", MessageType.Info );
+            }
+            else
+            {
+                EditorGUI.indentLevel++;
+
+                NPRLightProfile profile = (NPRLightProfile)m_AdditionalLightData.nprLightProfile.objectReferenceValue;
+                profile.IntensityCurve = EditorGUILayout.CurveField( CoreEditorUtils.GetContent( "Intensity Curve" ),
+                    profile.IntensityCurve,
+                    Color.blue,
+                    new Rect( 0.0f, 0.0f, 1.0f, 1.0f ) );
+
+                profile.OpacityCurve = EditorGUILayout.CurveField( CoreEditorUtils.GetContent( "Opacity Curve" ),
+                    profile.OpacityCurve,
+                    Color.blue,
+                    new Rect( 0.0f, 0.0f, 1.0f, 1.0f ) );
+
+                profile.SaturationCurve = EditorGUILayout.CurveField( CoreEditorUtils.GetContent( "Saturation Curve" ),
+                    profile.SaturationCurve,
+                    Color.blue,
+                    new Rect( 0.0f, 0.0f, 1.0f, 8.0f ) );
+
+                EditorGUI.indentLevel--;
             }
         }
 

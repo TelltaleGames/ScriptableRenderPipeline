@@ -71,6 +71,10 @@ float4x4 _Env2DCaptureVP[MAX_ENV2D_LIGHT];
 // XRTODO: Need to stereo-ize access
 TEXTURE2D(_DeferredShadowTexture);
 
+#if defined( TT_NPR_LIGHTING )
+TEXTURE2D( _NPRLightCurveTexture );
+#endif // TT_NPR_LIGHTING
+
 CBUFFER_START(UnityPerLightLoop)
 uint _DirectionalLightCount;
 uint _PunctualLightCount;

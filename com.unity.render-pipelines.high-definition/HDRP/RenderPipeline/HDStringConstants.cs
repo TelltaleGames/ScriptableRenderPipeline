@@ -249,6 +249,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static readonly int _EnableDBuffer = Shader.PropertyToID("_EnableDBuffer");
         public static readonly int _DecalAtlasResolution = Shader.PropertyToID("_DecalAtlasResolution");
 
+        public static readonly int _NPRLightCurveTexture = Shader.PropertyToID( "_NPRLightCurveTexture" );
+
         public static readonly int[] _GBufferTexture =
         {
             Shader.PropertyToID("_GBufferTexture0"),

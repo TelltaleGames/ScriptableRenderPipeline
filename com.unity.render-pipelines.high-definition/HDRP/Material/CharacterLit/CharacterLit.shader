@@ -341,6 +341,8 @@ Shader "HDRenderPipeline/CharacterLit"
     // This shader support vertex modification
     #define HAVE_VERTEX_MODIFICATION
 
+    #define TT_NPR_LIGHTING
+
     // If we use subsurface scattering, enable output split lighting (for forward pass)
     #if defined(_MATERIAL_FEATURE_SUBSURFACE_SCATTERING) && !defined(_SURFACE_TYPE_TRANSPARENT)
     #define OUTPUT_SPLIT_LIGHTING

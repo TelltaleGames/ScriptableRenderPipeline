@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine.Experimental.Rendering.HDPipeline.Internal;
 using UnityEngine.Rendering;
@@ -329,6 +329,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         TextureCache2D m_CookieTexArray;
         TextureCacheCubemap m_CubeCookieTexArray;
         List<Matrix4x4> m_Env2DCaptureVP = new List<Matrix4x4>();
+        NPRLightCache m_NPRLightCache;
 
         // For now we don't use shadow cascade borders.
         static public readonly bool s_UseCascadeBorders = false;
@@ -576,6 +577,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             TextureFormat planarProbeCacheFormat = gLightLoopSettings.planarReflectionCacheCompressed ? TextureFormat.BC6H : TextureFormat.RGBAHalf;
             m_ReflectionPlanarProbeCache = new PlanarReflectionProbeCache(hdAsset, iblFilterGGX, gLightLoopSettings.planarReflectionProbeCacheSize, (int)gLightLoopSettings.planarReflectionTextureSize, planarProbeCacheFormat, true);
 
+            m_NPRLightCache = new NPRLightCache();
+
             s_GenAABBKernel = buildScreenAABBShader.FindKernel("ScreenBoundsAABB");
 
             // The bounds and light volumes are view-dependent, and AABB is additionally projection dependent.
@@ -700,6 +703,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 m_CubeCookieTexArray.Release();
                 m_CubeCookieTexArray = null;
             }
+            if( m_NPRLightCache != null )
+            {
+                m_NPRLightCache.Release();
+                m_NPRLightCache = null;
+            }
 
             ReleaseResolutionDependentBuffers();
 
@@ -764,6 +772,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_CubeCookieTexArray.NewFrame();
             m_ReflectionProbeCache.NewFrame();
             m_ReflectionPlanarProbeCache.NewFrame();
+            m_NPRLightCache.NewFrame();
         }
 
         public bool NeedResize()
@@ -1096,6 +1105,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 lightData.shadowMaskSelector.x = -1.0f;
                 lightData.nonLightmappedOnly = 0;
             }
+
+            lightData.nprCurveTexCoord = m_NPRLightCache.AddLight( light.finalColor, additionalLightData.nprLightProfile );
 
             m_lightList.lights.Add(lightData);
 
@@ -2032,6 +2043,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 }
 
                 UpdateDataBuffers();
+
+                m_NPRLightCache.SubmitFrame( cmd );
             }
 
             m_enableBakeShadowMask = m_enableBakeShadowMask && hdCamera.frameSettings.enableShadowMask;
