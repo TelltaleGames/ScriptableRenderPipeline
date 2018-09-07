@@ -142,6 +142,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected abstract void MaterialPropertiesGUI(Material material);
         protected abstract void MaterialPropertiesAdvanceGUI(Material material);
         protected abstract void VertexAnimationPropertiesGUI();
+        protected virtual void NPRPropertiesGUI() { }
         // This function will say if emissive is used or not regarding enlighten/PVR
         protected abstract bool ShouldEmissionBeEnabled(Material material);
 
@@ -637,6 +638,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
                 EditorGUILayout.Space();
                 MaterialPropertiesGUI(material);
+
+                EditorGUILayout.Space();
+                NPRPropertiesGUI();
 
                 DoEmissionArea(material);
 

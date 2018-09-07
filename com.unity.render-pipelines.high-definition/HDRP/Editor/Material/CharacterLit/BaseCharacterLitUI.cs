@@ -57,6 +57,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent windShiverDragText = new GUIContent("Shiver Drag");
             public static GUIContent windShiverDirectionalityText = new GUIContent("Shiver Directionality");
 
+
             public static GUIContent windDownwindWeightText = new GUIContent("Shiver scaled by dot(normal, wind direction)");
 
             //public static GUIContent supportDBufferText = new GUIContent("Enable Decal", "Allow to specify if the material can receive decal or not");
@@ -64,6 +65,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent enableGeometricSpecularAAText = new GUIContent("Enable geometric specular AA", "This reduce specular aliasing on highly dense mesh (Particularly useful when they don't use normal map)");
             public static GUIContent specularAAScreenSpaceVarianceText = new GUIContent("Screen space variance", "Allow to control the strength of the specular AA reduction. Higher mean more blurry result and less aliasing");
             public static GUIContent specularAAThresholdText = new GUIContent("Threshold", "Allow to limit the effect of specular AA reduction. 0 mean don't apply reduction, higher value mean allow higher reduction");
+
+            public static string npr = "NPR";
+            public static GUIContent nprRimWrap = new GUIContent( "Rim Wrap" );
+            public static GUIContent nprRimFalloff = new GUIContent( "Rim Falloff" );
+            public static GUIContent nprRimIntensity = new GUIContent( "Rim Intensity" );
         }
 
         public enum DoubleSidedNormalMode
@@ -184,6 +190,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected MaterialProperty specularAAThreshold = null;
         protected const string kSpecularAAThreshold = "_SpecularAAThreshold";
 
+        //
+        protected MaterialProperty nprRimWrap = null;
+        protected const string kNPRRimWrap = "_NPRRimWrap";
+        protected MaterialProperty nprRimIntensity = null;
+        protected const string kNPRRimIntensity = "_NPRRimIntensity";
+        protected MaterialProperty nprRimFalloff = null;
+        protected const string kNPRRimFalloff = "_NPRRimFalloff";
+
         protected override void FindBaseMaterialProperties(MaterialProperty[] props)
         {
             base.FindBaseMaterialProperties(props);
@@ -232,6 +246,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             enableGeometricSpecularAA = FindProperty(kEnableGeometricSpecularAA, props, false);
             specularAAScreenSpaceVariance = FindProperty(kSpecularAAScreenSpaceVariance, props, false);
             specularAAThreshold = FindProperty(kSpecularAAThreshold, props, false);
+
+            // Rim
+            nprRimWrap = FindProperty( kNPRRimWrap, props );
+            nprRimFalloff = FindProperty( kNPRRimFalloff, props );
+            nprRimIntensity = FindProperty( kNPRRimIntensity, props );
         }
 
         void TessellationModePopup()
@@ -366,6 +385,19 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 m_MaterialEditor.ShaderProperty(windDownwindWeight, StylesBaseLit.windDownwindWeightText);
                 EditorGUI.indentLevel--;
             }
+
+            EditorGUI.indentLevel--;
+        }
+
+        protected override void NPRPropertiesGUI()
+        {
+            EditorGUILayout.LabelField( StylesBaseLit.npr, EditorStyles.boldLabel );
+
+            EditorGUI.indentLevel++;
+
+            m_MaterialEditor.ShaderProperty( nprRimFalloff, StylesBaseLit.nprRimFalloff );
+            m_MaterialEditor.ShaderProperty( nprRimWrap, StylesBaseLit.nprRimWrap );
+            m_MaterialEditor.ShaderProperty( nprRimIntensity, StylesBaseLit.nprRimIntensity );
 
             EditorGUI.indentLevel--;
         }

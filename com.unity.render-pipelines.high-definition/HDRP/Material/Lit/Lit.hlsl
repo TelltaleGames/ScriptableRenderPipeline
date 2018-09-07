@@ -918,8 +918,8 @@ PreLightData GetPreLightData(float3 V, PositionInputs posInput, inout BSDFData b
     float NdotV = ClampNdotV(preLightData.NdotV);
 
 #if defined( TT_NPR_LIGHTING )
-    float rimFactor = pow( saturate( ( 1.0f - preLightData.NdotV ) * 1.0f ), 4.0f );
-    preLightData.rimFactor = rimFactor * 4.0f;
+    float rimFactor = pow( saturate( ( 1.0f - preLightData.NdotV + _NPRRimWrap ) * rcp( 1.0f + _NPRRimWrap ) ), _NPRRimFalloff );
+    preLightData.rimFactor = rimFactor * _NPRRimIntensity;
 #endif // TT_NPR_LIGHTING
 
     // We modify the bsdfData.fresnel0 here for iridescence
