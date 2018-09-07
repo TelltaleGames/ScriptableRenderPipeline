@@ -1395,6 +1395,16 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
     float attenuation;
     EvaluateLight_Directional(lightLoopContext, posInput, lightData, bakeLightingData, N, L, useTelltaleContactShadow, color, attenuation);
 
+#if defined( TT_NPR_LIGHTING )
+
+    EvaluateBSDF_NPR( lightLoopContext,
+        V, L, NdotL, attenuation, 1.0f,
+        lightData.nprCurveTexCoord, lightData.diffuseScale, lightData.specularScale,
+        posInput,
+        preLightData,
+        bsdfData,
+        lighting );
+#else // TT_NPR_LIGHTING
     float intensity = max(0, attenuation * NdotL); // Warning: attenuation can be greater than 1 due to the inverse square attenuation (when position is close to light)
 
     // Note: We use NdotL here to early out, but in case of clear coat this is not correct. But we are ok with this
@@ -1405,6 +1415,7 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
         lighting.diffuse  *= intensity * lightData.diffuseScale;
         lighting.specular *= intensity * lightData.specularScale;
     }
+#endif // TT_NPR_LIGHTING
 
     // The mixed thickness mode is not supported by directional lights due to poor quality and high performance impact.
     bool mixedThicknessMode = HasFeatureFlag(bsdfData.materialFeatures, MATERIAL_FEATURE_FLAGS_TRANSMISSION_MODE_MIXED_THICKNESS);

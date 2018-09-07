@@ -36,7 +36,12 @@ void EvaluateLight_Directional(LightLoopContext lightLoopContext, PositionInputs
     float  shadow     = 1.0;
     float  shadowMask = 1.0;
 
-    color       = lightData.color;
+#if defined( TT_NPR_LIGHTING )
+    // NPR base color depends only on lookup texture
+    color = float3( 1.0f, 1.0f, 1.0f );
+#else
+    color = lightData.color;
+#endif
     attenuation = 1.0; // Note: no volumetric attenuation along shadow rays for directional lights
 
     UNITY_BRANCH if (lightData.cookieIndex >= 0)

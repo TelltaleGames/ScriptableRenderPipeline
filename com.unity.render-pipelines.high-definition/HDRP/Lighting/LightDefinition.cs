@@ -52,6 +52,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public float diffuseScale;
 
         public float volumetricDimmer;
+        public float nprCurveTexCoord;
         public int nonLightmappedOnly; // Use with ShadowMask feature // TODO: make it a bool
 
         public Vector4 shadowMaskSelector; // Use with ShadowMask feature

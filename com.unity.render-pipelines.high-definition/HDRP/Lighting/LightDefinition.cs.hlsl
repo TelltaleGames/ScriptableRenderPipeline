@@ -62,6 +62,7 @@ struct DirectionalLightData
     float3 up;
     float diffuseScale;
     float volumetricDimmer;
+    float nprCurveTexCoord;
     int nonLightmappedOnly;
     float4 shadowMaskSelector;
 };

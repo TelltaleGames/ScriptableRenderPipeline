@@ -924,6 +924,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 directionalLightData.nonLightmappedOnly = 0;
             }
 
+            directionalLightData.nprCurveTexCoord = m_NPRLightCache.AddLight( light.finalColor, additionalData.nprLightProfile );
+
             // Fallback to the first non shadow casting directional light.
             m_CurrentSunLight = m_CurrentSunLight == null ? light.light : m_CurrentSunLight;
 
