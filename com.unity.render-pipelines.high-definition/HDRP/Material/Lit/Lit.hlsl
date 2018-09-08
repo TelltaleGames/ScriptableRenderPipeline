@@ -1317,6 +1317,36 @@ float3 EvaluateTransmission(BSDFData bsdfData, float3 transmittance, float NdotL
 #if defined( TT_NPR_LIGHTING )
 
 //
+void EvaluateBase_NPR( float nprDiffuseIntensity, float nprSpecularIntensity,
+    float nprCurveTexCoord, float diffuseScale, float3 specularColor,
+    inout DirectLighting lighting )
+{
+    float nprOpacity = 0.0f;
+    UNITY_BRANCH if( nprDiffuseIntensity > 0.0f )
+    {
+        float tonemapNPRDiffuseIntensity = nprDiffuseIntensity / ( nprDiffuseIntensity + 1.0f );
+        float2 nprDiffuseTexCoord = float2( tonemapNPRDiffuseIntensity, nprCurveTexCoord );
+        float4 nprDiffuseCurve = SAMPLE_TEXTURE2D_LOD( _NPRLightCurveTexture, s_linear_clamp_sampler, nprDiffuseTexCoord, 0.0f );
+        lighting.diffuse += nprDiffuseCurve.rgb * diffuseScale;
+        nprOpacity = nprDiffuseCurve.a;
+    }
+
+    UNITY_BRANCH if( nprSpecularIntensity > 0.0 )
+    {
+        float tonemapNPRSpecularIntensity = nprSpecularIntensity / ( nprSpecularIntensity + 1.0f );
+        float2 nprSpecularTexCoord = float2( tonemapNPRSpecularIntensity, nprCurveTexCoord );
+        float4 nprSpecularCurve = SAMPLE_TEXTURE2D_LOD( _NPRLightCurveTexture, s_linear_clamp_sampler, nprSpecularTexCoord, 0.0f );
+
+        lighting.specular += specularColor * nprSpecularCurve.rgb;
+        nprOpacity = max( nprOpacity, nprSpecularCurve.a );
+    }
+
+    lighting.nprWeight = nprDiffuseIntensity + nprSpecularIntensity;
+    lighting.nprTranslucency = saturate( 1.0f - nprOpacity );
+    lighting.nprIsEnabled = true;
+}
+
+//
 void EvaluateBSDF_NPR( LightLoopContext lightLoopContext,
     float3 V, float3 L, float NdotL, float attenuation, float ao,
     float nprCurveTexCoord, float diffuseScale, float specularScale,
@@ -1648,8 +1678,8 @@ DirectLighting EvaluateBSDF_Line(   LightLoopContext lightLoopContext,
     if (intensity == 0.0)
         return lighting;
 
-    lightData.diffuseScale  *= intensity;
-    lightData.specularScale *= intensity;
+    //lightData.diffuseScale  *= intensity;
+    //lightData.specularScale *= intensity;
 
     // Translate the light s.t. the shaded point is at the origin of the coordinate system.
     lightData.positionWS -= positionWS;
@@ -1669,9 +1699,9 @@ DirectLighting EvaluateBSDF_Line(   LightLoopContext lightLoopContext,
 
     // Evaluate the diffuse part
     ltcValue = LTCEvaluate(P1, P2, B, preLightData.ltcTransformDiffuse);
-    ltcValue *= lightData.diffuseScale;
+    //ltcValue *= lightData.diffuseScale;
     // We don't multiply by 'bsdfData.diffuseColor' here. It's done only once in PostEvaluateBSDF().
-    lighting.diffuse = preLightData.ltcMagnitudeDiffuse * ltcValue;
+    float diffuseIntensity = ltcValue * preLightData.ltcMagnitudeDiffuse;
 
     UNITY_BRANCH if (HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_TRANSMISSION))
     {
@@ -1684,30 +1714,40 @@ DirectLighting EvaluateBSDF_Line(   LightLoopContext lightLoopContext,
         // The matrix multiplication should not generate any extra ALU on GCN.
         // TODO: double evaluation is very inefficient! This is a temporary solution.
         ltcValue  = LTCEvaluate(P1, P2, B, mul(flipMatrix, k_identity3x3));
-        ltcValue *= lightData.diffuseScale;
+        //ltcValue *= lightData.diffuseScale;
         // We use diffuse lighting for accumulation since it is going to be blurred during the SSS pass.
         // We don't multiply by 'bsdfData.diffuseColor' here. It's done only once in PostEvaluateBSDF().
-        lighting.diffuse += bsdfData.transmittance * ltcValue;
+        diffuseIntensity += bsdfData.transmittance * ltcValue;
     }
 
     // Evaluate the specular part
     ltcValue = LTCEvaluate(P1, P2, B, preLightData.ltcTransformSpecular);
-    ltcValue *= lightData.specularScale;
-    lighting.specular = preLightData.ltcMagnitudeFresnel * ltcValue;
+    //ltcValue *= lightData.specularScale;
+    //float specularIntensity = preLightData.ltcMagnitudeFresnel * ltcValue;
+    float specularIntensity = ltcValue;
 
     // Evaluate the coat part
     if (HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_CLEAR_COAT))
     {
-        lighting.diffuse *= (1.0 - preLightData.ltcMagnitudeCoatFresnel);
-        lighting.specular *= (1.0 - preLightData.ltcMagnitudeCoatFresnel);
+        diffuseIntensity *= (1.0 - preLightData.ltcMagnitudeCoatFresnel);
+        specularIntensity *= (1.0 - preLightData.ltcMagnitudeCoatFresnel);
         ltcValue = LTCEvaluate(P1, P2, B, preLightData.ltcTransformCoat);
-        ltcValue *= lightData.specularScale;
-        lighting.specular += preLightData.ltcMagnitudeCoatFresnel * ltcValue;
+        //ltcValue *= lightData.specularScale;
+        specularIntensity += preLightData.ltcMagnitudeCoatFresnel * ltcValue;
     }
 
+#if defined( TT_NPR_LIGHTING )
+    EvaluateBase_NPR( diffuseIntensity,
+        specularIntensity,
+        lightData.nprCurveTexCoord,
+        lightData.diffuseScale,
+        preLightData.ltcMagnitudeFresnel * lightData.specularScale,
+        lighting );
+#else
     // Save ALU by applying 'lightData.color' only once.
-    lighting.diffuse *= lightData.color;
-    lighting.specular *= lightData.color;
+    lighting.diffuse = diffuseIntensity * lightData.color;
+    lighting.specular = specularIntensity * lightData.color * preLightData.ltcMagnitudeFresnel;
+#endif
 
 #ifdef DEBUG_DISPLAY
     if (_DebugLightingMode == DEBUGLIGHTINGMODE_LUX_METER)
@@ -1781,8 +1821,8 @@ DirectLighting EvaluateBSDF_Rect(   LightLoopContext lightLoopContext,
     if (intensity == 0.0)
         return lighting;
 
-    lightData.diffuseScale  *= intensity;
-    lightData.specularScale *= intensity;
+    //lightData.diffuseScale  *= intensity;
+    //lightData.specularScale *= intensity;
 
     // Translate the light s.t. the shaded point is at the origin of the coordinate system.
     lightData.positionWS -= positionWS;
@@ -1803,9 +1843,9 @@ DirectLighting EvaluateBSDF_Rect(   LightLoopContext lightLoopContext,
     // Evaluate the diffuse part
     // Polygon irradiance in the transformed configuration.
     ltcValue  = PolygonIrradiance(mul(lightVerts, preLightData.ltcTransformDiffuse));
-    ltcValue *= lightData.diffuseScale;
+    //ltcValue *= lightData.diffuseScale;
     // We don't multiply by 'bsdfData.diffuseColor' here. It's done only once in PostEvaluateBSDF().
-    lighting.diffuse = preLightData.ltcMagnitudeDiffuse * ltcValue;
+    float diffuseIntensity = preLightData.ltcMagnitudeDiffuse * ltcValue;
 
     UNITY_BRANCH if (HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_TRANSMISSION))
     {
@@ -1824,28 +1864,37 @@ DirectLighting EvaluateBSDF_Rect(   LightLoopContext lightLoopContext,
         ltcValue *= lightData.diffuseScale;
         // We use diffuse lighting for accumulation since it is going to be blurred during the SSS pass.
         // We don't multiply by 'bsdfData.diffuseColor' here. It's done only once in PostEvaluateBSDF().
-        lighting.diffuse += bsdfData.transmittance * ltcValue;
+        diffuseIntensity += bsdfData.transmittance * ltcValue;
     }
 
     // Evaluate the specular part
     // Polygon irradiance in the transformed configuration.
     ltcValue  = PolygonIrradiance(mul(lightVerts, preLightData.ltcTransformSpecular));
-    ltcValue *= lightData.specularScale;
-    lighting.specular += preLightData.ltcMagnitudeFresnel * ltcValue;
+    //ltcValue *= lightData.specularScale;
+    float specularIntensity = ltcValue;// += preLightData.ltcMagnitudeFresnel * ltcValue;
 
     // Evaluate the coat part
     if (HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_CLEAR_COAT))
     {
-        lighting.diffuse *= (1.0 - preLightData.ltcMagnitudeCoatFresnel);
-        lighting.specular *= (1.0 - preLightData.ltcMagnitudeCoatFresnel);
+        diffuseIntensity *= (1.0 - preLightData.ltcMagnitudeCoatFresnel);
+        specularIntensity *= (1.0 - preLightData.ltcMagnitudeCoatFresnel);
         ltcValue = PolygonIrradiance(mul(lightVerts, preLightData.ltcTransformCoat));
         ltcValue *= lightData.specularScale;
-        lighting.specular += preLightData.ltcMagnitudeCoatFresnel * ltcValue;
+        specularIntensity += preLightData.ltcMagnitudeCoatFresnel * ltcValue;
     }
 
+#if defined( TT_NPR_LIGHTING )
+    EvaluateBase_NPR( diffuseIntensity,
+        specularIntensity,
+        lightData.nprCurveTexCoord,
+        lightData.diffuseScale,
+        preLightData.ltcMagnitudeFresnel * lightData.specularScale,
+        lighting );
+#else
     // Save ALU by applying 'lightData.color' only once.
-    lighting.diffuse *= lightData.color;
-    lighting.specular *= lightData.color;
+    lighting.diffuse = diffuseIntensity * lightData.color;
+    lighting.specular = specularIntensity * lightData.color * preLightData.ltcMagnitudeFresnel;
+#endif
 
 #ifdef DEBUG_DISPLAY
     if (_DebugLightingMode == DEBUGLIGHTINGMODE_LUX_METER)
