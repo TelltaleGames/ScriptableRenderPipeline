@@ -505,8 +505,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 {
                     // By default, try to put assets in a folder next to the currently active
                     // scene file. If the user isn't a scene, put them in root instead.
-                    var targetName = m_AdditionalLightData.nprLightProfile.name;
-                    var scene = ( (Light)target ).gameObject.scene;
+                    Light light = (Light)target;
+                    var targetName = light.name;
+                    var scene = light.gameObject.scene;
                     var asset = NPRLightProfileFactory.CreateProfile( scene, targetName );
                     m_AdditionalLightData.nprLightProfile.objectReferenceValue = asset;
                 }
