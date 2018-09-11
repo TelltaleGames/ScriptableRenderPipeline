@@ -1240,7 +1240,7 @@ float3 EvaluateTransmission(BSDFData bsdfData, float3 transmittance, float NdotL
 //-----------------------------------------------------------------------------
 
 DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
-                                        float3 V, PositionInputs posInput, PreLightData preLightData,
+                                        float3 V, PositionInputs posInput, PreLightData preLightData, AmbientOcclusionFactor aoFactor,
                                         DirectionalLightData lightData, BSDFData bsdfData,
                                         BakeLightingData bakeLightingData)
 {
@@ -1298,7 +1298,8 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
 
 DirectLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
                                      float3 V, PositionInputs posInput,
-                                     PreLightData preLightData, LightData lightData, BSDFData bsdfData, BakeLightingData bakeLightingData)
+                                     PreLightData preLightData, AmbientOcclusionFactor aoFactor,
+                                     LightData lightData, BSDFData bsdfData, BakeLightingData bakeLightingData)
 {
     DirectLighting lighting;
     ZERO_INITIALIZE(DirectLighting, lighting);
@@ -1697,7 +1698,7 @@ DirectLighting EvaluateBSDF_Rect(   LightLoopContext lightLoopContext,
 
 DirectLighting EvaluateBSDF_Area(LightLoopContext lightLoopContext,
     float3 V, PositionInputs posInput,
-    PreLightData preLightData, LightData lightData,
+    PreLightData preLightData, AmbientOcclusionFactor aoFactor, LightData lightData,
     BSDFData bsdfData, BakeLightingData bakeLightingData)
 {
     if (lightData.lightType == GPULIGHTTYPE_LINE)

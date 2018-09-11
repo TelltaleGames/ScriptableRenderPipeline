@@ -1348,10 +1348,11 @@ void EvaluateBase_NPR( float nprDiffuseIntensity, float nprSpecularIntensity,
 
 //
 void EvaluateBSDF_NPR( LightLoopContext lightLoopContext,
-    float3 V, float3 L, float NdotL, float attenuation, float ao,
+    float3 V, float3 L, float NdotL, float attenuation,
     float nprCurveTexCoord, float diffuseScale, float specularScale,
     PositionInputs posInput,
     PreLightData preLightData,
+    AmbientOcclusionFactor aoFactor,
     BSDFData bsdfData,
     inout DirectLighting lighting )
 {
@@ -1366,7 +1367,7 @@ void EvaluateBSDF_NPR( LightLoopContext lightLoopContext,
     }
 
     // Warning: attenuation can be greater than 1 due to the inverse square attenuation (when position is close to light)
-    float nprDiffuseIntensity = max( 0, diffuseTerm * attenuation * NdotL * ao );
+    float nprDiffuseIntensity = max( 0, diffuseTerm * attenuation * NdotL * aoFactor.directAmbientOcclusionRaw );
     float nprOpacity = 0.0f;
     if( nprDiffuseIntensity > 0.0f )
     {
@@ -1382,7 +1383,7 @@ void EvaluateBSDF_NPR( LightLoopContext lightLoopContext,
     float viewNdotL = saturate( dot( viewN.xy, viewL.xy ) * 0.5f + 0.5f );
     float rimIntensity = preLightData.rimFactor * viewNdotL;// * attenuation;
 
-    float nprSpecularIntensity = max( 0, attenuation * ( NdotL * ao * specularDV + rimIntensity ) );
+    float nprSpecularIntensity = max( 0, attenuation * ( NdotL * aoFactor.directAmbientOcclusionRaw * specularDV + rimIntensity ) );
     UNITY_BRANCH if( nprSpecularIntensity > 0.0 )
     {
         float tonemapNPRSpecularIntensity = nprSpecularIntensity / ( nprSpecularIntensity + 1.0f );
@@ -1407,7 +1408,7 @@ void EvaluateBSDF_NPR( LightLoopContext lightLoopContext,
 //-----------------------------------------------------------------------------
 
 DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
-                                        float3 V, PositionInputs posInput, PreLightData preLightData,
+                                        float3 V, PositionInputs posInput, PreLightData preLightData, AmbientOcclusionFactor aoFactor,
                                         DirectionalLightData lightData, BSDFData bsdfData,
                                         BakeLightingData bakeLightingData,
                                         bool useTelltaleContactShadow = false)
@@ -1426,12 +1427,12 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
     EvaluateLight_Directional(lightLoopContext, posInput, lightData, bakeLightingData, N, L, useTelltaleContactShadow, color, attenuation);
 
 #if defined( TT_NPR_LIGHTING )
-
     EvaluateBSDF_NPR( lightLoopContext,
-        V, L, NdotL, attenuation, 1.0f,
+        V, L, NdotL, attenuation,
         lightData.nprCurveTexCoord, lightData.diffuseScale, lightData.specularScale,
         posInput,
         preLightData,
+        aoFactor,
         bsdfData,
         lighting );
 #else // TT_NPR_LIGHTING
@@ -1477,7 +1478,8 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
 
 DirectLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
                                      float3 V, PositionInputs posInput,
-                                     PreLightData preLightData, LightData lightData, BSDFData bsdfData, BakeLightingData bakeLightingData)
+                                     PreLightData preLightData, AmbientOcclusionFactor aoFactor,
+                                     LightData lightData, BSDFData bsdfData, BakeLightingData bakeLightingData)
 {
     DirectLighting lighting;
     ZERO_INITIALIZE(DirectLighting, lighting);
@@ -1540,10 +1542,11 @@ DirectLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
     bsdfData.roughnessB = max( bsdfData.roughnessB, lightData.minRoughness );
 
     EvaluateBSDF_NPR( lightLoopContext,
-        V, L, NdotL, attenuation, 1.0f,
+        V, L, NdotL, attenuation,
         lightData.nprCurveTexCoord, lightData.diffuseScale, lightData.specularScale,
         posInput,
         preLightData,
+        aoFactor,
         bsdfData,
         lighting );
 #else // TT_NPR_LIGHTING
@@ -1646,7 +1649,8 @@ DirectLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
 
 DirectLighting EvaluateBSDF_Line(   LightLoopContext lightLoopContext,
                                     float3 V, PositionInputs posInput,
-                                    PreLightData preLightData, LightData lightData, BSDFData bsdfData, BakeLightingData bakeLightingData)
+                                    PreLightData preLightData, AmbientOcclusionFactor aoFactor,
+                                    LightData lightData, BSDFData bsdfData, BakeLightingData bakeLightingData)
 {
     DirectLighting lighting;
     ZERO_INITIALIZE(DirectLighting, lighting);
@@ -1737,8 +1741,8 @@ DirectLighting EvaluateBSDF_Line(   LightLoopContext lightLoopContext,
     }
 
 #if defined( TT_NPR_LIGHTING )
-    EvaluateBase_NPR( diffuseIntensity,
-        specularIntensity,
+    EvaluateBase_NPR( diffuseIntensity * aoFactor.directAmbientOcclusionRaw,
+        specularIntensity * aoFactor.directAmbientOcclusionRaw,
         lightData.nprCurveTexCoord,
         lightData.diffuseScale,
         preLightData.ltcMagnitudeFresnel * lightData.specularScale,
@@ -1772,7 +1776,8 @@ DirectLighting EvaluateBSDF_Line(   LightLoopContext lightLoopContext,
 
 DirectLighting EvaluateBSDF_Rect(   LightLoopContext lightLoopContext,
                                     float3 V, PositionInputs posInput,
-                                    PreLightData preLightData, LightData lightData, BSDFData bsdfData, BakeLightingData bakeLightingData)
+                                    PreLightData preLightData, AmbientOcclusionFactor aoFactor,
+                                    LightData lightData, BSDFData bsdfData, BakeLightingData bakeLightingData)
 {
     DirectLighting lighting;
     ZERO_INITIALIZE(DirectLighting, lighting);
@@ -1884,8 +1889,8 @@ DirectLighting EvaluateBSDF_Rect(   LightLoopContext lightLoopContext,
     }
 
 #if defined( TT_NPR_LIGHTING )
-    EvaluateBase_NPR( diffuseIntensity,
-        specularIntensity,
+    EvaluateBase_NPR( diffuseIntensity * aoFactor.directAmbientOcclusionRaw,
+        specularIntensity * aoFactor.directAmbientOcclusionRaw,
         lightData.nprCurveTexCoord,
         lightData.diffuseScale,
         preLightData.ltcMagnitudeFresnel * lightData.specularScale,
@@ -1913,16 +1918,16 @@ DirectLighting EvaluateBSDF_Rect(   LightLoopContext lightLoopContext,
 
 DirectLighting EvaluateBSDF_Area(LightLoopContext lightLoopContext,
     float3 V, PositionInputs posInput,
-    PreLightData preLightData, LightData lightData,
+    PreLightData preLightData, AmbientOcclusionFactor aoFactor, LightData lightData,
     BSDFData bsdfData, BakeLightingData bakeLightingData)
 {
     if (lightData.lightType == GPULIGHTTYPE_LINE)
     {
-        return EvaluateBSDF_Line(lightLoopContext, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
+        return EvaluateBSDF_Line(lightLoopContext, V, posInput, preLightData, aoFactor, lightData, bsdfData, bakeLightingData);
     }
     else
     {
-        return EvaluateBSDF_Rect(lightLoopContext, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
+        return EvaluateBSDF_Rect(lightLoopContext, V, posInput, preLightData, aoFactor, lightData, bsdfData, bakeLightingData);
     }
 }
 

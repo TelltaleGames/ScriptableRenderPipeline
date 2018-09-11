@@ -66,6 +66,10 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
     context.sampleReflection = 0;
     context.shadowContext = InitShadowContext();
 
+    // TTG_MOD - Moved out from PostEvaluateBSDF in order to work with character light rigs
+    AmbientOcclusionFactor aoFactor;
+    PreEvaluateAO( V, posInput, preLightData, bsdfData, aoFactor );
+
     // This struct is define in the material. the Lightloop must not access it
     // PostEvaluateBSDF call at the end will convert Lighting to diffuse and specular lighting
     AggregateLighting aggregateLighting;
@@ -81,7 +85,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
             float lightWeight = FetchDirectionalLightWeight(i, lightGroupIndex);
             if (lightWeight > 0.0)
             {
-                DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _DirectionalLightDatas[i], bsdfData, bakeLightingData);
+                DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, aoFactor, _DirectionalLightDatas[i], bsdfData, bakeLightingData);
                 AccumulateDirectLighting(lighting, lightWeight, aggregateLighting);
             }
         }
@@ -110,7 +114,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
             if (lightWeight > 0.0)
             {
                 LightData lightData = FetchLightWithLightIndex(j);
-                DirectLighting lighting = EvaluateBSDF_Punctual(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
+                DirectLighting lighting = EvaluateBSDF_Punctual(context, V, posInput, preLightData, aoFactor, lightData, bsdfData, bakeLightingData);
                 AccumulateDirectLighting(lighting, lightWeight, aggregateLighting);
             }
         }
@@ -143,7 +147,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
             {
                 lightData.lightType = GPULIGHTTYPE_LINE; // Enforce constant propagation
 
-                DirectLighting lighting = EvaluateBSDF_Area(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
+                DirectLighting lighting = EvaluateBSDF_Area(context, V, posInput, preLightData, aoFactor, lightData, bsdfData, bakeLightingData);
                 AccumulateDirectLighting(lighting, 1, aggregateLighting);
 
                 lightData = FetchLight(lightStart, min(++i, last));
@@ -153,7 +157,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
             {
                 lightData.lightType = GPULIGHTTYPE_RECTANGLE; // Enforce constant propagation
 
-                DirectLighting lighting = EvaluateBSDF_Area(context, V, posInput, preLightData, lightData, bsdfData, bakeLightingData);
+                DirectLighting lighting = EvaluateBSDF_Area(context, V, posInput, preLightData, aoFactor, lightData, bsdfData, bakeLightingData);
                 AccumulateDirectLighting(lighting, 1, aggregateLighting);
 
                 lightData = FetchLight(lightStart, min(++i, last));
@@ -161,10 +165,6 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         }
     }
 
-
-    // TTG_MOD - Moved out from PostEvaluateBSDF in order to work with character light rigs
-    AmbientOcclusionFactor aoFactor;
-    PreEvaluateAO(V, posInput, preLightData, bsdfData, aoFactor);
 #ifdef TELLTALE_CHARACTER_LIGHTING
     // Important to do this after all standard Unity diffuse lighting has been accumulated, but before Character Lights are added.
 
@@ -177,7 +177,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         // Apply per-object directional lights:
         for (i = 0; i < 3; ++i)
         {
-            DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, _CharacterLights[i], bsdfData, bakeLightingData, true);
+            DirectLighting lighting = EvaluateBSDF_Directional(context, V, posInput, preLightData, aoFactor, _CharacterLights[i], bsdfData, bakeLightingData, true);
             lighting.diffuse *= GetCharacterLightAmbientOcclusion(bsdfData, aoFactor, 1.0 - _CharacterLights[i].shadowMaskSelector.w);
             AccumulateDirectLighting(lighting, _Contribution_Std_Char_Env_Refl.y, aggregateLighting);
         }
