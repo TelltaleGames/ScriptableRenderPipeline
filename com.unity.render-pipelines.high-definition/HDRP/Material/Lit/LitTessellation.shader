@@ -12,6 +12,10 @@ Shader "HDRenderPipeline/LitTessellation"
         _BaseColor("BaseColor", Color) = (1,1,1,1)
         _BaseColorMap("BaseColorMap", 2D) = "white" {}
 
+        _AsperityAmount("Asperity Amount", Range(0,1)) = 0.0
+        _AsperityExponent("Asperity Exponent", Float) = 1.0
+
+
         _Metallic("_Metallic", Range(0.0, 1.0)) = 0
         _Smoothness("Smoothness", Range(0.0, 1.0)) = 1.0
         _MaskMap("MaskMap", 2D) = "white" {}
@@ -120,6 +124,12 @@ Shader "HDRenderPipeline/LitTessellation"
         _ATDistance("Transmittance Absorption Distance", Float) = 1.0
         [ToggleUI] _PreRefractionPass("PreRefractionPass", Float) = 0.0
 
+        // Transmission Probe
+        _TransmissionProbeMap("Transmission Probe", Cube) = "black" {}
+        _TransmissionTint("Transmission Tint", Color) = (1,1,1,1)
+        [Enum(Local, 0, World, 1)]_TransmissionProbeOrientation("Transmission Probe Orientation", Float) = 1.0
+        _FovCorrection("FOV", Float) = 0.0
+
         // Stencil state
         [HideInInspector] _StencilRef("_StencilRef", Int) = 2 // StencilLightingUsage.RegularLighting  (fixed at compile time)
         [HideInInspector] _StencilWriteMask("_StencilWriteMask", Int) = 7 // StencilMask.Lighting  (fixed at compile time)
@@ -154,7 +164,7 @@ Shader "HDRenderPipeline/LitTessellation"
         // Following enum should be material feature flags (i.e bitfield), however due to Gbuffer encoding constrain many combination exclude each other
         // so we use this enum as "material ID" which can be interpreted as preset of bitfield of material feature
         // The only material feature flag that can be added in all cases is clear coat
-        [Enum(Subsurface Scattering, 0, Standard, 1, Anisotropy, 2, Iridescence, 3, Specular Color, 4, Translucent, 5)] _MaterialID("MaterialId", Int) = 1 // MaterialId.Standard
+        [Enum(Subsurface Scattering, 0, Standard, 1, Anisotropy, 2, Iridescence, 3, Specular Color, 4, Translucent, 5, TransmissionProbe, 6)] _MaterialID("MaterialId", Int) = 1 // MaterialId.Standard
         [ToggleUI] _TransmissionEnable("_TransmissionEnable", Float) = 1.0
 
         [Enum(None, 0, Tessellation displacement, 3)] _DisplacementMode("DisplacementMode", Int) = 3
@@ -273,6 +283,8 @@ Shader "HDRenderPipeline/LitTessellation"
     #pragma shader_feature _MATERIAL_FEATURE_CLEAR_COAT
     #pragma shader_feature _MATERIAL_FEATURE_IRIDESCENCE
     #pragma shader_feature _MATERIAL_FEATURE_SPECULAR_COLOR
+    #pragma shader_feature _MATERIAL_FEATURE_TRANSMISSIONPROBE
+    #pragma shader_feature _TRANSMISSION_PROBE_ORIENTATION
 
     // enable dithering LOD crossfade
     #pragma multi_compile _ LOD_FADE_CROSSFADE
@@ -291,6 +303,8 @@ Shader "HDRenderPipeline/LitTessellation"
     // This shader support vertex modification
     #define HAVE_VERTEX_MODIFICATION
     #define HAVE_TESSELLATION_MODIFICATION
+    
+    #define TT_NPR_LIGHTING
 
     // If we use subsurface scattering, enable output split lighting (for forward pass)
     #if defined(_MATERIAL_FEATURE_SUBSURFACE_SCATTERING) && !defined(_SURFACE_TYPE_TRANSPARENT)
@@ -379,8 +393,8 @@ Shader "HDRenderPipeline/LitTessellation"
             #pragma multi_compile _ DEBUG_DISPLAY
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
-            #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            #pragma multi_compile _ SHADOWS_SHADOWMASK
+            //#pragma multi_compile _ DYNAMICLIGHTMAP_ON // TTG_PERF - unused variation, removing to improve shader compile times
+            //#pragma multi_compile _ SHADOWS_SHADOWMASK // TTG_PERF - unused variation, removing to improve shader compile times
 
         #ifdef _ALPHATEST_ON
             // When we have alpha test, we will force a depth prepass so we always bypass the clip instruction in the GBuffer
@@ -594,8 +608,8 @@ Shader "HDRenderPipeline/LitTessellation"
             #pragma multi_compile _ DEBUG_DISPLAY
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
-            #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            #pragma multi_compile _ SHADOWS_SHADOWMASK
+            //#pragma multi_compile _ DYNAMICLIGHTMAP_ON // TTG_PERF - unused variation, removing to improve shader compile times
+            //#pragma multi_compile _ SHADOWS_SHADOWMASK // TTG_PERF - unused variation, removing to improve shader compile times
             // #include "../../Lighting/Forward.hlsl"
             //#pragma multi_compile LIGHTLOOP_SINGLE_PASS LIGHTLOOP_TILE_PASS
             #define LIGHTLOOP_TILE_PASS
@@ -641,8 +655,8 @@ Shader "HDRenderPipeline/LitTessellation"
             #pragma multi_compile _ DEBUG_DISPLAY
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
-            #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            #pragma multi_compile _ SHADOWS_SHADOWMASK
+            //#pragma multi_compile _ DYNAMICLIGHTMAP_ON // TTG_PERF - unused variation, removing to improve shader compile times
+            //#pragma multi_compile _ SHADOWS_SHADOWMASK // TTG_PERF - unused variation, removing to improve shader compile times
             // #include "../../Lighting/Forward.hlsl"
             //#pragma multi_compile LIGHTLOOP_SINGLE_PASS LIGHTLOOP_TILE_PASS
             #define LIGHTLOOP_TILE_PASS
