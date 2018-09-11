@@ -77,6 +77,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         SerializedLightData m_AdditionalLightData;
         SerializedShadowData m_AdditionalShadowData;
 
+        NPRLightProfileComponentEditor m_NPRLightProfileEditor;
+
         // LightType + LightTypeExtent combined
         enum LightShape
         {
@@ -154,6 +156,23 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     edgeToleranceNormal = o.Find(x => x.edgeToleranceNormal),
                     edgeTolerance = o.Find(x => x.edgeTolerance)
                 };
+
+            NPRLightProfile profile = (NPRLightProfile)m_AdditionalLightData.nprLightProfile.objectReferenceValue;
+            m_NPRLightProfileEditor = new NPRLightProfileComponentEditor( this );
+            RefreshNPRLightProfileEditor( profile );
+        }
+
+        void OnDisable()
+        {
+            if( m_NPRLightProfileEditor != null )
+                m_NPRLightProfileEditor.Clear();
+        }
+
+        private void RefreshNPRLightProfileEditor( NPRLightProfile asset )
+        {
+            m_NPRLightProfileEditor.Clear();
+            if( asset != null )
+                m_NPRLightProfileEditor.Init( asset, new SerializedObject( asset ) );
         }
 
         public override void OnInspectorGUI()
@@ -537,25 +556,18 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
             else
             {
-                EditorGUI.indentLevel++;
-
                 NPRLightProfile profile = (NPRLightProfile)m_AdditionalLightData.nprLightProfile.objectReferenceValue;
-                profile.IntensityCurve = EditorGUILayout.CurveField( CoreEditorUtils.GetContent( "Intensity Curve" ),
-                    profile.IntensityCurve,
-                    Color.blue,
-                    new Rect( 0.0f, 0.0f, 1.0f, 1.0f ) );
+                if( profile != m_NPRLightProfileEditor.Asset )
+                {
+                    RefreshNPRLightProfileEditor( profile );
+                }
 
-                profile.OpacityCurve = EditorGUILayout.CurveField( CoreEditorUtils.GetContent( "Opacity Curve" ),
-                    profile.OpacityCurve,
-                    Color.blue,
-                    new Rect( 0.0f, 0.0f, 1.0f, 1.0f ) );
-
-                profile.SaturationCurve = EditorGUILayout.CurveField( CoreEditorUtils.GetContent( "Saturation Curve" ),
-                    profile.SaturationCurve,
-                    Color.blue,
-                    new Rect( 0.0f, 0.0f, 1.0f, 8.0f ) );
-
-                EditorGUI.indentLevel--;
+                if( !multiEdit )
+                {
+                    EditorGUI.indentLevel++;
+                    m_NPRLightProfileEditor.OnGUI();
+                    EditorGUI.indentLevel--;
+                }
             }
         }
 
