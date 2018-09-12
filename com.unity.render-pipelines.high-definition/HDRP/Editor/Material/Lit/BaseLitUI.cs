@@ -66,6 +66,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent enableGeometricSpecularAAText = new GUIContent("Enable geometric specular AA", "This reduce specular aliasing on highly dense mesh (Particularly useful when they don't use normal map)");
             public static GUIContent specularAAScreenSpaceVarianceText = new GUIContent("Screen space variance", "Allow to control the strength of the specular AA reduction. Higher mean more blurry result and less aliasing");
             public static GUIContent specularAAThresholdText = new GUIContent("Threshold", "Allow to limit the effect of specular AA reduction. 0 mean don't apply reduction, higher value mean allow higher reduction");
+
+            public static string npr = "NPR";
+            public static GUIContent nprText = new GUIContent( "Enable NPR" );
+            public static GUIContent nprRimWrap = new GUIContent( "Rim Wrap" );
+            public static GUIContent nprRimFalloff = new GUIContent( "Rim Falloff" );
+            public static GUIContent nprRimIntensity = new GUIContent( "Rim Intensity" );
         }
 
         public enum DoubleSidedNormalMode
@@ -200,6 +206,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected MaterialProperty specularAAThreshold = null;
         protected const string kSpecularAAThreshold = "_SpecularAAThreshold";
 
+        //
+        protected MaterialProperty nprEnable = null;
+        protected const string kNPREnable = "_EnableNPR";
+        protected MaterialProperty nprRimWrap = null;
+        protected const string kNPRRimWrap = "_NPRRimWrap";
+        protected MaterialProperty nprRimIntensity = null;
+        protected const string kNPRRimIntensity = "_NPRRimIntensity";
+        protected MaterialProperty nprRimFalloff = null;
+        protected const string kNPRRimFalloff = "_NPRRimFalloff";
+
         protected override void FindBaseMaterialProperties(MaterialProperty[] props)
         {
             base.FindBaseMaterialProperties(props);
@@ -257,6 +273,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             enableGeometricSpecularAA = FindProperty(kEnableGeometricSpecularAA, props, false);
             specularAAScreenSpaceVariance = FindProperty(kSpecularAAScreenSpaceVariance, props, false);
             specularAAThreshold = FindProperty(kSpecularAAThreshold, props, false);
+
+            // NPR
+            nprEnable = FindProperty( kNPREnable, props, false );
+            nprRimWrap = FindProperty( kNPRRimWrap, props, false );
+            nprRimFalloff = FindProperty( kNPRRimFalloff, props, false );
+            nprRimIntensity = FindProperty( kNPRRimIntensity, props, false );
         }
 
         void TessellationModePopup()
@@ -406,6 +428,25 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             EditorGUI.indentLevel--;
         }
 
+        protected override void NPRPropertiesGUI()
+        {
+            EditorGUILayout.LabelField( StylesBaseLit.npr, EditorStyles.boldLabel );
+
+            EditorGUI.indentLevel++;
+
+            m_MaterialEditor.ShaderProperty( nprEnable, StylesBaseLit.nprText );
+            if( !nprEnable.hasMixedValue && nprEnable.floatValue > 0.0f )
+            {
+                EditorGUI.indentLevel++;
+                m_MaterialEditor.ShaderProperty( nprRimFalloff, StylesBaseLit.nprRimFalloff );
+                m_MaterialEditor.ShaderProperty( nprRimWrap, StylesBaseLit.nprRimWrap );
+                m_MaterialEditor.ShaderProperty( nprRimIntensity, StylesBaseLit.nprRimIntensity );
+                EditorGUI.indentLevel--;
+            }
+
+            EditorGUI.indentLevel--;
+        }
+
         // All Setup Keyword functions must be static. It allow to create script to automatically update the shaders with a script if code change
         static public void SetupBaseLitKeywords(Material material)
         {
@@ -463,6 +504,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             bool windEnabled = material.GetFloat(kWindEnabled) > 0.0f;
             CoreUtils.SetKeyword(material, "_VERTEX_WIND", windEnabled);
+
+            bool nprEnabled = material.GetFloat( kNPREnable ) > 0.0f;
+            CoreUtils.SetKeyword( material, "_ENABLE_NPR", nprEnabled );
 
             // Depth offset is only enabled if per pixel displacement is
             bool depthOffsetEnable = (material.GetFloat(kDepthOffsetEnable) > 0.0f) && enablePixelDisplacement;

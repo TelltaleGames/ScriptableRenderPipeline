@@ -202,6 +202,12 @@ Shader "HDRenderPipeline/LitTessellation"
         _ShiverDrag("Shiver Drag", float) = 0.2
         _ShiverDirectionality("Shiver Directionality", Range(0.0, 1.0)) = 0.5
 
+        // NPR
+        [Toggle( _ENABLE_NPR )] _EnableNPR( "Enable NPR", Float ) = 0.0
+        _NPRRimFalloff( "NPR Rim Falloff", float ) = 4.0
+        _NPRRimWrap( "NPR Rim Wrap", float ) = 0.0
+        _NPRRimIntensity( "NPR Rim Intensity", float ) = 1.0
+
         // Caution: C# code in BaseLitUI.cs call LightmapEmissionFlagsProperty() which assume that there is an existing "_EmissionColor"
         // value that exist to identify if the GI emission need to be enabled.
         // In our case we don't use such a mechanism but need to keep the code quiet. We declare the value and always enable it.
@@ -269,6 +275,7 @@ Shader "HDRenderPipeline/LitTessellation"
 
     #pragma shader_feature _DISABLE_DBUFFER
     #pragma shader_feature _ENABLE_GEOMETRIC_SPECULAR_AA
+    #pragma shader_feature _ENABLE_NPR
 
     // Keyword for transparent
     #pragma shader_feature _SURFACE_TYPE_TRANSPARENT
@@ -304,7 +311,9 @@ Shader "HDRenderPipeline/LitTessellation"
     #define HAVE_VERTEX_MODIFICATION
     #define HAVE_TESSELLATION_MODIFICATION
     
+    #if defined( _ENABLE_NPR )
     #define TT_NPR_LIGHTING
+    #endif
 
     // If we use subsurface scattering, enable output split lighting (for forward pass)
     #if defined(_MATERIAL_FEATURE_SUBSURFACE_SCATTERING) && !defined(_SURFACE_TYPE_TRANSPARENT)

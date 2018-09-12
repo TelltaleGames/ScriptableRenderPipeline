@@ -247,6 +247,7 @@ Shader "HDRenderPipeline/CharacterLit"
         _DownwindWeight("Downwind Weight", Range(0.0, 1.0)) = 0.0
 
         // NPR
+        [Toggle( _ENABLE_NPR )] _EnableNPR( "Enable NPR", Float ) = 0.0
         _NPRRimFalloff( "NPR Rim Falloff", float ) = 4.0
         _NPRRimWrap( "NPR Rim Wrap", float ) = 0.0
         _NPRRimIntensity( "NPR Rim Intensity", float ) = 1.0
@@ -313,6 +314,7 @@ Shader "HDRenderPipeline/CharacterLit"
     #pragma shader_feature _ENABLEGRIME
     #pragma shader_feature _DISABLE_DBUFFER
     #pragma shader_feature _ENABLE_GEOMETRIC_SPECULAR_AA
+    #pragma shader_feature _ENABLE_NPR
 
     // Keyword for transparent
     #pragma shader_feature _SURFACE_TYPE_TRANSPARENT
@@ -346,7 +348,9 @@ Shader "HDRenderPipeline/CharacterLit"
     // This shader support vertex modification
     #define HAVE_VERTEX_MODIFICATION
 
+    #if defined( _ENABLE_NPR )
     #define TT_NPR_LIGHTING
+    #endif
 
     // If we use subsurface scattering, enable output split lighting (for forward pass)
     #if defined(_MATERIAL_FEATURE_SUBSURFACE_SCATTERING) && !defined(_SURFACE_TYPE_TRANSPARENT)

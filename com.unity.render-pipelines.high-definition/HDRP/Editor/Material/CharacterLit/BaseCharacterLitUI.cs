@@ -67,6 +67,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent specularAAThresholdText = new GUIContent("Threshold", "Allow to limit the effect of specular AA reduction. 0 mean don't apply reduction, higher value mean allow higher reduction");
 
             public static string npr = "NPR";
+            public static GUIContent nprText = new GUIContent( "Enable NPR" );
             public static GUIContent nprRimWrap = new GUIContent( "Rim Wrap" );
             public static GUIContent nprRimFalloff = new GUIContent( "Rim Falloff" );
             public static GUIContent nprRimIntensity = new GUIContent( "Rim Intensity" );
@@ -191,6 +192,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected const string kSpecularAAThreshold = "_SpecularAAThreshold";
 
         //
+        protected MaterialProperty nprEnable = null;
+        protected const string kNPREnable = "_EnableNPR";
         protected MaterialProperty nprRimWrap = null;
         protected const string kNPRRimWrap = "_NPRRimWrap";
         protected MaterialProperty nprRimIntensity = null;
@@ -247,7 +250,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             specularAAScreenSpaceVariance = FindProperty(kSpecularAAScreenSpaceVariance, props, false);
             specularAAThreshold = FindProperty(kSpecularAAThreshold, props, false);
 
-            // Rim
+            // NPR
+            nprEnable = FindProperty( kNPREnable, props );
             nprRimWrap = FindProperty( kNPRRimWrap, props );
             nprRimFalloff = FindProperty( kNPRRimFalloff, props );
             nprRimIntensity = FindProperty( kNPRRimIntensity, props );
@@ -395,9 +399,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             EditorGUI.indentLevel++;
 
-            m_MaterialEditor.ShaderProperty( nprRimFalloff, StylesBaseLit.nprRimFalloff );
-            m_MaterialEditor.ShaderProperty( nprRimWrap, StylesBaseLit.nprRimWrap );
-            m_MaterialEditor.ShaderProperty( nprRimIntensity, StylesBaseLit.nprRimIntensity );
+            m_MaterialEditor.ShaderProperty( nprEnable, StylesBaseLit.nprText );
+            if( !nprEnable.hasMixedValue && nprEnable.floatValue > 0.0f )
+            {
+                EditorGUI.indentLevel++;
+                m_MaterialEditor.ShaderProperty( nprRimFalloff, StylesBaseLit.nprRimFalloff );
+                m_MaterialEditor.ShaderProperty( nprRimWrap, StylesBaseLit.nprRimWrap );
+                m_MaterialEditor.ShaderProperty( nprRimIntensity, StylesBaseLit.nprRimIntensity );
+                EditorGUI.indentLevel--;
+            }
 
             EditorGUI.indentLevel--;
         }
@@ -459,6 +469,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             bool windEnabled = material.GetFloat(kWindEnabled) > 0.0f;
             CoreUtils.SetKeyword(material, "_VERTEX_WIND", windEnabled);
+
+            bool nprEnabled = material.GetFloat( kNPREnable ) > 0.0f;
+            CoreUtils.SetKeyword( material, "_ENABLE_NPR", nprEnabled );
 
             // Depth offset is only enabled if per pixel displacement is
             bool depthOffsetEnable = (material.GetFloat(kDepthOffsetEnable) > 0.0f) && enablePixelDisplacement;
