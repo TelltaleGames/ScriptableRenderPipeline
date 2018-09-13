@@ -191,7 +191,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             LightMode = "DepthOnly",
             TemplateName = "HDPBRPass.template",
             ShaderPassName = "SHADERPASS_DEPTH_ONLY",
-            ColorMaskOverride = "ColorMask 0",
+            ExtraDefines = new List<string>()
+            {
+                "#pragma multi_compile _ WRITE_NORMAL_BUFFER",
+            },
             Includes = new List<string>()
             {
                 "#include \"HDRP/ShaderPass/ShaderPassDepthOnly.hlsl\"",
