@@ -12,11 +12,14 @@ namespace UnityEditor.ShaderGraph.Drawing
     public class UnlitSettingsView : VisualElement
     {
         UnlitMasterNode m_Node;
+        private PropertySheet ps;
+        private PropertyRow fogPropertyRow;
+
         public UnlitSettingsView(UnlitMasterNode node)
         {
             m_Node = node;
 
-            PropertySheet ps = new PropertySheet();
+            ps = new PropertySheet();
 
             ps.Add(new PropertyRow(new Label("Surface")), (row) =>
                 {
@@ -45,7 +48,35 @@ namespace UnityEditor.ShaderGraph.Drawing
                     });
                 });
 
+            fogPropertyRow = new PropertyRow(new Label("Enable Fog"));
+            fogPropertyRow.Add(new Toggle(), (toggle) =>
+            {
+                toggle.value = m_Node.enableFog.isOn;
+                toggle.OnToggleChanged(ChangeEnableFog);
+            });
+            ConditionalShowFogRow();
+
             Add(ps);
+        }
+
+        private void ConditionalShowFogRow()
+        {
+            bool showFogRow = m_Node.surfaceType == SurfaceType.Transparent && m_Node.alphaMode != AlphaMode.Multiply;
+            fogPropertyRow.SetEnabled(showFogRow);
+            if (showFogRow)
+            {
+                if (!ps.Contains(fogPropertyRow))
+                {
+                    ps.Add(fogPropertyRow);
+                }
+            }
+            else
+            {
+                if (ps.Contains(fogPropertyRow))
+                {
+                    ps.Remove(fogPropertyRow);
+                }
+            }
         }
 
         void ChangeSurface(ChangeEvent<Enum> evt)
@@ -55,6 +86,7 @@ namespace UnityEditor.ShaderGraph.Drawing
 
             m_Node.owner.owner.RegisterCompleteObjectUndo("Surface Change");
             m_Node.surfaceType = (SurfaceType)evt.newValue;
+            ConditionalShowFogRow();
         }
 
         void ChangeAlphaMode(ChangeEvent<Enum> evt)
@@ -64,6 +96,7 @@ namespace UnityEditor.ShaderGraph.Drawing
 
             m_Node.owner.owner.RegisterCompleteObjectUndo("Alpha Mode Change");
             m_Node.alphaMode = (AlphaMode)evt.newValue;
+            ConditionalShowFogRow();
         }
 
         void ChangeTwoSided(ChangeEvent<bool> evt)
@@ -72,6 +105,14 @@ namespace UnityEditor.ShaderGraph.Drawing
             ToggleData td = m_Node.twoSided;
             td.isOn = evt.newValue;
             m_Node.twoSided = td;
+        }
+
+        void ChangeEnableFog(ChangeEvent<bool> evt)
+        {
+            m_Node.owner.owner.RegisterCompleteObjectUndo("Enable Fog Change");
+            ToggleData td = m_Node.enableFog;
+            td.isOn = evt.newValue;
+            m_Node.enableFog = td;
         }
     }
 }

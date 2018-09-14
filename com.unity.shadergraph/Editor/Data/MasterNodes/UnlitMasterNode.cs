@@ -70,6 +70,21 @@ namespace UnityEditor.ShaderGraph
             }
         }
 
+        [SerializeField]
+        bool m_EnableFog;
+
+        public ToggleData enableFog
+        {
+            get { return new ToggleData(m_EnableFog); }
+            set
+            {
+                if (m_EnableFog == value.isOn)
+                    return;
+                m_EnableFog = value.isOn;
+                Dirty(ModificationScope.Graph);
+            }
+        }
+
         public UnlitMasterNode()
         {
             UpdateNodeAfterDeserialization();

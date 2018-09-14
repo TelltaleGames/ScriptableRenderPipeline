@@ -497,7 +497,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 bool distortionActive = false;
 
                 GenerateShaderPassUnlit(masterNode, m_PassDepthOnly, mode, materialOptions, subShader, sourceAssetDependencyPaths);
+
+                List<string> previousForwardExtraDefines = new List<string>(m_PassForward.ExtraDefines);
+                AddFogDefines(m_PassForward.ExtraDefines, masterNode);
                 GenerateShaderPassUnlit(masterNode, m_PassForward, mode, materialOptions, subShader, sourceAssetDependencyPaths);
+                m_PassForward.ExtraDefines = previousForwardExtraDefines;
+
                 GenerateShaderPassUnlit(masterNode, m_PassMETA, mode, materialOptions, subShader, sourceAssetDependencyPaths);
                 if (distortionActive)
                 {
@@ -508,6 +513,33 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             subShader.AddShaderChunk("}", true);
 
             return subShader.GetShaderString(0);
+        }
+
+        private void AddFogDefines(List<string> extraDefines, UnlitMasterNode masterNode)
+        {
+            if (masterNode.surfaceType == SurfaceType.Opaque || masterNode.alphaMode == AlphaMode.Multiply || !masterNode.enableFog.isOn)
+            {
+                return;
+            }
+
+            extraDefines.Add("#define _ENABLE_FOG_ON_TRANSPARENT");
+
+            switch (masterNode.alphaMode)
+            {
+                case AlphaMode.Alpha:
+                    extraDefines.Add("#define _BLENDMODE_ALPHA");
+                    break;
+                case AlphaMode.Premultiply:
+                    extraDefines.Add("#define _BLENDMODE_PRE_MULTIPLY");
+                    break;
+                case AlphaMode.Additive:
+                    extraDefines.Add("#define _BLENDMODE_ADD");
+                    break;
+                default:
+                    break;
+            }
+
+            return;
         }
 
         public void CollectShaderProperties(PropertyCollector properties, GenerationMode generationMode)
