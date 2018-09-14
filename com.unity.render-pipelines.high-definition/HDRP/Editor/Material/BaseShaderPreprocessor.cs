@@ -73,8 +73,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             if ((/*!Debug.isDebugBuild || */ !hdrpAsset.renderPipelineSettings.supportRuntimeDebugDisplay) && inputData.shaderKeywordSet.IsEnabled(m_DebugDisplay))
                 return true;
 
-            if (inputData.shaderKeywordSet.IsEnabled(m_LodFadeCrossFade) && !hdrpAsset.renderPipelineSettings.supportDitheringCrossFade)
+            // if (inputData.shaderKeywordSet.IsEnabled(m_LodFadeCrossFade) && !hdrpAsset.renderPipelineSettings.supportDitheringCrossFade)
+            if (inputData.shaderKeywordSet.IsEnabled(m_LodFadeCrossFade)) // TTG_PERF - disabled dithered LOD cross-fade variation for now.
+            {
                 return true;
+            }
 
             return false;
         }

@@ -275,7 +275,7 @@ Shader "HDRenderPipeline/FX/LitBurn"
     #pragma shader_feature _MATERIAL_FEATURE_SPECULAR_COLOR
 
     // enable dithering LOD crossfade
-    #pragma multi_compile _ LOD_FADE_CROSSFADE
+    // #pragma multi_compile _ LOD_FADE_CROSSFADE // TTG_PERF - disabled variation for now.
 
     //enable GPU instancing support
     #pragma multi_compile_instancing

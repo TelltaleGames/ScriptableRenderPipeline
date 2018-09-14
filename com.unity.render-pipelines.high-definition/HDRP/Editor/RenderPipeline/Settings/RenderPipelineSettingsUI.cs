@@ -84,6 +84,12 @@ namespace UnityEditor.Experimental.Rendering
             EditorGUILayout.PropertyField(d.supportDitheringCrossFade, _.GetContent("Support dithering cross fade|Remove all dithering cross fade shader variant only in the player. Allow faster build."));
             EditorGUILayout.PropertyField(d.supportTelltaleContactShadows, _.GetContent("Support Telltale Contact Shadows"));
 
+            if (d.supportDitheringCrossFade.boolValue)
+            {
+                UnityEngine.Debug.LogError("Dithering cross fade is currently disabled in the shaders to improve shader compile times. To use, Re-enable all '#pragma multi_compile _ LOD_CROSS_FADE' in shaders and 'if (inputData.shaderKeywordSet.IsEnabled(m_LodFadeCrossFade) && !hdrpAsset.renderPipelineSettings.supportDitheringCrossFade)' in base shader processor.");
+                d.supportDitheringCrossFade.boolValue = false;
+            }
+
             --EditorGUI.indentLevel;
         }
     }
