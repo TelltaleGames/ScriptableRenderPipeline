@@ -239,7 +239,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             return activeFields;
         }
 
-        private static bool GenerateShaderPassUnlit(AbstractMaterialNode masterNode, Pass pass, GenerationMode mode, SurfaceMaterialOptions materialOptions, ShaderGenerator result, List<string> sourceAssetDependencyPaths)
+        private static bool GenerateShaderPassUnlit(AbstractMaterialNode masterNode, Pass pass, GenerationMode mode, SurfaceMaterialOptions materialOptions, ShaderGenerator result, List<string> sourceAssetDependencyPaths, PassAdditionalData passAdditionalData = null)
         {
             var templateLocation = Path.Combine(Path.Combine(Path.Combine(HDEditorUtils.GetHDRenderPipelinePath(), "Editor"), "ShaderGraph"), pass.TemplateName);
             if (!File.Exists(templateLocation))
@@ -350,6 +350,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             HDSubShaderUtilities.BuildRenderStatesFromPassAndMaterialOptions(pass, materialOptions, blendCode, cullCode, zTestCode, zWriteCode, stencilCode, colorMaskCode);
 
             HDRPShaderStructs.AddRequiredFields(pass.RequiredFields, activeFields);
+                        
+            if (passAdditionalData != null)
+            {
+                foreach (var item in passAdditionalData.RequiredFields)
+                {
+                    activeFields.Add(item);
+                }
+            }
 
             // apply dependencies to the active fields, and build interpolators (TODO: split this function)
             var packedInterpolatorCode = new ShaderGenerator();
@@ -380,6 +388,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 {
                     foreach (var define in pass.ExtraDefines)
                         defines.AddShaderChunk(define);
+                }
+                if (passAdditionalData != null)
+                {
+                    foreach (var item in passAdditionalData.ExtraDefines)
+                    {
+                        defines.AddShaderChunk(item);
+                    }
                 }
                 defines.AddGenerator(interpolatorDefines);
             }
@@ -496,13 +511,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 //                bool transparent = (masterNode.surfaceType != SurfaceType.Opaque);
                 bool distortionActive = false;
 
-                GenerateShaderPassUnlit(masterNode, m_PassDepthOnly, mode, materialOptions, subShader, sourceAssetDependencyPaths);
-
-                List<string> previousForwardExtraDefines = new List<string>(m_PassForward.ExtraDefines);
-                AddFogDefines(m_PassForward.ExtraDefines, masterNode);
-                GenerateShaderPassUnlit(masterNode, m_PassForward, mode, materialOptions, subShader, sourceAssetDependencyPaths);
-                m_PassForward.ExtraDefines = previousForwardExtraDefines;
-
+                GenerateShaderPassUnlit(masterNode, m_PassDepthOnly, mode, materialOptions, subShader, sourceAssetDependencyPaths);                
+                GenerateShaderPassUnlit(masterNode, m_PassForward, mode, materialOptions, subShader, sourceAssetDependencyPaths, GetFogPassData(masterNode));
                 GenerateShaderPassUnlit(masterNode, m_PassMETA, mode, materialOptions, subShader, sourceAssetDependencyPaths);
                 if (distortionActive)
                 {
@@ -515,31 +525,34 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             return subShader.GetShaderString(0);
         }
 
-        private void AddFogDefines(List<string> extraDefines, UnlitMasterNode masterNode)
+        private PassAdditionalData GetFogPassData(UnlitMasterNode masterNode)
         {
             if (masterNode.surfaceType == SurfaceType.Opaque || masterNode.alphaMode == AlphaMode.Multiply || !masterNode.enableFog.isOn)
             {
-                return;
+                return null;
             }
 
-            extraDefines.Add("#define _ENABLE_FOG_ON_TRANSPARENT");
+            PassAdditionalData passAdditionalData = new PassAdditionalData();
+
+            passAdditionalData.RequiredFields.Add("SurfaceDescriptionInputs.WorldSpacePosition");
+            passAdditionalData.ExtraDefines.Add("#define _ENABLE_FOG_ON_TRANSPARENT");
 
             switch (masterNode.alphaMode)
             {
                 case AlphaMode.Alpha:
-                    extraDefines.Add("#define _BLENDMODE_ALPHA");
+                    passAdditionalData.ExtraDefines.Add("#define _BLENDMODE_ALPHA");
                     break;
                 case AlphaMode.Premultiply:
-                    extraDefines.Add("#define _BLENDMODE_PRE_MULTIPLY");
+                    passAdditionalData.ExtraDefines.Add("#define _BLENDMODE_PRE_MULTIPLY");
                     break;
                 case AlphaMode.Additive:
-                    extraDefines.Add("#define _BLENDMODE_ADD");
+                    passAdditionalData.ExtraDefines.Add("#define _BLENDMODE_ADD");
                     break;
                 default:
                     break;
             }
 
-            return;
+            return passAdditionalData;
         }
 
         public void CollectShaderProperties(PropertyCollector properties, GenerationMode generationMode)

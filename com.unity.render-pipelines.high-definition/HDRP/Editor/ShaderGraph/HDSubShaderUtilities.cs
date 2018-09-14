@@ -494,6 +494,18 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public ShaderGraphRequirements requirements;
     };
 
+    public class PassAdditionalData
+    {
+        public List<string> ExtraDefines;
+        public List<string> RequiredFields;
+
+        public PassAdditionalData()
+        {
+            ExtraDefines = new List<string>();
+            RequiredFields = new List<string>();
+        }
+    };
+
     public static class HDSubShaderUtilities
     {
         public static List<MaterialSlot> FindMaterialSlotsOnNode(IEnumerable<int> slots, AbstractMaterialNode node)
