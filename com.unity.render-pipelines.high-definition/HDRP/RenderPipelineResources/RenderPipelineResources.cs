@@ -52,6 +52,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public Shader copyDepthBuffer;
         public Shader blit;
 
+        public ComputeShader deformationAccumulateComputeShader;
+
         // Sky
         public Shader blitCubemap;
         public ComputeShader buildProbabilityTables;

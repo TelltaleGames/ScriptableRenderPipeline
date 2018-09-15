@@ -251,6 +251,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public static readonly int _NPRLightCurveTexture = Shader.PropertyToID( "_NPRLightCurveTexture" );
 
+        public static readonly int _DeformationTexture = Shader.PropertyToID( "_DeformationTexture" );
+        public static readonly int _DeformationDepthTexture = Shader.PropertyToID( "_DeformationDepthTexture" );
+        public static readonly int _DeformationWorldToTextureMatrix = Shader.PropertyToID( "_DeformationWorldToTextureMatrix" );
+        public static readonly int _DeformationMaxDepth = Shader.PropertyToID( "_DeformationMaxDepth" );
+
         public static readonly int[] _GBufferTexture =
         {
             Shader.PropertyToID("_GBufferTexture0"),

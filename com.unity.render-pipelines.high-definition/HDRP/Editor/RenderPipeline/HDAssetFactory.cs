@@ -97,6 +97,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 newAsset.copyDepthBuffer = Load<Shader>(HDRenderPipelinePath + "RenderPipelineResources/CopyDepthBuffer.shader");
                 newAsset.blit = Load<Shader>(HDRenderPipelinePath + "RenderPipelineResources/Blit.shader");
 
+                newAsset.deformationAccumulateComputeShader = Load<ComputeShader>( HDRenderPipelinePath + "Deformation/DeformationAccumulate.compute" );
+
                 // Sky
                 newAsset.blitCubemap = Load<Shader>(HDRenderPipelinePath + "Sky/BlitCubemap.shader");
                 newAsset.buildProbabilityTables = Load<ComputeShader>(HDRenderPipelinePath + "Material/GGXConvolution/BuildProbabilityTables.compute");

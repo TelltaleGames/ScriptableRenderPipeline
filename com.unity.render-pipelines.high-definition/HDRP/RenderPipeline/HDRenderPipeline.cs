@@ -68,6 +68,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         readonly DBufferManager m_DbufferManager;
         readonly SubsurfaceScatteringManager m_SSSBufferManager = new SubsurfaceScatteringManager();
         readonly NormalBufferManager m_NormalBufferManager = new NormalBufferManager();
+        readonly DeformationManager m_DeformationManager = new DeformationManager();
 
         // Renderer Bake configuration can vary depends on if shadow mask is enabled or no
         RendererConfiguration m_currentRendererConfigurationBakedLighting = HDUtils.k_RendererConfigurationBakedLighting;
@@ -274,6 +275,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             FrameSettings.RegisterDebug("Scene View", m_Asset.GetFrameSettings());
 #endif
             m_DebugScreenSpaceTracingData = new ComputeBuffer(1, System.Runtime.InteropServices.Marshal.SizeOf(typeof(ScreenSpaceTracingDebug)));
+
+            m_DeformationManager.Build( asset );
 
             InitializeRenderTextures();
 
@@ -544,6 +547,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_SkyManager.Cleanup();
             m_VolumetricLightingSystem.Cleanup();
             m_IBLFilterGGX.Cleanup();
+            m_DeformationManager.Cleanup();
 
             HDCamera.ClearAll();
 
@@ -731,6 +735,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             var isReflection = cameras.Any(c => c.cameraType == CameraType.Reflection);
             if (!isReflection)
                 ReflectionSystem.RenderAllRealtimeProbes(ReflectionProbeType.PlanarReflection);
+
+            m_DeformationManager.Update( renderContext, m_Time, m_LastTime, m_FrameCount );
 
             // We first update the state of asset frame settings as they can be use by various camera
             // but we keep the dirty state to correctly reset other camera that use RenderingPath.Default.
