@@ -290,6 +290,8 @@ Shader "HDRenderPipeline/FX/LitBurn"
     // This shader support vertex modification
     #define HAVE_VERTEX_MODIFICATION
 
+    #define TT_MATERIAL_LITBURN
+
     // Defines to force texcoord0 and texcoord1
     #define ATTRIBUTES_NEED_TEXCOORD0
     #define ATTRIBUTES_NEED_TEXCOORD1
@@ -345,7 +347,7 @@ Shader "HDRenderPipeline/FX/LitBurn"
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
             #include "../Lit/ShaderPass/LitDepthPass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/LitData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
@@ -388,7 +390,7 @@ Shader "HDRenderPipeline/FX/LitBurn"
             #endif
             #include "../../Material/Material.hlsl"
             #include "../Lit/ShaderPass/LitSharePass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/LitData.hlsl"
             #include "../../ShaderPass/ShaderPassGBuffer.hlsl"
 
             ENDHLSL
@@ -413,7 +415,7 @@ Shader "HDRenderPipeline/FX/LitBurn"
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
             #include "../Lit/ShaderPass/LitSharePass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/LitData.hlsl"
             #include "../../ShaderPass/ShaderPassLightTransport.hlsl"
 
             ENDHLSL
@@ -439,7 +441,7 @@ Shader "HDRenderPipeline/FX/LitBurn"
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
             #include "../Lit/ShaderPass/LitDepthPass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/LitData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
@@ -470,7 +472,7 @@ Shader "HDRenderPipeline/FX/LitBurn"
             #include "../Lit/ShaderPass/LitDepthPass.hlsl"
             #endif
 
-            #include "LitData.hlsl"
+            #include "../Lit/LitData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
@@ -500,7 +502,7 @@ Shader "HDRenderPipeline/FX/LitBurn"
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
             #include "../Lit/ShaderPass/LitVelocityPass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/LitData.hlsl"
             #include "../../ShaderPass/ShaderPassVelocity.hlsl"
 
             ENDHLSL
@@ -523,7 +525,7 @@ Shader "HDRenderPipeline/FX/LitBurn"
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
             #include "../Lit/ShaderPass/LitDistortionPass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/LitData.hlsl"
             #include "../../ShaderPass/ShaderPassDistortion.hlsl"
 
             ENDHLSL
@@ -545,7 +547,7 @@ Shader "HDRenderPipeline/FX/LitBurn"
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
             #include "../Lit/ShaderPass/LitDepthPass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/LitData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
@@ -580,7 +582,7 @@ Shader "HDRenderPipeline/FX/LitBurn"
             #endif
             #include "../../Lighting/Lighting.hlsl"
             #include "../Lit/ShaderPass/LitSharePass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/LitData.hlsl"
             #include "../../ShaderPass/ShaderPassForward.hlsl"
 
             ENDHLSL
@@ -628,7 +630,7 @@ Shader "HDRenderPipeline/FX/LitBurn"
             #endif
             #include "../../Lighting/Lighting.hlsl"
             #include "../Lit/ShaderPass/LitSharePass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/LitData.hlsl"
             #include "../../ShaderPass/ShaderPassForward.hlsl"
 
             ENDHLSL
@@ -650,7 +652,7 @@ Shader "HDRenderPipeline/FX/LitBurn"
             #include "../../ShaderVariables.hlsl"
             #include "../../Material/Material.hlsl"
             #include "../Lit/ShaderPass/LitDepthPass.hlsl"
-            #include "LitData.hlsl"
+            #include "../Lit/LitData.hlsl"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL

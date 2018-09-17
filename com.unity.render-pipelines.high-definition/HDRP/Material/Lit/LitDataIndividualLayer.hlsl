@@ -179,11 +179,18 @@ float3 ADD_IDX(GetBentNormalTS)(FragInputs input, LayerTexCoord layerTexCoord, f
 // Return opacity
 float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out SurfaceData surfaceData, out float3 normalTS, out float3 bentNormalTS, float extDetailMask = 1.0)
 {
+#ifdef TT_MATERIAL_LITBURN
+    float alpha = SAMPLE_TEXTURE2D(_BurnThresholdMap,sampler_BurnThresholdMap, input.texCoord1.xy).b;
+#else
     float alpha = SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_BaseColorMap), ADD_ZERO_IDX(sampler_BaseColorMap), ADD_IDX(layerTexCoord.base)).a * ADD_IDX(_BaseColor).a;
-
+#endif
     // Perform alha test very early to save performance (a killed pixel will not sample textures)
 #if defined(_ALPHATEST_ON) && !defined(LAYERED_LIT_SHADER)
+    #ifdef TT_MATERIAL_LITBURN
+    float alphaCutoff = _BurnThreshold;
+    #else
     float alphaCutoff = _AlphaCutoff;
+    #endif
     #ifdef CUTOFF_TRANSPARENT_DEPTH_PREPASS
     alphaCutoff = _AlphaCutoffPrepass;
     #elif defined(CUTOFF_TRANSPARENT_DEPTH_POSTPASS)

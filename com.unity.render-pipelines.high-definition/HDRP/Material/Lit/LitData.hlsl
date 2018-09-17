@@ -25,6 +25,9 @@ struct LayerTexCoord
 #ifndef LAYERED_LIT_SHADER
     UVMapping base;
     UVMapping details;
+    #ifdef TT_MATERIAL_LITBURN
+    UVMapping burn;
+    #endif    
 #else
     // Regular texcoord
     UVMapping base0;
