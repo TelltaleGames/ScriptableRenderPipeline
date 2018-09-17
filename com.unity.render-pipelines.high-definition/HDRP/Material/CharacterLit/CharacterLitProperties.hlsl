@@ -213,6 +213,14 @@ float _DownwindWeight;
 
 int _LightGroupIndex;
 
+// Wetness
+float _WetnessEnable;
+float _WetnessUpward;
+float _WetnessGlobal;
+float _WetnessSmoothness;
+float _WetnessDiffuseScale;
+float _WetnessDiffusePredarken;
+
 // Specular AA
 float _EnableGeometricSpecularAA;
 float _SpecularAAScreenSpaceVariance;
