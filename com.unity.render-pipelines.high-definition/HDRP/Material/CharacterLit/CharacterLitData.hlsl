@@ -341,6 +341,16 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     surfaceData.perceptualSmoothness = GeometricNormalFiltering(surfaceData.perceptualSmoothness, input.worldToTangent[2], _SpecularAAScreenSpaceVariance, _SpecularAAThreshold);
 #endif
 
+    float wetness = 0;
+    if(_WetnessEnable > 0)
+    {
+        wetness = surfaceData.normalWS.y * 0.5 + 0.5;
+        wetness = _WetnessUpward * wetness * wetness;
+        wetness = lerp(wetness, 1.0, _WetnessGlobal);
+        surfaceData.perceptualSmoothness = lerp(surfaceData.perceptualSmoothness, _WetnessSmoothness, wetness);
+        surfaceData.baseColor.rgb = lerp(surfaceData.baseColor.rgb, surfaceData.baseColor.rgb*_WetnessDiffuseScale, saturate(wetness+_WetnessDiffusePredarken));
+    }
+
     // Caution: surfaceData must be fully initialize before calling GetBuiltinData
     GetBuiltinData(input, surfaceData, alpha, bentNormalWS, depthOffset, builtinData);
 }

@@ -120,6 +120,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent hairShiftPrimaryText = new GUIContent("Primary Shift", "Shift Highlight along tangent direction");
             public static GUIContent hairShiftSecondaryText = new GUIContent("Secondary Shift", "Shift Highlight along tangent direction");
 
+            // Wetness
+            public static GUIContent wetnessEnableText = new GUIContent("Enable", "Darken Diffuse and increase smoothness both globally and for upward-facing surfaces");
+            public static GUIContent wetnessUpwardText = new GUIContent("Upward Facing", "Surfaces facing in positive Y direction will be more wet");
+            public static GUIContent wetnessGlobalText = new GUIContent("Global", "All directions will be more wet");
+            public static GUIContent wetnessSmoothnessText = new GUIContent("Smoothness", "Specular Smoothness of wet region");
+            public static GUIContent wetnessDiffuseScaleText = new GUIContent("Diffuse Scale", "Amount to scale diffuse in wet regions - Lower for absorbent materials like fabric");
+            public static GUIContent wetnessDiffusePredarkenText = new GUIContent("Diffuse Darkening Shift", "Created a darkening region before specular is increased - use on fabric");
+
             // Clear Coat
             public static GUIContent coatMaskText = new GUIContent("Coat Mask", "Attenuate the coating effect (similar to change to IOR of 1");
 
@@ -438,6 +446,20 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected MaterialProperty hairShiftSecondary = null;
         protected const string kHairShiftSecondary = "_HairShiftSecondary";
 
+        // wetness params
+        protected MaterialProperty wetnessEnable = null;
+        protected const string kWetnessEnable = "_WetnessEnable";
+        protected MaterialProperty wetnessUpward = null;
+        protected const string kWetnessUpward = "_WetnessUpward";
+        protected MaterialProperty wetnessGlobal = null;
+        protected const string kWetnessGlobal = "_WetnessGlobal";
+        protected MaterialProperty wetnessSmoothness = null;
+        protected const string kWetnessSmoothness = "_WetnessSmoothness";
+        protected MaterialProperty wetnessDiffuseScale = null;
+        protected const string kWetnessDiffuseScale = "_WetnessDiffuseScale";
+        protected MaterialProperty wetnessDiffusePredarken = null;
+        protected const string kWetnessDiffusePredarken = "_WetnessDiffusePredarken";
+
         protected MaterialProperty enableSpecularOcclusion = null;
         protected const string kEnableSpecularOcclusion = "_EnableSpecularOcclusion";
 
@@ -572,6 +594,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             hairShiftSecondary = FindProperty(kHairShiftSecondary, props);
         }
 
+        protected void FindMaterialWetnessProperties(MaterialProperty[] props)
+        {
+            wetnessEnable = FindProperty(kWetnessEnable, props);
+            wetnessUpward = FindProperty(kWetnessUpward, props);
+            wetnessGlobal = FindProperty(kWetnessGlobal, props);
+            wetnessSmoothness = FindProperty(kWetnessSmoothness, props);
+            wetnessDiffuseScale = FindProperty(kWetnessDiffuseScale, props);
+            wetnessDiffusePredarken = FindProperty(kWetnessDiffusePredarken, props);
+        }
+
         protected void FindMaterialEmissiveProperties(MaterialProperty[] props)
         {
             emissiveColorMode = FindProperty(kEmissiveColorMode, props);
@@ -591,6 +623,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             FindMaterialLayerProperties(props);
             FindMaterialEmissiveProperties(props);
             FindMaterialHairProperties(props);
+            FindMaterialWetnessProperties(props);
             FindMaterialDecalProperties(props);
             FindMaterialGrimeProperties(props);
 
@@ -1241,6 +1274,26 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         }
 
 
+        protected void DoWetnessGUI(Material material)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Wetness", EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+
+            m_MaterialEditor.ShaderProperty(wetnessEnable, Styles.wetnessEnableText);
+
+            if (wetnessEnable.floatValue > 0.0f)
+            {
+                m_MaterialEditor.ShaderProperty(wetnessUpward, Styles.wetnessUpwardText);
+                m_MaterialEditor.ShaderProperty(wetnessGlobal, Styles.wetnessGlobalText);
+                m_MaterialEditor.ShaderProperty(wetnessSmoothness, Styles.wetnessSmoothnessText);
+                m_MaterialEditor.ShaderProperty(wetnessDiffuseScale, Styles.wetnessDiffuseScaleText);
+                m_MaterialEditor.ShaderProperty(wetnessDiffusePredarken, Styles.wetnessDiffusePredarkenText);
+            }
+
+            EditorGUI.indentLevel--;
+        }
+
         protected void DoEmissiveGUI(Material material)
         {
             EditorGUILayout.Space();
@@ -1286,11 +1339,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             if((BaseCharacterLitGUI.MaterialId)materialID.floatValue == BaseCharacterLitGUI.MaterialId.LitHair)
             {
                 ShaderHairInputGUI(material);
+                DoWetnessGUI(material);
             } else { // NOTE: move any of these outside of the else{} block if they are wanted in the hair material
                 DoEmissiveGUI(material);
                 DoAsperityGUI(material);
                 DoDecalGUI(material);
                 DoGrimeGUI(material);
+                DoWetnessGUI(material);
             }
             // The parent Base.ShaderPropertiesGUI will call DoEmissionArea
         }

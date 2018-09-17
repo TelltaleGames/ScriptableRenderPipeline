@@ -246,6 +246,14 @@ Shader "HDRenderPipeline/CharacterLit"
         _ShiverDirectionality("Shiver Directionality", Range(0.0, 1.0)) = 0.5
         _DownwindWeight("Downwind Weight", Range(0.0, 1.0)) = 0.0
 
+        // Wetness
+        [ToggleUI] _WetnessEnable("Enable Wetness", Float) = 0.0
+        _WetnessUpward("Wetness Upward", Float) = 1.0
+        _WetnessGlobal("Wetness Global", Float) = 0.1
+        _WetnessSmoothness("Wetness Smoothness", Range(0.0,1.0)) = 0.9
+        _WetnessDiffuseScale("Wetness Diffuse Scale", Range(0.0,1.0)) = 0.25
+        _WetnessDiffusePredarken("Wetness Diffuse Predarken", Float) = 0.5
+
         // Caution: C# code in BaseLitUI.cs call LightmapEmissionFlagsProperty() which assume that there is an existing "_EmissionColor"
         // value that exist to identify if the GI emission need to be enabled.
         // In our case we don't use such a mechanism but need to keep the code quiet. We declare the value and always enable it.
