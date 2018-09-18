@@ -50,6 +50,8 @@ Shader "HDRenderPipeline/LitTessellation"
         // These parameters are for pixel displacement
         _HeightPoMAmplitude("Height Amplitude", Float) = 2.0 // In centimeters
 
+        [ToggleUI]  _EnableGlobalDeformation( "Enable Global Deformation", Float ) = 0.0
+
         _DetailMap("DetailMap", 2D) = "black" {}
         _DetailAlbedoScale("_DetailAlbedoScale", Range(0.0, 2.0)) = 1
         _DetailNormalScale("_DetailNormalScale", Range(0.0, 2.0)) = 1
@@ -249,6 +251,7 @@ Shader "HDRenderPipeline/LitTessellation"
     #pragma shader_feature _DISPLACEMENT_LOCK_TILING_SCALE
     #pragma shader_feature _PIXEL_DISPLACEMENT_LOCK_OBJECT_SCALE
     #pragma shader_feature _VERTEX_WIND
+    #pragma shader_feature _GLOBAL_DEFORMATION_HEIGHTMAP
     #pragma shader_feature _ _TESSELLATION_PHONG
     #pragma shader_feature _ _REFRACTION_PLANE _REFRACTION_SPHERE
     #pragma shader_feature _ _REFRACTION_SSRAY_PROXY _REFRACTION_SSRAY_HIZ

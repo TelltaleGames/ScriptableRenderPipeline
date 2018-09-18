@@ -11,6 +11,34 @@ float3 GetVertexDisplacement(float3 positionWS, float3 normalWS, float2 texCoord
     return ComputePerVertexDisplacement(layerTexCoord, vertexColor, lod) * normalWS;
 }
 
+#if defined( _GLOBAL_DEFORMATION_HEIGHTMAP )
+
+TEXTURE2D( _DeformationTexture );
+
+CBUFFER_START( DeformationParameters )
+float4x4 _DeformationWorldToTextureMatrix;
+float _DeformationMaxDepth;
+CBUFFER_END
+
+//
+void ApplyGlobalDeformation( inout float3 positionWS )
+{
+    float3 absolutePositionWS = GetAbsolutePositionWS( positionWS );
+    float4 deformationUV = mul( _DeformationWorldToTextureMatrix, float4( absolutePositionWS, 1.0f ) );
+    if( min( deformationUV.x, min( deformationUV.y, deformationUV.z ) ) >= 0.0f &&
+        max( deformationUV.x, max( deformationUV.y, deformationUV.z ) ) <= 1.0f )
+    {
+        float deformedDepth = SAMPLE_TEXTURE2D_LOD( _DeformationTexture, s_linear_clamp_sampler, deformationUV.xy, 0.0f ).r;
+        if( deformedDepth != 0.0f )
+        {
+            absolutePositionWS.y = min( _DeformationMaxDepth - deformedDepth, absolutePositionWS.y );
+            positionWS = GetCameraRelativePositionWS( absolutePositionWS );
+        }
+    }
+}
+
+#endif // _GLOBAL_DEFORMATION_HEIGHTMAP
+
 void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3 positionWS, float4 time)
 {
 #if defined(_VERTEX_DISPLACEMENT)
@@ -52,6 +80,10 @@ void ApplyVertexModification(AttributesMesh input, float3 normalWS, inout float3
     ApplyWindDisplacement(positionWS, normalWS, rootWP, _Stiffness, _Drag, _ShiverDrag, _ShiverDirectionality, _InitialBend, input.uv2.x, time);
 #endif
 #endif
+
+#if defined( _GLOBAL_DEFORMATION_HEIGHTMAP ) && !defined( TESSELLATION_ON )
+    ApplyGlobalDeformation( positionWS );
+#endif // _GLOBAL_DEFORMATION_HEIGHTMAP
 }
 
 #ifdef TESSELLATION_ON
@@ -130,13 +162,6 @@ float4 GetTessellationFactors(float3 p0, float3 p1, float3 p2, float3 n0, float3
     return CalcTriTessFactorsFromEdgeTessFactors(edgeTessFactors);
 }
 
-TEXTURE2D( _DeformationTexture );
-
-CBUFFER_START( DeformationParameters )
-float4x4 _DeformationWorldToTextureMatrix;
-float _DeformationMaxDepth;
-CBUFFER_END
-
 // tessellationFactors
 // x - 1->2 edge
 // y - 2->0 edge
@@ -175,18 +200,9 @@ void ApplyTessellationModification(VaryingsMeshToDS input, float3 normalWS, inou
         );
 #endif // _TESSELLATION_DISPLACEMENT
 
-    float3 absolutePositionWS = GetAbsolutePositionWS( positionWS );
-    float4 deformationUV = mul( _DeformationWorldToTextureMatrix, float4( absolutePositionWS, 1.0f ) );
-    if( min( deformationUV.x, min( deformationUV.y, deformationUV.z ) ) >= 0.0f &&
-        max( deformationUV.x, max( deformationUV.y, deformationUV.z ) ) <= 1.0f )
-    {
-        float deformedDepth = SAMPLE_TEXTURE2D_LOD( _DeformationTexture, s_linear_clamp_sampler, deformationUV.xy, 0.0f ).r;
-        if( deformedDepth != 0.0f )
-        {
-            absolutePositionWS.y = min( _DeformationMaxDepth - deformedDepth, absolutePositionWS.y );
-            positionWS = GetCameraRelativePositionWS( absolutePositionWS );
-        }
-    }
+#if defined( _GLOBAL_DEFORMATION_HEIGHTMAP )
+    ApplyGlobalDeformation( positionWS );
+#endif // _GLOBAL_DEFORMATION_HEIGHTMAP
 }
 
 #endif // #ifdef TESSELLATION_ON

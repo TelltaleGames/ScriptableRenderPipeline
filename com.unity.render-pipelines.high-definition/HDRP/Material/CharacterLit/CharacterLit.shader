@@ -88,6 +88,8 @@ Shader "HDRenderPipeline/CharacterLit"
         // These parameters are for pixel displacement
         _HeightPoMAmplitude("Height Amplitude", Float) = 2.0 // In centimeters
 
+        [ToggleUI]  _EnableGlobalDeformation( "Enable Global Deformation", Float ) = 0.0
+
         _DetailMap("DetailMap", 2D) = "black" {}
         _DetailAlbedoScale("_DetailAlbedoScale", Range(0.0, 2.0)) = 1
         _DetailNormalScale("_DetailNormalScale", Range(0.0, 2.0)) = 1

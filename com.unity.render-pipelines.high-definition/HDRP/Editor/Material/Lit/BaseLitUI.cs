@@ -19,6 +19,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             // Displacement mapping (POM, tessellation, per vertex)
             //public static GUIContent enablePerPixelDisplacementText = new GUIContent("Enable Per Pixel Displacement", "");
 
+            public static GUIContent enableGlobalDeformationText = new GUIContent( "Enable Global Deformation", "Deform object based on global heightmap, used for snow/sand footprints, etc." );
+
             public static GUIContent displacementModeText = new GUIContent("Displacement mode", "Apply heightmap displacement to the selected element: Vertex, pixel or tessellated vertex. Pixel displacement must be use with flat surfaces, it is an expensive features and typical usage is paved road.");
             public static GUIContent lockWithObjectScaleText = new GUIContent("Lock with object scale", "Displacement mapping will take the absolute value of the scale of the object into account.");
             public static GUIContent lockWithTilingRateText = new GUIContent("Lock with height map tiling rate", "Displacement mapping will take the absolute value of the tiling rate of the height map into account.");
@@ -196,6 +198,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected MaterialProperty tessellationBackFaceCullEpsilon = null;
         protected const string kTessellationBackFaceCullEpsilon = "_TessellationBackFaceCullEpsilon";
 
+        protected MaterialProperty enableGlobalDeformation = null;
+        protected const string kEnableGlobalDeformation = "_EnableGlobalDeformation";
+
         // Decal
         protected MaterialProperty supportDBuffer = null;
         protected const string kSupportDBuffer = "_SupportDBuffer";
@@ -257,6 +262,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             tessellationFactorTriangleSize = FindProperty(kTessellationFactorTriangleSize, props, false);
             tessellationShapeFactor = FindProperty(kTessellationShapeFactor, props, false);
             tessellationBackFaceCullEpsilon = FindProperty(kTessellationBackFaceCullEpsilon, props, false);
+
+            //
+            enableGlobalDeformation = FindProperty( kEnableGlobalDeformation, props, false );
 
             // Wind
             windEnable = FindProperty(kWindEnabled, props);
@@ -347,6 +355,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
 
             m_MaterialEditor.ShaderProperty(enableMotionVectorForVertexAnimation, StylesBaseUnlit.enableMotionVectorForVertexAnimationText);
+
+            m_MaterialEditor.ShaderProperty( enableGlobalDeformation, StylesBaseLit.enableGlobalDeformationText );
 
             EditorGUI.BeginChangeCheck();
             m_MaterialEditor.ShaderProperty(displacementMode, StylesBaseLit.displacementModeText);
@@ -507,6 +517,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             bool nprEnabled = material.GetFloat( kNPREnable ) > 0.0f;
             CoreUtils.SetKeyword( material, "_ENABLE_NPR", nprEnabled );
+
+            bool globalDeformationEnabled = material.GetFloat( kEnableGlobalDeformation ) > 0.0f;
+            CoreUtils.SetKeyword( material, "_GLOBAL_DEFORMATION_HEIGHTMAP", globalDeformationEnabled );
 
             // Depth offset is only enabled if per pixel displacement is
             bool depthOffsetEnable = (material.GetFloat(kDepthOffsetEnable) > 0.0f) && enablePixelDisplacement;
