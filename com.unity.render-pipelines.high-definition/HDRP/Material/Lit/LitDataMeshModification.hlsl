@@ -17,7 +17,7 @@ TEXTURE2D( _DeformationTexture );
 
 CBUFFER_START( DeformationParameters )
 float4x4 _DeformationWorldToTextureMatrix;
-float _DeformationMaxDepth;
+float4 _DeformationParams;
 CBUFFER_END
 
 //
@@ -28,10 +28,10 @@ void ApplyGlobalDeformation( inout float3 positionWS )
     if( min( deformationUV.x, min( deformationUV.y, deformationUV.z ) ) >= 0.0f &&
         max( deformationUV.x, max( deformationUV.y, deformationUV.z ) ) <= 1.0f )
     {
-        float deformedDepth = SAMPLE_TEXTURE2D_LOD( _DeformationTexture, s_linear_clamp_sampler, deformationUV.xy, 0.0f ).r;
+        float deformedDepth = SAMPLE_TEXTURE2D_LOD( _DeformationTexture, s_linear_repeat_sampler, deformationUV.xy + _DeformationParams.xy, 0.0f ).r;
         if( deformedDepth != 0.0f )
         {
-            absolutePositionWS.y = min( _DeformationMaxDepth - deformedDepth, absolutePositionWS.y );
+            absolutePositionWS.y = min( _DeformationParams.z - deformedDepth, absolutePositionWS.y );
             positionWS = GetCameraRelativePositionWS( absolutePositionWS );
         }
     }

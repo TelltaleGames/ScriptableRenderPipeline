@@ -16,26 +16,21 @@ RW_TEXTURE2D( float, _DeformationTexture );
 
 CBUFFER_START( DeformationParameters )
 float4x4 _DeformationWorldToTextureMatrix;
-float _DeformationMaxDepth;
-int2 _DeformationTexelOffset;
+float4 _DeformationParams;
+int3 _DeformationTexelParams;
 CBUFFER_END
 
 [numthreads( 16, 16, 1 )]
 void DeformationAccumulate( uint2 id : SV_DispatchThreadID )
 {
-    float rawAccumulateDepth = LOAD_TEXTURE2D( _DeformationDepthTexture, id ).x;
-    int2 srcTexelLocation = id + _DeformationTexelOffset;
+    int2 srcTexelLocation = ( id + _DeformationTexelParams.xy ) & _DeformationTexelParams.z;
+    float rawAccumulateDepth = LOAD_TEXTURE2D( _DeformationDepthTexture, srcTexelLocation ).x;
 
-    if( srcTexelLocation.x < 0 ) srcTexelLocation.x += 1024;
-    else if( srcTexelLocation.x >= 1024 ) srcTexelLocation.x -= 1024;
-    if( srcTexelLocation.y < 0 ) srcTexelLocation.y += 1024;
-    else if( srcTexelLocation.y >= 1024 ) srcTexelLocation.y -= 1024;
-
-    float currentDepthValue = _DeformationTexture[srcTexelLocation];
+    float currentDepthValue = _DeformationTexture[id];
 
     if( rawAccumulateDepth != 0.0f )
     {
-        float deformedDepth = rawAccumulateDepth * _DeformationMaxDepth;
+        float deformedDepth = rawAccumulateDepth * _DeformationParams.z;
         currentDepthValue = max( currentDepthValue, deformedDepth );
     }
     else

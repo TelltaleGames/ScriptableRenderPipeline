@@ -254,8 +254,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static readonly int _DeformationTexture = Shader.PropertyToID( "_DeformationTexture" );
         public static readonly int _DeformationDepthTexture = Shader.PropertyToID( "_DeformationDepthTexture" );
         public static readonly int _DeformationWorldToTextureMatrix = Shader.PropertyToID( "_DeformationWorldToTextureMatrix" );
-        public static readonly int _DeformationTexelOffset = Shader.PropertyToID( "_DeformationTexelOffset" );
-        public static readonly int _DeformationMaxDepth = Shader.PropertyToID( "_DeformationMaxDepth" );
+        public static readonly int _DeformationTexelParams = Shader.PropertyToID( "_DeformationTexelParams" );
+        public static readonly int _DeformationParams = Shader.PropertyToID( "_DeformationParams" );
 
         public static readonly int[] _GBufferTexture =
         {

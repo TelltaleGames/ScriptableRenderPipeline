@@ -50,14 +50,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             Vector3 worldToTexelScale = new Vector3( -0.5f * kTextureSize * projScale.y, 1.0f, 0.5f * kTextureSize * projScale.x );
             Vector3 cameraWorldPosition = cameraTransform.position;
             Vector3 cameraTexelPosition = Vector3.Scale( cameraWorldPosition, worldToTexelScale );
-            cameraTexelPosition.x = Mathf.Round( cameraTexelPosition.x );
-            cameraTexelPosition.z = Mathf.Round( cameraTexelPosition.z );
-            Vector3 deltaTexelPosition = cameraTexelPosition - mPrevCameraPosition;
+            cameraTexelPosition.x = Mathf.Floor( cameraTexelPosition.x );
+            cameraTexelPosition.z = Mathf.Floor( cameraTexelPosition.z );
             cameraWorldPosition.x = ( cameraTexelPosition.x + 0.5f ) / worldToTexelScale.x;
             cameraWorldPosition.z = ( cameraTexelPosition.z + 0.5f ) / worldToTexelScale.z;
-
             cameraTransform.position = cameraWorldPosition;
-            mPrevCameraPosition = cameraTexelPosition;
 
             root.DeltaTexelPosition = cameraTexelPosition;
 
@@ -94,6 +91,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             renderContext.DrawRenderers( cullResults.visibleRenderers, ref rendererSettings, filterSettings );
 
             //
+            int cameraTexelPositionU = (int)cameraTexelPosition.z & ( kTextureSize - 1 );
+            int cameraTexelPositionV = (int)cameraTexelPosition.x & ( kTextureSize - 1 );
+            float cameraOffsetU = ( cameraTexelPositionU + 0.5f ) / kTextureSize;
+            float cameraOffsetV = ( cameraTexelPositionV + 0.5f ) / kTextureSize;
             Matrix4x4 projToTexture = Matrix4x4.TRS( new Vector3( 0.5f, 0.5f, 0.0f ), Quaternion.identity, new Vector3( 0.5f, -0.5f, 1.0f ) );
             Matrix4x4 worldToTexture = projToTexture * hdCamera.viewProjMatrix;
             if( ShaderConfig.s_CameraRelativeRendering != 0 )
@@ -103,15 +104,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             cmd.SetGlobalTexture( HDShaderIDs._DeformationTexture, mDeformationTarget );
             cmd.SetGlobalMatrix( HDShaderIDs._DeformationWorldToTextureMatrix, worldToTexture );
-            cmd.SetGlobalFloat( HDShaderIDs._DeformationMaxDepth, hdCamera.camera.farClipPlane );
+            cmd.SetGlobalVector( HDShaderIDs._DeformationParams, new Vector4( -cameraOffsetU, -cameraOffsetV, hdCamera.camera.farClipPlane, 0.0f ) );
 
-            int tileSize = 16; // Must match TelltaleContactShadow.compute
-            int numTilesX = ( kTextureSize + tileSize - 1 ) / tileSize;
-            int numTilesY = ( kTextureSize + tileSize - 1 ) / tileSize;
+            //Vector3 deltaTexelPosition = cameraTexelPosition - mPrevCameraTexelPosition;
+            //mPrevCameraTexelPosition = cameraTexelPosition;
 
             cmd.SetComputeIntParams( mResources.deformationAccumulateComputeShader,
-                HDShaderIDs._DeformationTexelOffset,
-                -(int)deltaTexelPosition.z, -(int)deltaTexelPosition.x );
+                HDShaderIDs._DeformationTexelParams,
+                cameraTexelPositionU, cameraTexelPositionV, kTextureSize - 1 );
 
             cmd.SetComputeTextureParam( mResources.deformationAccumulateComputeShader,
                 mDeformationAccumulateKernel,
@@ -121,6 +121,16 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 mDeformationAccumulateKernel,
                 HDShaderIDs._DeformationTexture,
                 mDeformationTarget );
+
+            uint tileSizeX = 0u;
+            uint tileSizeY = 0u;
+            uint tileSizeZ = 0u;
+            mResources.deformationAccumulateComputeShader.GetKernelThreadGroupSizes( mDeformationAccumulateKernel,
+                out tileSizeX, out tileSizeY, out tileSizeZ );
+
+            int numTilesX = ( kTextureSize + (int)tileSizeX - 1 ) / (int)tileSizeX;
+            int numTilesY = ( kTextureSize + (int)tileSizeY - 1 ) / (int)tileSizeY;
+
             cmd.DispatchCompute( mResources.deformationAccumulateComputeShader, mDeformationAccumulateKernel, numTilesX, numTilesY, 1 );
         }
 
@@ -129,6 +139,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         
         private RTHandleSystem.RTHandle mDeformationDepth;
         private RTHandleSystem.RTHandle mDeformationTarget;
-        private Vector3 mPrevCameraPosition;
+        //private Vector3 mPrevCameraTexelPosition;
     }
 }
