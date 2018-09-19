@@ -1,5 +1,9 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel DeformationAccumulate
+#pragma kernel DeformationAccumulate_Reset
+
+#define kNumThreads 16
+#define kMaxDepth 1000.0f
 
 #ifdef SHADER_API_PSSL
 #   pragma argument( scheduler=minpressure ) // instruct the shader compiler to prefer minimizing vgpr usage
@@ -14,29 +18,44 @@
 TEXTURE2D( _DeformationDepthTexture );
 RW_TEXTURE2D( float, _DeformationTexture );
 
-CBUFFER_START( DeformationParameters )
-float4x4 _DeformationWorldToTextureMatrix;
-float4 _DeformationParams;
+CBUFFER_START( DeformationComputeParameters )
+float4 _DeformationDepthParams;
 int3 _DeformationTexelParams;
 CBUFFER_END
 
-[numthreads( 16, 16, 1 )]
+//
+[numthreads( kNumThreads, kNumThreads, 1 )]
 void DeformationAccumulate( uint2 id : SV_DispatchThreadID )
 {
     int2 srcTexelLocation = ( id + _DeformationTexelParams.xy ) & _DeformationTexelParams.z;
-    float rawAccumulateDepth = LOAD_TEXTURE2D( _DeformationDepthTexture, srcTexelLocation ).x;
+    float normalizedDeformedDepth = LOAD_TEXTURE2D( _DeformationDepthTexture, srcTexelLocation ).x;
 
     float currentDepthValue = _DeformationTexture[id];
-
-    if( rawAccumulateDepth != 0.0f )
+    if( normalizedDeformedDepth != 0.0f )
     {
-        float deformedDepth = rawAccumulateDepth * _DeformationParams.z;
-        currentDepthValue = max( currentDepthValue, deformedDepth );
+        float deformedDepth = normalizedDeformedDepth * _DeformationDepthParams.x + _DeformationDepthParams.y;
+        currentDepthValue = min( currentDepthValue, deformedDepth );
     }
     else
     {
-        //currentDepthValue = max( currentDepthValue - 0.0005f, 0.0f );
+        currentDepthValue = min( currentDepthValue + _DeformationDepthParams.z, kMaxDepth );
     }
 
+    _DeformationTexture[id] = currentDepthValue;
+}
+
+//
+[numthreads( kNumThreads, kNumThreads, 1 )]
+void DeformationAccumulate_Reset( uint2 id : SV_DispatchThreadID )
+{
+    int2 srcTexelLocation = ( id + _DeformationTexelParams.xy ) & _DeformationTexelParams.z;
+    float normalizedDeformedDepth = LOAD_TEXTURE2D( _DeformationDepthTexture, srcTexelLocation ).x;
+
+    float currentDepthValue = kMaxDepth;
+    if( normalizedDeformedDepth != 0.0f )
+    {
+        currentDepthValue = normalizedDeformedDepth * _DeformationDepthParams.x + _DeformationDepthParams.y;
+    }
+    
     _DeformationTexture[id] = currentDepthValue;
 }

@@ -9,7 +9,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static DeformationRoot Instance = null;
         public FrameSettings FrameSettings = new FrameSettings();
 
-        public Vector3 DeltaTexelPosition;
+        public float DeformationHeight = 10.0f;
+        public float DeformationFillRate = 0.01f;
 
         public HDCamera GetRenderCamera()
         {
@@ -19,6 +20,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 if( cameraTransform == null )
                 {
                     GameObject cameraObject = new GameObject( "__Deformation Camera" );
+                    cameraObject.hideFlags = HideFlags.HideAndDontSave;
                     cameraTransform = cameraObject.transform;
                     cameraTransform.parent = transform;
                 }
@@ -28,8 +30,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     camera = cameraTransform.gameObject.AddComponent<Camera>();
 
                 camera.enabled = false;
-                camera.farClipPlane = 10.0f;
-                camera.nearClipPlane = 0.001f;
+                camera.nearClipPlane = 0.0f;
                 camera.orthographic = true;
                 camera.orthographicSize = 16.0f;
                 camera.aspect = 1.0f;
@@ -45,6 +46,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 mHDRenderCamera.Update( FrameSettings, null, null );
             }
 
+            mHDRenderCamera.camera.farClipPlane = DeformationHeight;
             return mHDRenderCamera;
         }
 

@@ -29,11 +29,8 @@ void ApplyGlobalDeformation( inout float3 positionWS )
         max( deformationUV.x, max( deformationUV.y, deformationUV.z ) ) <= 1.0f )
     {
         float deformedDepth = SAMPLE_TEXTURE2D_LOD( _DeformationTexture, s_linear_repeat_sampler, deformationUV.xy + _DeformationParams.xy, 0.0f ).r;
-        if( deformedDepth != 0.0f )
-        {
-            absolutePositionWS.y = min( _DeformationParams.z - deformedDepth, absolutePositionWS.y );
-            positionWS = GetCameraRelativePositionWS( absolutePositionWS );
-        }
+        absolutePositionWS.y = min( deformedDepth, absolutePositionWS.y );
+        positionWS = GetCameraRelativePositionWS( absolutePositionWS );
     }
 }
 
