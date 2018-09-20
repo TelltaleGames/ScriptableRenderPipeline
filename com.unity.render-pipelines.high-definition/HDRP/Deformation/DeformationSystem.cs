@@ -97,6 +97,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 renderQueueRange = HDRenderQueue.k_RenderQueue_AllOpaque,
             };
+            filterSettings.renderingLayerMask = (uint)RenderingLayer.Deformation;
 
             renderContext.DrawRenderers( cullResults.visibleRenderers, ref rendererSettings, filterSettings );
 
