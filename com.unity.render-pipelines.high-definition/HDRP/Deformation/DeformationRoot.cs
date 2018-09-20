@@ -11,9 +11,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public float DeformationHeight = 10.0f;
         public float DeformationFillRate = 0.01f;
+        public float DeformationExtent = 16.0f;
 
-        public HDCamera GetRenderCamera()
+        public HDCamera HDCamera { get { return mHDRenderCamera; } }
+
+        public bool UpdateCamera()
         {
+            bool bDirty = false;
             if( mHDRenderCamera == null )
             {
                 Transform cameraTransform = gameObject.transform.Find( "__Deformation Camera" );
@@ -32,7 +36,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 camera.enabled = false;
                 camera.nearClipPlane = 0.0f;
                 camera.orthographic = true;
-                camera.orthographicSize = 16.0f;
                 camera.aspect = 1.0f;
 
                 // We need to setup cameraType before adding additional camera
@@ -44,10 +47,21 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 mHDRenderCamera = new HDCamera( camera );
                 mHDRenderCamera.Update( FrameSettings, null, null );
+                bDirty = true;
             }
 
-            mHDRenderCamera.camera.farClipPlane = DeformationHeight;
-            return mHDRenderCamera;
+            if( mHDRenderCamera.camera.orthographicSize != DeformationExtent )
+            {
+                mHDRenderCamera.camera.orthographicSize = DeformationExtent;
+                bDirty = true;
+            }
+            if( mHDRenderCamera.camera.farClipPlane != DeformationHeight )
+            {
+                mHDRenderCamera.camera.farClipPlane = DeformationHeight;
+                bDirty = true;
+            }
+
+            return bDirty;
         }
 
         void Awake()

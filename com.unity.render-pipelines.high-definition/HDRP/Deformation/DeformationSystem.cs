@@ -43,7 +43,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 }
             }
 
-            int kernel = mbResetTarget ? mDeformationAccumulateKernel_Reset : mDeformationAccumulateKernel;
+            bool bCameraDirty = root.UpdateCamera();
+            int kernel = ( mbResetTarget || bCameraDirty ) ? mDeformationAccumulateKernel_Reset : mDeformationAccumulateKernel;
             if( kernel < 0 )
             {
                 return;
@@ -52,7 +53,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             float dt = Mathf.Max( time - lastTime, 0.0f );
 
             //
-            HDCamera hdCamera = root.GetRenderCamera();
+            HDCamera hdCamera = root.HDCamera;
             Quaternion cameraRotation = Quaternion.LookRotation( Vector3.up, Vector3.right );
             Transform cameraTransform = hdCamera.camera.transform;
             cameraTransform.localPosition = Vector3.zero;
