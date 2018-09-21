@@ -10,9 +10,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             mResources = hdAsset.renderPipelineResources;
             mDeformationDepth = RTHandles.Alloc( kTextureSize, kTextureSize, depthBufferBits: DepthBits.Depth24, colorFormat: RenderTextureFormat.Depth );
+            mDeformationTemp = RTHandles.Alloc( kTextureSize, kTextureSize, colorFormat: RenderTextureFormat.RFloat, enableRandomWrite: true );
             mDeformationTarget = RTHandles.Alloc( kTextureSize, kTextureSize, colorFormat: RenderTextureFormat.RFloat, enableRandomWrite: true );
             mDeformationAccumulateKernel = -1;
             mDeformationAccumulateKernel_Reset = -1;
+            mDeformationAccumulateKernel_Blur = -1;
             mbResetTarget = true;
         }
 
@@ -20,6 +22,29 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             RTHandles.Release( mDeformationDepth );
             RTHandles.Release( mDeformationTarget );
+        }
+
+        private void SubmitComputePass( CommandBuffer cmd, int kernel, RenderTargetIdentifier inputTarget, RenderTargetIdentifier outputTarget )
+        {
+            cmd.SetComputeTextureParam( mResources.deformationAccumulateComputeShader,
+                kernel,
+                HDShaderIDs._DeformationInputTexture,
+                inputTarget );
+            cmd.SetComputeTextureParam( mResources.deformationAccumulateComputeShader,
+                kernel,
+                HDShaderIDs._DeformationOutputTexture,
+                outputTarget );
+
+            uint tileSizeX = 0u;
+            uint tileSizeY = 0u;
+            uint tileSizeZ = 0u;
+            mResources.deformationAccumulateComputeShader.GetKernelThreadGroupSizes( kernel,
+                out tileSizeX, out tileSizeY, out tileSizeZ );
+
+            int numTilesX = ( kTextureSize + (int)tileSizeX - 1 ) / (int)tileSizeX;
+            int numTilesY = ( kTextureSize + (int)tileSizeY - 1 ) / (int)tileSizeY;
+
+            cmd.DispatchCompute( mResources.deformationAccumulateComputeShader, kernel, numTilesX, numTilesY, 1 );
         }
 
         public void Update( ScriptableRenderContext renderContext, float time, float lastTime, uint frameCount )
@@ -41,11 +66,16 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 {
                     mDeformationAccumulateKernel_Reset = mResources.deformationAccumulateComputeShader.FindKernel( "DeformationAccumulate_Reset" );
                 }
+                if( mDeformationAccumulateKernel_Blur < 0 )
+                {
+                    mDeformationAccumulateKernel_Blur = mResources.deformationAccumulateComputeShader.FindKernel( "DeformationAccumulate_Blur" );
+                }
             }
 
             bool bCameraDirty = root.UpdateCamera();
             int kernel = ( mbResetTarget || bCameraDirty ) ? mDeformationAccumulateKernel_Reset : mDeformationAccumulateKernel;
-            if( kernel < 0 )
+            int kernelBlur = mDeformationAccumulateKernel_Blur;
+            if( kernel < 0 || kernelBlur < 0 )
             {
                 return;
             }
@@ -87,7 +117,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             CoreUtils.SetRenderTarget( cmd, mDeformationDepth, ClearFlag.Depth );
             renderContext.ExecuteCommandBuffer( cmd );
-            CommandBufferPool.Release( cmd );
+            cmd.Clear();
 
             //
             DrawRendererSettings rendererSettings = new DrawRendererSettings();
@@ -120,7 +150,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
  
             cmd.SetComputeIntParams( mResources.deformationAccumulateComputeShader,
                 HDShaderIDs._DeformationTexelParams,
-                cameraTexelPositionU, cameraTexelPositionV, kTextureSize - 1 );
+                cameraTexelPositionU, cameraTexelPositionV, kTextureSize - 1, root.DeformationBlurPixelRadius );
 
             float depthScale = -root.DeformationHeight;
             float depthBias = root.DeformationHeight + cameraWorldPosition.y;
@@ -129,25 +159,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 HDShaderIDs._DeformationDepthParams,
                 new Vector4( depthScale, depthBias, depthFill, 0.0f ) );
 
-            cmd.SetComputeTextureParam( mResources.deformationAccumulateComputeShader,
-                kernel,
-                HDShaderIDs._DeformationDepthTexture,
-                mDeformationDepth );
-            cmd.SetComputeTextureParam( mResources.deformationAccumulateComputeShader,
-                kernel,
-                HDShaderIDs._DeformationTexture,
-                mDeformationTarget );
-
-            uint tileSizeX = 0u;
-            uint tileSizeY = 0u;
-            uint tileSizeZ = 0u;
-            mResources.deformationAccumulateComputeShader.GetKernelThreadGroupSizes( kernel,
-                out tileSizeX, out tileSizeY, out tileSizeZ );
-
-            int numTilesX = ( kTextureSize + (int)tileSizeX - 1 ) / (int)tileSizeX;
-            int numTilesY = ( kTextureSize + (int)tileSizeY - 1 ) / (int)tileSizeY;
-
-            cmd.DispatchCompute( mResources.deformationAccumulateComputeShader, kernel, numTilesX, numTilesY, 1 );
+            SubmitComputePass( cmd, kernelBlur, mDeformationDepth, mDeformationTemp );
+            SubmitComputePass( cmd, kernel, mDeformationTemp, mDeformationTarget );
+            
+            renderContext.ExecuteCommandBuffer( cmd );
+            CommandBufferPool.Release( cmd );
 
             mbResetTarget = false;
         }
@@ -155,8 +171,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         private RenderPipelineResources mResources;
         private int mDeformationAccumulateKernel = -1;
         private int mDeformationAccumulateKernel_Reset = -1;
+        private int mDeformationAccumulateKernel_Blur = -1;
 
         private RTHandleSystem.RTHandle mDeformationDepth;
+        private RTHandleSystem.RTHandle mDeformationTemp;
         private RTHandleSystem.RTHandle mDeformationTarget;
         private bool mbResetTarget = true;
     }

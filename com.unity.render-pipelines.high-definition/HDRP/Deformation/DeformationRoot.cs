@@ -13,6 +13,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public float DeformationFillRate = 0.01f;
         public float DeformationExtent = 16.0f;
 
+        [Range(0, 16)]
+        public int DeformationBlurPixelRadius = 8;
+
         public HDCamera HDCamera { get { return mHDRenderCamera; } }
 
         public bool UpdateCamera()

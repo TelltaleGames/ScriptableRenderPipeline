@@ -1,6 +1,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel DeformationAccumulate
 #pragma kernel DeformationAccumulate_Reset
+#pragma kernel DeformationAccumulate_Blur
 
 #define kNumThreads 16
 #define kMaxDepth 1000.0f
@@ -15,47 +16,65 @@
 #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
 
 //
-TEXTURE2D( _DeformationDepthTexture );
-RW_TEXTURE2D( float, _DeformationTexture );
+TEXTURE2D( _DeformationInputTexture );
+RW_TEXTURE2D( float, _DeformationOutputTexture );
 
 CBUFFER_START( DeformationComputeParameters )
 float4 _DeformationDepthParams;
-int3 _DeformationTexelParams;
+int4 _DeformationTexelParams;
 CBUFFER_END
+
+#define _DeformationBlurRadius _DeformationTexelParams.w
+
+//
+float SampleDeformedDepth( int2 texelLocation, int2 direction, bool bWrap )
+{
+    float rcpMaxDistance2 = ( _DeformationBlurRadius > 0 ) ? rcp( _DeformationBlurRadius * _DeformationBlurRadius ) : 0.0f;
+
+    float value = 0.0f;
+    for( int offset = -_DeformationBlurRadius; offset <= _DeformationBlurRadius; ++offset )
+    {
+        int2 sampleTexelLocation = bWrap
+            ? ( texelLocation + _DeformationTexelParams.xy + direction * offset ) & _DeformationTexelParams.z
+            : clamp( texelLocation + direction * offset, 0, _DeformationTexelParams.z );
+
+        float attenuation = saturate( 1.2f - offset * offset * rcpMaxDistance2 );
+        float sampleValue = LOAD_TEXTURE2D( _DeformationInputTexture, sampleTexelLocation ).x;
+        value = max( value, sampleValue * attenuation );
+    }
+
+    return value;
+}
+
+//
+[numthreads( kNumThreads, kNumThreads, 1 )]
+void DeformationAccumulate_Blur( uint2 id : SV_DispatchThreadID )
+{
+    _DeformationOutputTexture[id] = SampleDeformedDepth( id, int2( 1, 0 ), true );
+}
 
 //
 [numthreads( kNumThreads, kNumThreads, 1 )]
 void DeformationAccumulate( uint2 id : SV_DispatchThreadID )
 {
-    int2 srcTexelLocation = ( id + _DeformationTexelParams.xy ) & _DeformationTexelParams.z;
-    float normalizedDeformedDepth = LOAD_TEXTURE2D( _DeformationDepthTexture, srcTexelLocation ).x;
+    float normalizedDeformedDepth = SampleDeformedDepth( id, int2( 0, 1 ), false );
+    float deformedDepth = ( normalizedDeformedDepth > 0.0f )
+        ? normalizedDeformedDepth * _DeformationDepthParams.x + _DeformationDepthParams.y
+        : kMaxDepth;
 
-    float currentDepthValue = _DeformationTexture[id];
-    if( normalizedDeformedDepth != 0.0f )
-    {
-        float deformedDepth = normalizedDeformedDepth * _DeformationDepthParams.x + _DeformationDepthParams.y;
-        currentDepthValue = min( currentDepthValue, deformedDepth );
-    }
-    else
-    {
-        currentDepthValue = min( currentDepthValue + _DeformationDepthParams.z, kMaxDepth );
-    }
-
-    _DeformationTexture[id] = currentDepthValue;
+    float currentDepthValue = _DeformationOutputTexture[id];
+    currentDepthValue = min( currentDepthValue + _DeformationDepthParams.z, deformedDepth );
+    _DeformationOutputTexture[id] = currentDepthValue;
 }
 
 //
 [numthreads( kNumThreads, kNumThreads, 1 )]
 void DeformationAccumulate_Reset( uint2 id : SV_DispatchThreadID )
 {
-    int2 srcTexelLocation = ( id + _DeformationTexelParams.xy ) & _DeformationTexelParams.z;
-    float normalizedDeformedDepth = LOAD_TEXTURE2D( _DeformationDepthTexture, srcTexelLocation ).x;
-
-    float currentDepthValue = kMaxDepth;
-    if( normalizedDeformedDepth != 0.0f )
-    {
-        currentDepthValue = normalizedDeformedDepth * _DeformationDepthParams.x + _DeformationDepthParams.y;
-    }
+    float normalizedDeformedDepth = SampleDeformedDepth( id, int2( 0, 1 ), false );
+    float deformedDepth = ( normalizedDeformedDepth > 0.0f )
+        ? normalizedDeformedDepth * _DeformationDepthParams.x + _DeformationDepthParams.y
+        : kMaxDepth;
     
-    _DeformationTexture[id] = currentDepthValue;
+    _DeformationOutputTexture[id] = deformedDepth;
 }
